@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/artifacts-request.schema.json",
+  "title": "ArtifactsRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "artifacts"
+  ],
+  "properties": {
+    "artifacts": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "name",
+          "contentType",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "const": "screenshot",
+                "type": "string"
+              },
+              {
+                "const": "frame",
+                "type": "string"
+              },
+              {
+                "const": "trace",
+                "type": "string"
+              },
+              {
+                "const": "video",
+                "type": "string"
+              },
+              {
+                "const": "har",
+                "type": "string"
+              },
+              {
+                "const": "packet",
+                "type": "string"
+              },
+              {
+                "const": "report",
+                "type": "string"
+              },
+              {
+                "const": "baseline",
+                "type": "string"
+              },
+              {
+                "const": "log",
+                "type": "string"
+              }
+            ]
+          },
+          "name": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$",
+            "type": "string"
+          },
+          "contentType": {
+            "pattern": "^[a-z]+/[A-Za-z0-9.+-]+$",
+            "type": "string"
+          },
+          "bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "sha256:<64 hex>",
+            "type": "string"
+          },
+          "stepId": {
+            "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

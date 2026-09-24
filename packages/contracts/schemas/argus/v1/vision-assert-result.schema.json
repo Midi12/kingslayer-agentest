@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/vision-assert-result.schema.json",
+  "title": "VisionAssertResult",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "answer",
+    "certainty",
+    "rationale"
+  ],
+  "properties": {
+    "answer": {
+      "anyOf": [
+        {
+          "const": "yes",
+          "type": "string"
+        },
+        {
+          "const": "no",
+          "type": "string"
+        },
+        {
+          "const": "unsure",
+          "type": "string"
+        }
+      ]
+    },
+    "certainty": {
+      "anyOf": [
+        {
+          "const": "low",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "high",
+          "type": "string"
+        }
+      ]
+    },
+    "rationale": {
+      "minLength": 1,
+      "maxLength": 2000,
+      "type": "string"
+    }
+  }
+}

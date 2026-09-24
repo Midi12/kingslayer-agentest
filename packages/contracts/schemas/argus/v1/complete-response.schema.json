@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/complete-response.schema.json",
+  "title": "CompleteResponse",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "runId",
+    "verdict",
+    "flags",
+    "credits"
+  ],
+  "properties": {
+    "runId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "verdict": {
+      "anyOf": [
+        {
+          "const": "passed",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "type": "string"
+        },
+        {
+          "const": "broken",
+          "type": "string"
+        },
+        {
+          "const": "aborted",
+          "type": "string"
+        },
+        {
+          "const": "canceled",
+          "type": "string"
+        }
+      ]
+    },
+    "flags": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "adjudicated",
+        "healed"
+      ],
+      "properties": {
+        "adjudicated": {
+          "type": "boolean"
+        },
+        "healed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "credits": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "reserved",
+        "settled"
+      ],
+      "properties": {
+        "reserved": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "settled": {
+          "minimum": 0,
+          "type": "number"
+        }
+      }
+    }
+  }
+}

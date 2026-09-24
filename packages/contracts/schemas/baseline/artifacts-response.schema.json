@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/artifacts-response.schema.json",
+  "title": "ArtifactsResponse",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "uploads"
+  ],
+  "properties": {
+    "uploads": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "ref",
+          "url",
+          "method",
+          "headers",
+          "expiresAt"
+        ],
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "ref": {
+            "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+            "maxLength": 1024,
+            "description": "Artifact reference, art://…",
+            "type": "string"
+          },
+          "url": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "description": "Pre-signed PUT URL",
+            "type": "string"
+          },
+          "method": {
+            "const": "PUT",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": false,
+            "type": "object",
+            "patternProperties": {
+              "^[A-Za-z0-9-]{1,128}$": {
+                "maxLength": 4096,
+                "type": "string"
+              }
+            }
+          },
+          "expiresAt": {
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+            "description": "ISO 8601 timestamp with a zone",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

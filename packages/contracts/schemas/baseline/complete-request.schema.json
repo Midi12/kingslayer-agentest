@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/complete-request.schema.json",
+  "title": "CompleteRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "leaseId",
+    "termination",
+    "lastSeq",
+    "counters"
+  ],
+  "properties": {
+    "leaseId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "termination": {
+      "anyOf": [
+        {
+          "const": "completed",
+          "type": "string"
+        },
+        {
+          "const": "aborted",
+          "type": "string"
+        },
+        {
+          "const": "canceled",
+          "type": "string"
+        },
+        {
+          "const": "setup_failed",
+          "type": "string"
+        },
+        {
+          "const": "runner_lost",
+          "type": "string"
+        }
+      ]
+    },
+    "lastSeq": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "counters": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "steps",
+        "passed",
+        "failed",
+        "broken",
+        "skipped",
+        "escalations",
+        "handlerFirings",
+        "jevCalls",
+        "llmCalls",
+        "durationMs"
+      ],
+      "properties": {
+        "steps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "passed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "failed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "broken": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "skipped": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "escalations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "handlerFirings": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "jevCalls": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "llmCalls": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "durationMs": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "error": {
+      "minLength": 1,
+      "maxLength": 2000,
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/run-report.schema.json",
+  "title": "RunReport",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "runId",
+    "verdict",
+    "flags",
+    "stats",
+    "summary",
+    "defects",
+    "adjudications",
+    "heals",
+    "maintenance",
+    "generatedBy"
+  ],
+  "properties": {
+    "runId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "verdict": {
+      "anyOf": [
+        {
+          "const": "passed",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "type": "string"
+        },
+        {
+          "const": "broken",
+          "type": "string"
+        },
+        {
+          "const": "aborted",
+          "type": "string"
+        },
+        {
+          "const": "canceled",
+          "type": "string"
+        }
+      ]
+    },
+    "flags": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "adjudicated",
+        "healed"
+      ],
+      "properties": {
+        "adjudicated": {
+          "type": "boolean"
+        },
+        "healed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "stats": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "steps",
+        "passed",
+        "failed",
+        "broken",
+        "skipped",
+        "durationMs",
+        "jevCalls",
+        "llmCalls",
+        "credits"
+      ],
+      "properties": {
+        "steps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "passed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "failed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "broken": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "skipped": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "durationMs": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "jevCalls": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "llmCalls": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "credits": {
+          "minimum": 0,
+          "type": "number"
+        }
+      }
+    },
+    "summary": {
+      "minLength": 1,
+      "maxLength": 4000,
+      "type": "string"
+    },
+    "defects": {
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "stepId",
+          "title",
+          "severity",
+          "classification",
+          "signature"
+        ],
+        "properties": {
+          "id": {
+            "pattern": "^def_[A-Za-z0-9_-]{1,64}$",
+            "type": "string"
+          },
+          "stepId": {
+            "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "maxLength": 200,
+            "type": "string"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "const": "critical",
+                "type": "string"
+              },
+              {
+                "const": "major",
+                "type": "string"
+              },
+              {
+                "const": "minor",
+                "type": "string"
+              },
+              {
+                "const": "trivial",
+                "type": "string"
+              }
+            ]
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "const": "PRODUCT_DEFECT",
+                "type": "string"
+              },
+              {
+                "const": "TEST_DRIFT",
+                "type": "string"
+              },
+              {
+                "const": "ENVIRONMENT",
+                "type": "string"
+              },
+              {
+                "const": "TRANSIENT",
+                "type": "string"
+              }
+            ]
+          },
+          "signature": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "sha256:<64 hex>",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "adjudications": {
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stepId",
+          "decision",
+          "rationale"
+        ],
+        "properties": {
+          "stepId": {
+            "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+            "type": "string"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "const": "MARK_PASSED",
+                "type": "string"
+              },
+              {
+                "const": "RESOLVE_TARGET",
+                "type": "string"
+              }
+            ]
+          },
+          "rationale": {
+            "minLength": 1,
+            "maxLength": 2000,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "heals": {
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stepId",
+          "status"
+        ],
+        "properties": {
+          "stepId": {
+            "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "const": "pending",
+                "type": "string"
+              },
+              {
+                "const": "approved",
+                "type": "string"
+              },
+              {
+                "const": "rejected",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "maintenance": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stepId",
+          "suggestion"
+        ],
+        "properties": {
+          "stepId": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suggestion": {
+            "minLength": 1,
+            "maxLength": 2000,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "generatedBy": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "model",
+        "promptVersion"
+      ],
+      "properties": {
+        "model": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "promptVersion": {
+          "pattern": "^[a-z]-[0-9]+$",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

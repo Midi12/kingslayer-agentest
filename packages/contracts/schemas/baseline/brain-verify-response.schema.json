@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/brain-verify-response.schema.json",
+  "title": "BrainVerifyResponse",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "result",
+    "usage"
+  ],
+  "properties": {
+    "result": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "answers",
+        "probes",
+        "handlers",
+        "model",
+        "usage",
+        "latencyMs",
+        "cacheHit"
+      ],
+      "properties": {
+        "answers": {
+          "additionalProperties": false,
+          "description": "Noul probability per expectation key",
+          "type": "object",
+          "patternProperties": {
+            "^expect_[0-9]{1,2}$": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            }
+          }
+        },
+        "probes": {
+          "description": "Noul probability per standard probe that was asked",
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "error_ui": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "auth_lost": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "blocking_modal": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "loading": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            }
+          }
+        },
+        "handlers": {
+          "additionalProperties": false,
+          "description": "Noul probability per handler id",
+          "type": "object",
+          "patternProperties": {
+            "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            }
+          }
+        },
+        "screen": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "pick",
+            "confidence",
+            "probabilities"
+          ],
+          "properties": {
+            "pick": {
+              "anyOf": [
+                {
+                  "const": "expected",
+                  "type": "string"
+                },
+                {
+                  "const": "same_app_other",
+                  "type": "string"
+                },
+                {
+                  "const": "error_or_blank",
+                  "type": "string"
+                },
+                {
+                  "const": "external",
+                  "type": "string"
+                }
+              ]
+            },
+            "confidence": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "probabilities": {
+              "additionalProperties": false,
+              "type": "object",
+              "patternProperties": {
+                "^[A-Za-z0-9_-]{1,64}$": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "model": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "usage": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "inputTokens"
+          ],
+          "properties": {
+            "inputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "outputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "latencyMs": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "cacheHit": {
+          "type": "boolean"
+        }
+      }
+    },
+    "usage": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "provider",
+        "model",
+        "calls",
+        "inputTokens",
+        "outputTokens",
+        "billable"
+      ],
+      "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "const": "jev",
+              "type": "string"
+            },
+            {
+              "const": "llm",
+              "type": "string"
+            },
+            {
+              "const": "none",
+              "type": "string"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calls": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "inputTokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "outputTokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "billable": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "operation",
+                "quantity"
+              ],
+              "properties": {
+                "operation": {
+                  "anyOf": [
+                    {
+                      "const": "step",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ai_vision",
+                      "type": "string"
+                    },
+                    {
+                      "const": "escalation",
+                      "type": "string"
+                    },
+                    {
+                      "const": "report",
+                      "type": "string"
+                    },
+                    {
+                      "const": "compile",
+                      "type": "string"
+                    },
+                    {
+                      "const": "runner_minute",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "quantity": {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

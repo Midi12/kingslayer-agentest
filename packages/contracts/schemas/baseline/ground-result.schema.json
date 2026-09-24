@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/ground-result.schema.json",
+  "title": "GroundResult",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "pick",
+    "confidence",
+    "probabilities",
+    "targetPresent",
+    "model",
+    "usage",
+    "latencyMs",
+    "cacheHit"
+  ],
+  "properties": {
+    "pick": {
+      "description": "Candidate id, or null",
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_-]{1,32}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "confidence": {
+      "minimum": 0,
+      "maximum": 1,
+      "type": "number"
+    },
+    "probabilities": {
+      "additionalProperties": false,
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z0-9_-]{1,64}$": {
+          "minimum": 0,
+          "maximum": 1,
+          "type": "number"
+        }
+      }
+    },
+    "targetPresent": {
+      "minimum": 0,
+      "maximum": 1,
+      "type": "number"
+    },
+    "confirm": {
+      "additionalProperties": false,
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z0-9_-]{1,64}$": {
+          "minimum": 0,
+          "maximum": 1,
+          "type": "number"
+        }
+      }
+    },
+    "model": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "usage": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "inputTokens"
+      ],
+      "properties": {
+        "inputTokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "outputTokens": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "latencyMs": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "cacheHit": {
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/lint-finding.schema.json",
+  "title": "LintFinding",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "code",
+    "stepId",
+    "path",
+    "message",
+    "severity"
+  ],
+  "properties": {
+    "code": {
+      "anyOf": [
+        {
+          "const": "L1",
+          "type": "string"
+        },
+        {
+          "const": "L2",
+          "type": "string"
+        },
+        {
+          "const": "L3",
+          "type": "string"
+        },
+        {
+          "const": "L4",
+          "type": "string"
+        },
+        {
+          "const": "L5",
+          "type": "string"
+        },
+        {
+          "const": "L6",
+          "type": "string"
+        },
+        {
+          "const": "L7",
+          "type": "string"
+        },
+        {
+          "const": "L8",
+          "type": "string"
+        }
+      ]
+    },
+    "stepId": {
+      "description": "Step or handler the finding is about; null for the whole script",
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "path": {
+      "pattern": "^(/[^/]*)*$",
+      "description": "JSON Pointer into the script",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "maxLength": 1000,
+      "type": "string"
+    },
+    "severity": {
+      "anyOf": [
+        {
+          "const": "error",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/runner-register-request.schema.json",
+  "title": "RunnerRegisterRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "name",
+    "version",
+    "kind",
+    "slots",
+    "labels"
+  ],
+  "properties": {
+    "name": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+      "type": "string"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "const": "cloud",
+          "type": "string"
+        },
+        {
+          "const": "self-hosted",
+          "type": "string"
+        },
+        {
+          "const": "ephemeral",
+          "type": "string"
+        }
+      ]
+    },
+    "slots": {
+      "minimum": 1,
+      "maximum": 64,
+      "type": "integer"
+    },
+    "labels": {
+      "uniqueItems": true,
+      "maxItems": 32,
+      "type": "array",
+      "items": {
+        "pattern": "^[a-z0-9]([a-z0-9._/-]{0,62}[a-z0-9])?$",
+        "type": "string"
+      }
+    },
+    "platform": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "os",
+        "arch"
+      ],
+      "properties": {
+        "os": {
+          "minLength": 1,
+          "maxLength": 32,
+          "type": "string"
+        },
+        "arch": {
+          "minLength": 1,
+          "maxLength": 32,
+          "type": "string"
+        }
+      }
+    }
+  }
+}

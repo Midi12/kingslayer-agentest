@@ -1,0 +1,1326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/analyst-decision.schema.json",
+  "title": "AnalystDecision",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "decision",
+    "classification",
+    "certainty",
+    "rationale",
+    "evidence"
+  ],
+  "properties": {
+    "decision": {
+      "anyOf": [
+        {
+          "const": "RETRY_STEP",
+          "type": "string"
+        },
+        {
+          "const": "PATCH",
+          "type": "string"
+        },
+        {
+          "const": "RESOLVE_TARGET",
+          "type": "string"
+        },
+        {
+          "const": "MARK_PASSED",
+          "type": "string"
+        },
+        {
+          "const": "MARK_FAILED_CONTINUE",
+          "type": "string"
+        },
+        {
+          "const": "MARK_FAILED_ABORT",
+          "type": "string"
+        },
+        {
+          "const": "ABORT_ENV",
+          "type": "string"
+        }
+      ]
+    },
+    "classification": {
+      "anyOf": [
+        {
+          "const": "PRODUCT_DEFECT",
+          "type": "string"
+        },
+        {
+          "const": "TEST_DRIFT",
+          "type": "string"
+        },
+        {
+          "const": "ENVIRONMENT",
+          "type": "string"
+        },
+        {
+          "const": "TRANSIENT",
+          "type": "string"
+        }
+      ]
+    },
+    "certainty": {
+      "anyOf": [
+        {
+          "const": "low",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "high",
+          "type": "string"
+        }
+      ]
+    },
+    "rationale": {
+      "minLength": 1,
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "evidence": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "frame": {
+            "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+            "maxLength": 1024,
+            "description": "Artifact reference, art://…",
+            "type": "string"
+          },
+          "observation": {
+            "anyOf": [
+              {
+                "const": "before",
+                "type": "string"
+              },
+              {
+                "const": "after",
+                "type": "string"
+              }
+            ]
+          },
+          "check": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "console": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "network": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "note": {
+            "minLength": 1,
+            "maxLength": 1000,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "patch": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "discriminator": {
+          "propertyName": "type"
+        },
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "url"
+            ],
+            "properties": {
+              "type": {
+                "const": "navigate",
+                "type": "string"
+              },
+              "url": {
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Relative URL, or absolute inside the origin allow-list",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "target"
+            ],
+            "properties": {
+              "type": {
+                "anyOf": [
+                  {
+                    "const": "click",
+                    "type": "string"
+                  },
+                  {
+                    "const": "dblclick",
+                    "type": "string"
+                  },
+                  {
+                    "const": "rightclick",
+                    "type": "string"
+                  },
+                  {
+                    "const": "hover",
+                    "type": "string"
+                  },
+                  {
+                    "const": "check",
+                    "type": "string"
+                  },
+                  {
+                    "const": "uncheck",
+                    "type": "string"
+                  }
+                ]
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "target",
+              "value"
+            ],
+            "properties": {
+              "type": {
+                "const": "fill",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              },
+              "value": {
+                "maxLength": 10000,
+                "description": "Text to enter; secrets only as ${secret.NAME}",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "target"
+            ],
+            "properties": {
+              "type": {
+                "const": "clear",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "target",
+              "option"
+            ],
+            "properties": {
+              "type": {
+                "const": "select",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              },
+              "option": {
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "Visible label or value of the option to select",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "keys"
+            ],
+            "properties": {
+              "type": {
+                "const": "press",
+                "type": "string"
+              },
+              "keys": {
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Playwright key or chord, e.g. Enter or Control+A",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "target",
+              "file"
+            ],
+            "properties": {
+              "type": {
+                "const": "upload",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              },
+              "file": {
+                "pattern": "^(?![/\\\\])(?!(.*/)?\\.\\.(/|$))[^\\\\]+$",
+                "maxLength": 500,
+                "description": "Relative reference to a project dataset file",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "source",
+              "destination"
+            ],
+            "properties": {
+              "type": {
+                "const": "drag",
+                "type": "string"
+              },
+              "source": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              },
+              "destination": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "direction",
+              "amount"
+            ],
+            "properties": {
+              "type": {
+                "const": "scroll",
+                "type": "string"
+              },
+              "target": {
+                "description": "Patch targets are descriptions and pass through the grounding gate",
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Literal description of the element, used for grounding",
+                    "type": "string"
+                  },
+                  "hints": {
+                    "description": "Optional grounding hints; the description stays authoritative",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      "text": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "label": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "testId": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "near": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "region": {
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "frame": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name or URL fragment of the frame holding the element",
+                    "type": "string"
+                  }
+                }
+              },
+              "direction": {
+                "anyOf": [
+                  {
+                    "const": "up",
+                    "type": "string"
+                  },
+                  {
+                    "const": "down",
+                    "type": "string"
+                  },
+                  {
+                    "const": "left",
+                    "type": "string"
+                  },
+                  {
+                    "const": "right",
+                    "type": "string"
+                  }
+                ]
+              },
+              "amount": {
+                "minimum": 1,
+                "maximum": 100000,
+                "description": "Pixels",
+                "type": "integer"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "wait",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "assert",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "discriminator": {
+              "propertyName": "parse"
+            },
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "type",
+                  "target",
+                  "into",
+                  "parse"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "extract",
+                    "type": "string"
+                  },
+                  "target": {
+                    "description": "Patch targets are descriptions and pass through the grounding gate",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "description"
+                    ],
+                    "properties": {
+                      "description": {
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Literal description of the element, used for grounding",
+                        "type": "string"
+                      },
+                      "hints": {
+                        "description": "Optional grounding hints; the description stays authoritative",
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "type": "string"
+                          },
+                          "text": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "label": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "testId": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "near": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "region": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Name or URL fragment of the frame holding the element",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "into": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+                    "type": "string"
+                  },
+                  "parse": {
+                    "anyOf": [
+                      {
+                        "const": "text",
+                        "type": "string"
+                      },
+                      {
+                        "const": "number",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "type",
+                  "target",
+                  "into",
+                  "parse",
+                  "pattern"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "extract",
+                    "type": "string"
+                  },
+                  "target": {
+                    "description": "Patch targets are descriptions and pass through the grounding gate",
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "description"
+                    ],
+                    "properties": {
+                      "description": {
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Literal description of the element, used for grounding",
+                        "type": "string"
+                      },
+                      "hints": {
+                        "description": "Optional grounding hints; the description stays authoritative",
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "type": "string"
+                          },
+                          "text": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "label": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "testId": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "near": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "region": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Name or URL fragment of the frame holding the element",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "into": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+                    "type": "string"
+                  },
+                  "parse": {
+                    "const": "regex",
+                    "type": "string"
+                  },
+                  "pattern": {
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "ECMAScript regular expression; group 1, else the match",
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type",
+              "request",
+              "expectStatus"
+            ],
+            "properties": {
+              "type": {
+                "const": "http",
+                "type": "string"
+              },
+              "request": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "method",
+                      "url",
+                      "json"
+                    ],
+                    "properties": {
+                      "method": {
+                        "anyOf": [
+                          {
+                            "const": "GET",
+                            "type": "string"
+                          },
+                          {
+                            "const": "HEAD",
+                            "type": "string"
+                          },
+                          {
+                            "const": "POST",
+                            "type": "string"
+                          },
+                          {
+                            "const": "PUT",
+                            "type": "string"
+                          },
+                          {
+                            "const": "PATCH",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DELETE",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "url": {
+                        "minLength": 1,
+                        "maxLength": 2048,
+                        "description": "Absolute URL whose host is allow-listed, or ${env.NAME}/…",
+                        "type": "string"
+                      },
+                      "headers": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "patternProperties": {
+                          "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$": {
+                            "maxLength": 4096,
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "json": {
+                        "description": "JSON request body"
+                      }
+                    }
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "method",
+                      "url"
+                    ],
+                    "properties": {
+                      "method": {
+                        "anyOf": [
+                          {
+                            "const": "GET",
+                            "type": "string"
+                          },
+                          {
+                            "const": "HEAD",
+                            "type": "string"
+                          },
+                          {
+                            "const": "POST",
+                            "type": "string"
+                          },
+                          {
+                            "const": "PUT",
+                            "type": "string"
+                          },
+                          {
+                            "const": "PATCH",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DELETE",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "url": {
+                        "minLength": 1,
+                        "maxLength": 2048,
+                        "description": "Absolute URL whose host is allow-listed, or ${env.NAME}/…",
+                        "type": "string"
+                      },
+                      "headers": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "patternProperties": {
+                          "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$": {
+                            "maxLength": 4096,
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "body": {
+                        "maxLength": 1000000,
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              },
+              "expectStatus": {
+                "minimum": 100,
+                "maximum": 599,
+                "type": "integer"
+              },
+              "into": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "resolveTarget": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "cid"
+      ],
+      "properties": {
+        "cid": {
+          "pattern": "^[A-Za-z0-9_-]{1,32}$",
+          "type": "string"
+        }
+      }
+    },
+    "defect": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "title",
+            "severity",
+            "expected",
+            "actual"
+          ],
+          "properties": {
+            "title": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            },
+            "severity": {
+              "anyOf": [
+                {
+                  "const": "critical",
+                  "type": "string"
+                },
+                {
+                  "const": "major",
+                  "type": "string"
+                },
+                {
+                  "const": "minor",
+                  "type": "string"
+                },
+                {
+                  "const": "trivial",
+                  "type": "string"
+                }
+              ]
+            },
+            "expected": {
+              "minLength": 1,
+              "maxLength": 1000,
+              "type": "string"
+            },
+            "actual": {
+              "minLength": 1,
+              "maxLength": 1000,
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scriptSuggestion": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

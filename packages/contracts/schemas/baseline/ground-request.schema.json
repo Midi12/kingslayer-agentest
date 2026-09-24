@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/ground-request.schema.json",
+  "title": "GroundRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "runId",
+    "stepId",
+    "risk",
+    "step",
+    "observation"
+  ],
+  "properties": {
+    "runId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "stepId": {
+      "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+      "type": "string"
+    },
+    "risk": {
+      "anyOf": [
+        {
+          "const": "read",
+          "type": "string"
+        },
+        {
+          "const": "write",
+          "type": "string"
+        },
+        {
+          "const": "critical",
+          "type": "string"
+        }
+      ]
+    },
+    "step": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "intent",
+        "action",
+        "target"
+      ],
+      "properties": {
+        "intent": {
+          "minLength": 1,
+          "maxLength": 300,
+          "type": "string"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "const": "navigate",
+              "type": "string"
+            },
+            {
+              "const": "click",
+              "type": "string"
+            },
+            {
+              "const": "dblclick",
+              "type": "string"
+            },
+            {
+              "const": "rightclick",
+              "type": "string"
+            },
+            {
+              "const": "hover",
+              "type": "string"
+            },
+            {
+              "const": "check",
+              "type": "string"
+            },
+            {
+              "const": "uncheck",
+              "type": "string"
+            },
+            {
+              "const": "fill",
+              "type": "string"
+            },
+            {
+              "const": "clear",
+              "type": "string"
+            },
+            {
+              "const": "select",
+              "type": "string"
+            },
+            {
+              "const": "press",
+              "type": "string"
+            },
+            {
+              "const": "upload",
+              "type": "string"
+            },
+            {
+              "const": "drag",
+              "type": "string"
+            },
+            {
+              "const": "scroll",
+              "type": "string"
+            },
+            {
+              "const": "wait",
+              "type": "string"
+            },
+            {
+              "const": "assert",
+              "type": "string"
+            },
+            {
+              "const": "extract",
+              "type": "string"
+            },
+            {
+              "const": "http",
+              "type": "string"
+            }
+          ]
+        },
+        "target": {
+          "description": "A user-interface element named by what it is, not how to find it",
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "description"
+          ],
+          "properties": {
+            "description": {
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Literal description of the element, used for grounding",
+              "type": "string"
+            },
+            "hints": {
+              "description": "Optional grounding hints; the description stays authoritative",
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "role": {
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "label": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "testId": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "near": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "region": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                }
+              }
+            },
+            "frame": {
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Name or URL fragment of the frame holding the element",
+              "type": "string"
+            },
+            "locator": {
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Explicit Playwright locator; bypasses AI grounding",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "observation": {
+      "description": "An observation after stripForNavigator(): nothing runner-only remains",
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "obsId",
+        "ts",
+        "url",
+        "title",
+        "page",
+        "candidates",
+        "console",
+        "network",
+        "frames",
+        "digestHash"
+      ],
+      "properties": {
+        "obsId": {
+          "pattern": "^obs_[A-Za-z0-9_-]{1,64}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 2048,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "type": "string"
+        },
+        "page": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "headings",
+            "dialogs",
+            "alerts",
+            "loading",
+            "textDigest"
+          ],
+          "properties": {
+            "headings": {
+              "maxItems": 64,
+              "type": "array",
+              "items": {
+                "maxLength": 300,
+                "type": "string"
+              }
+            },
+            "dialogs": {
+              "maxItems": 16,
+              "type": "array",
+              "items": {
+                "maxLength": 1000,
+                "type": "string"
+              }
+            },
+            "alerts": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "maxLength": 1000,
+                "type": "string"
+              }
+            },
+            "loading": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "inflightRequests",
+                "spinners"
+              ],
+              "properties": {
+                "inflightRequests": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "spinners": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            },
+            "textDigest": {
+              "maxLength": 20000,
+              "type": "string"
+            }
+          }
+        },
+        "candidates": {
+          "maxItems": 5000,
+          "type": "array",
+          "items": {
+            "description": "A candidate as it may leave the runner: no bbox, attrs or fingerprint",
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "cid",
+              "role",
+              "name",
+              "tag",
+              "state",
+              "context",
+              "source"
+            ],
+            "properties": {
+              "cid": {
+                "pattern": "^[A-Za-z0-9_-]{1,32}$",
+                "type": "string"
+              },
+              "role": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "name": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "tag": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "state": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "visible": {
+                    "type": "boolean"
+                  },
+                  "checked": {
+                    "type": "boolean"
+                  },
+                  "selected": {
+                    "type": "boolean"
+                  },
+                  "expanded": {
+                    "type": "boolean"
+                  },
+                  "focused": {
+                    "type": "boolean"
+                  },
+                  "readonly": {
+                    "type": "boolean"
+                  },
+                  "value": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                }
+              },
+              "context": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "row": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  },
+                  "heading": {
+                    "maxLength": 300,
+                    "type": "string"
+                  },
+                  "legend": {
+                    "maxLength": 300,
+                    "type": "string"
+                  },
+                  "region": {
+                    "maxLength": 300,
+                    "type": "string"
+                  },
+                  "labels": {
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "maxLength": 300,
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "color": {
+                "anyOf": [
+                  {
+                    "const": "red",
+                    "type": "string"
+                  },
+                  {
+                    "const": "amber",
+                    "type": "string"
+                  },
+                  {
+                    "const": "yellow",
+                    "type": "string"
+                  },
+                  {
+                    "const": "green",
+                    "type": "string"
+                  },
+                  {
+                    "const": "blue",
+                    "type": "string"
+                  },
+                  {
+                    "const": "grey",
+                    "type": "string"
+                  },
+                  {
+                    "const": "white",
+                    "type": "string"
+                  },
+                  {
+                    "const": "black",
+                    "type": "string"
+                  }
+                ]
+              },
+              "source": {
+                "anyOf": [
+                  {
+                    "const": "dom",
+                    "type": "string"
+                  },
+                  {
+                    "const": "ocr",
+                    "type": "string"
+                  },
+                  {
+                    "const": "region",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "console": {
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "level",
+              "text"
+            ],
+            "properties": {
+              "level": {
+                "anyOf": [
+                  {
+                    "const": "error",
+                    "type": "string"
+                  },
+                  {
+                    "const": "warning",
+                    "type": "string"
+                  },
+                  {
+                    "const": "info",
+                    "type": "string"
+                  },
+                  {
+                    "const": "debug",
+                    "type": "string"
+                  }
+                ]
+              },
+              "text": {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              "ts": {
+                "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+                "description": "ISO 8601 timestamp with a zone",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "network": {
+          "maxItems": 500,
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "method",
+              "url",
+              "status"
+            ],
+            "properties": {
+              "method": {
+                "minLength": 1,
+                "maxLength": 16,
+                "type": "string"
+              },
+              "url": {
+                "minLength": 1,
+                "maxLength": 2048,
+                "type": "string"
+              },
+              "status": {
+                "minimum": 0,
+                "maximum": 999,
+                "description": "0 when the request failed",
+                "type": "integer"
+              },
+              "failure": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "ts": {
+                "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+                "description": "ISO 8601 timestamp with a zone",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "frames": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "ringHead"
+          ],
+          "properties": {
+            "before": {
+              "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+              "maxLength": 1024,
+              "description": "Artifact reference, art://…",
+              "type": "string"
+            },
+            "after": {
+              "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+              "maxLength": 1024,
+              "description": "Artifact reference, art://…",
+              "type": "string"
+            },
+            "ringHead": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "digestHash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "sha256:<64 hex>",
+          "type": "string"
+        }
+      }
+    },
+    "exclude": {
+      "maxItems": 100,
+      "description": "Candidate ids already tried and rejected in this attempt",
+      "type": "array",
+      "items": {
+        "pattern": "^[A-Za-z0-9_-]{1,32}$",
+        "type": "string"
+      }
+    }
+  }
+}

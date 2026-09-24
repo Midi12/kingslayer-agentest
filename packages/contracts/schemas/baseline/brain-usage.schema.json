@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/brain-usage.schema.json",
+  "title": "BrainUsage",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "provider",
+    "model",
+    "calls",
+    "inputTokens",
+    "outputTokens",
+    "billable"
+  ],
+  "properties": {
+    "provider": {
+      "anyOf": [
+        {
+          "const": "jev",
+          "type": "string"
+        },
+        {
+          "const": "llm",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "type": "string"
+        }
+      ]
+    },
+    "model": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "calls": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "inputTokens": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "outputTokens": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "billable": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "operation",
+            "quantity"
+          ],
+          "properties": {
+            "operation": {
+              "anyOf": [
+                {
+                  "const": "step",
+                  "type": "string"
+                },
+                {
+                  "const": "ai_vision",
+                  "type": "string"
+                },
+                {
+                  "const": "escalation",
+                  "type": "string"
+                },
+                {
+                  "const": "report",
+                  "type": "string"
+                },
+                {
+                  "const": "compile",
+                  "type": "string"
+                },
+                {
+                  "const": "runner_minute",
+                  "type": "string"
+                }
+              ]
+            },
+            "quantity": {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

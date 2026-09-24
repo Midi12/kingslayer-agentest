@@ -1,0 +1,2182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/run-event.schema.json",
+  "title": "RunEvent",
+  "discriminator": {
+    "propertyName": "type"
+  },
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.started",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "runnerId",
+            "scriptHash",
+            "environment",
+            "policy",
+            "versions"
+          ],
+          "properties": {
+            "runnerId": {
+              "minLength": 1,
+              "maxLength": 128,
+              "type": "string"
+            },
+            "scriptHash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            "environment": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "name",
+                "kind",
+                "baseUrl"
+              ],
+              "properties": {
+                "id": {
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                "name": {
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                "kind": {
+                  "anyOf": [
+                    {
+                      "const": "dev",
+                      "type": "string"
+                    },
+                    {
+                      "const": "staging",
+                      "type": "string"
+                    },
+                    {
+                      "const": "production",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ephemeral",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "baseUrl": {
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "type": "string"
+                }
+              }
+            },
+            "policy": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "strict",
+                "onBreak",
+                "failOnConsoleError",
+                "shareScreenshotsWithLlm",
+                "artifacts",
+                "pii",
+                "degrade",
+                "healApproval"
+              ],
+              "properties": {
+                "strict": {
+                  "type": "boolean"
+                },
+                "onBreak": {
+                  "anyOf": [
+                    {
+                      "const": "escalate",
+                      "type": "string"
+                    },
+                    {
+                      "const": "fail",
+                      "type": "string"
+                    },
+                    {
+                      "const": "skip",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "failOnConsoleError": {
+                  "type": "boolean"
+                },
+                "shareScreenshotsWithLlm": {
+                  "anyOf": [
+                    {
+                      "const": "never",
+                      "type": "string"
+                    },
+                    {
+                      "const": "on-break",
+                      "type": "string"
+                    },
+                    {
+                      "const": "always",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "artifacts": {
+                  "anyOf": [
+                    {
+                      "const": "on-failure",
+                      "type": "string"
+                    },
+                    {
+                      "const": "full",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "pii": {
+                  "anyOf": [
+                    {
+                      "const": "off",
+                      "type": "string"
+                    },
+                    {
+                      "const": "standard",
+                      "type": "string"
+                    },
+                    {
+                      "const": "strict",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "degrade": {
+                  "anyOf": [
+                    {
+                      "const": "analyst",
+                      "type": "string"
+                    },
+                    {
+                      "const": "fail",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "healApproval": {
+                  "anyOf": [
+                    {
+                      "const": "manual",
+                      "type": "string"
+                    },
+                    {
+                      "const": "auto",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            "versions": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "engine",
+                "questions",
+                "thresholds",
+                "models"
+              ],
+              "properties": {
+                "engine": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+                  "type": "string"
+                },
+                "questions": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+                  "type": "string"
+                },
+                "thresholds": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+                  "type": "string"
+                },
+                "models": {
+                  "additionalProperties": false,
+                  "description": "Model id per role, e.g. navigator and analyst",
+                  "type": "object",
+                  "patternProperties": {
+                    "^[a-z][a-z0-9_]{0,31}$": {
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "step.started",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "attempt",
+            "index"
+          ],
+          "properties": {
+            "attempt": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "index": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "step.finished",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "attempt",
+            "outcome",
+            "durationMs",
+            "reason"
+          ],
+          "properties": {
+            "attempt": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "const": "passed",
+                  "type": "string"
+                },
+                {
+                  "const": "failed",
+                  "type": "string"
+                },
+                {
+                  "const": "broken",
+                  "type": "string"
+                },
+                {
+                  "const": "skipped",
+                  "type": "string"
+                }
+              ]
+            },
+            "durationMs": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "TARGET_NOT_FOUND",
+                      "type": "string"
+                    },
+                    {
+                      "const": "GROUNDING_AMBIGUOUS",
+                      "type": "string"
+                    },
+                    {
+                      "const": "AUTH_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BLOCKING_MODAL",
+                      "type": "string"
+                    },
+                    {
+                      "const": "UNEXPECTED_ERROR_UI",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ASSERTION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "VISUAL_DIFF",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_UNCERTAIN",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NO_EFFECT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CONSOLE_OR_NETWORK_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ACTION_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TIMEOUT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OFF_PATH",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OBSERVE_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "SETUP_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BUDGET_EXHAUSTED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "RUNNER_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_UNAVAILABLE",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_INVALID",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NAVIGATOR_UNAVAILABLE",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "classification": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "PRODUCT_DEFECT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TEST_DRIFT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ENVIRONMENT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TRANSIENT",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "adjudicated": {
+              "type": "boolean"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "observation.captured",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "obsId",
+            "digestHash",
+            "artifacts"
+          ],
+          "properties": {
+            "obsId": {
+              "pattern": "^obs_[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "digestHash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            "artifacts": {
+              "maxItems": 16,
+              "type": "array",
+              "items": {
+                "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+                "maxLength": 1024,
+                "description": "Artifact reference, art://…",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "navigator.ground",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "requestHash",
+            "pick",
+            "confidence",
+            "top",
+            "targetPresent",
+            "source",
+            "latencyMs",
+            "inputTokens"
+          ],
+          "properties": {
+            "requestHash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            "pick": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z0-9_-]{1,32}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "confidence": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "top": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "cid",
+                  "p"
+                ],
+                "properties": {
+                  "cid": {
+                    "pattern": "^[A-Za-z0-9_-]{1,32}$",
+                    "type": "string"
+                  },
+                  "p": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "targetPresent": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            "confirm": {
+              "additionalProperties": false,
+              "type": "object",
+              "patternProperties": {
+                "^[A-Za-z0-9_-]{1,64}$": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                }
+              }
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "const": "cache",
+                  "type": "string"
+                },
+                {
+                  "const": "jev",
+                  "type": "string"
+                },
+                {
+                  "const": "vision",
+                  "type": "string"
+                }
+              ]
+            },
+            "latencyMs": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "navigator.verify",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "answers",
+            "latencyMs",
+            "inputTokens"
+          ],
+          "properties": {
+            "requestHash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            "answers": {
+              "additionalProperties": false,
+              "description": "Probability per question id (expect_i, probe_*, handler_<id>, screen_kind)",
+              "type": "object",
+              "patternProperties": {
+                "^[a-z][a-z0-9_-]{0,80}$": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                }
+              }
+            },
+            "latencyMs": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "action.performed",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "type",
+            "locator",
+            "durationMs",
+            "error"
+          ],
+          "properties": {
+            "type": {
+              "anyOf": [
+                {
+                  "const": "navigate",
+                  "type": "string"
+                },
+                {
+                  "const": "click",
+                  "type": "string"
+                },
+                {
+                  "const": "dblclick",
+                  "type": "string"
+                },
+                {
+                  "const": "rightclick",
+                  "type": "string"
+                },
+                {
+                  "const": "hover",
+                  "type": "string"
+                },
+                {
+                  "const": "check",
+                  "type": "string"
+                },
+                {
+                  "const": "uncheck",
+                  "type": "string"
+                },
+                {
+                  "const": "fill",
+                  "type": "string"
+                },
+                {
+                  "const": "clear",
+                  "type": "string"
+                },
+                {
+                  "const": "select",
+                  "type": "string"
+                },
+                {
+                  "const": "press",
+                  "type": "string"
+                },
+                {
+                  "const": "upload",
+                  "type": "string"
+                },
+                {
+                  "const": "drag",
+                  "type": "string"
+                },
+                {
+                  "const": "scroll",
+                  "type": "string"
+                },
+                {
+                  "const": "wait",
+                  "type": "string"
+                },
+                {
+                  "const": "assert",
+                  "type": "string"
+                },
+                {
+                  "const": "extract",
+                  "type": "string"
+                },
+                {
+                  "const": "http",
+                  "type": "string"
+                }
+              ]
+            },
+            "locator": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "durationMs": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "check.evaluated",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "index",
+            "outcome",
+            "measured"
+          ],
+          "properties": {
+            "kind": {
+              "anyOf": [
+                {
+                  "const": "noul",
+                  "type": "string"
+                },
+                {
+                  "const": "dom",
+                  "type": "string"
+                },
+                {
+                  "const": "url",
+                  "type": "string"
+                },
+                {
+                  "const": "color",
+                  "type": "string"
+                },
+                {
+                  "const": "blink",
+                  "type": "string"
+                },
+                {
+                  "const": "visual",
+                  "type": "string"
+                },
+                {
+                  "const": "vision",
+                  "type": "string"
+                },
+                {
+                  "const": "console",
+                  "type": "string"
+                },
+                {
+                  "const": "network",
+                  "type": "string"
+                },
+                {
+                  "const": "a11y",
+                  "type": "string"
+                }
+              ]
+            },
+            "index": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "const": "pass",
+                  "type": "string"
+                },
+                {
+                  "const": "fail",
+                  "type": "string"
+                },
+                {
+                  "const": "error",
+                  "type": "string"
+                }
+              ]
+            },
+            "measured": {
+              "additionalProperties": false,
+              "type": "object",
+              "patternProperties": {
+                "^[A-Za-z][A-Za-z0-9_]{0,63}$": {
+                  "anyOf": [
+                    {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "maxLength": 2000,
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "decision.made",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "rule",
+            "decision",
+            "reason"
+          ],
+          "properties": {
+            "rule": {
+              "minimum": 1,
+              "maximum": 11,
+              "type": "integer"
+            },
+            "decision": {
+              "anyOf": [
+                {
+                  "const": "CONTINUE",
+                  "type": "string"
+                },
+                {
+                  "const": "RETRY",
+                  "type": "string"
+                },
+                {
+                  "const": "WAIT",
+                  "type": "string"
+                },
+                {
+                  "const": "RUN_HANDLER",
+                  "type": "string"
+                },
+                {
+                  "const": "BREAK",
+                  "type": "string"
+                }
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "TARGET_NOT_FOUND",
+                      "type": "string"
+                    },
+                    {
+                      "const": "GROUNDING_AMBIGUOUS",
+                      "type": "string"
+                    },
+                    {
+                      "const": "AUTH_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BLOCKING_MODAL",
+                      "type": "string"
+                    },
+                    {
+                      "const": "UNEXPECTED_ERROR_UI",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ASSERTION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "VISUAL_DIFF",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_UNCERTAIN",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NO_EFFECT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CONSOLE_OR_NETWORK_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ACTION_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TIMEOUT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OFF_PATH",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OBSERVE_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "SETUP_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BUDGET_EXHAUSTED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "RUNNER_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_UNAVAILABLE",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_INVALID",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NAVIGATOR_UNAVAILABLE",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "handlerId": {
+              "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+              "type": "string"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "handler.fired",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "handlerId"
+          ],
+          "properties": {
+            "handlerId": {
+              "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+              "type": "string"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "escalation.requested",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "packetRef",
+            "reason",
+            "attempt"
+          ],
+          "properties": {
+            "packetRef": {
+              "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+              "maxLength": 1024,
+              "description": "Artifact reference, art://…",
+              "type": "string"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "const": "TARGET_NOT_FOUND",
+                  "type": "string"
+                },
+                {
+                  "const": "GROUNDING_AMBIGUOUS",
+                  "type": "string"
+                },
+                {
+                  "const": "AUTH_LOST",
+                  "type": "string"
+                },
+                {
+                  "const": "BLOCKING_MODAL",
+                  "type": "string"
+                },
+                {
+                  "const": "UNEXPECTED_ERROR_UI",
+                  "type": "string"
+                },
+                {
+                  "const": "ASSERTION_FAILED",
+                  "type": "string"
+                },
+                {
+                  "const": "VISUAL_DIFF",
+                  "type": "string"
+                },
+                {
+                  "const": "EXPECTATION_FAILED",
+                  "type": "string"
+                },
+                {
+                  "const": "EXPECTATION_UNCERTAIN",
+                  "type": "string"
+                },
+                {
+                  "const": "NO_EFFECT",
+                  "type": "string"
+                },
+                {
+                  "const": "CONSOLE_OR_NETWORK_ERROR",
+                  "type": "string"
+                },
+                {
+                  "const": "ACTION_ERROR",
+                  "type": "string"
+                },
+                {
+                  "const": "TIMEOUT",
+                  "type": "string"
+                },
+                {
+                  "const": "OFF_PATH",
+                  "type": "string"
+                },
+                {
+                  "const": "OBSERVE_FAILED",
+                  "type": "string"
+                },
+                {
+                  "const": "SETUP_FAILED",
+                  "type": "string"
+                },
+                {
+                  "const": "BUDGET_EXHAUSTED",
+                  "type": "string"
+                },
+                {
+                  "const": "RUNNER_LOST",
+                  "type": "string"
+                },
+                {
+                  "const": "ANALYST_UNAVAILABLE",
+                  "type": "string"
+                },
+                {
+                  "const": "ANALYST_INVALID",
+                  "type": "string"
+                },
+                {
+                  "const": "NAVIGATOR_UNAVAILABLE",
+                  "type": "string"
+                }
+              ]
+            },
+            "attempt": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "stepId",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "escalation.decided",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "decision",
+            "classification",
+            "valid",
+            "errors",
+            "repaired",
+            "inputTokens",
+            "outputTokens"
+          ],
+          "properties": {
+            "decision": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "RETRY_STEP",
+                      "type": "string"
+                    },
+                    {
+                      "const": "PATCH",
+                      "type": "string"
+                    },
+                    {
+                      "const": "RESOLVE_TARGET",
+                      "type": "string"
+                    },
+                    {
+                      "const": "MARK_PASSED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "MARK_FAILED_CONTINUE",
+                      "type": "string"
+                    },
+                    {
+                      "const": "MARK_FAILED_ABORT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ABORT_ENV",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "classification": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "PRODUCT_DEFECT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TEST_DRIFT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ENVIRONMENT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TRANSIENT",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "valid": {
+              "type": "boolean"
+            },
+            "errors": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "maxLength": 1000,
+                "type": "string"
+              }
+            },
+            "repaired": {
+              "type": "boolean"
+            },
+            "inputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "outputTokens": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "artifact.stored",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "ref",
+            "bytes",
+            "sha256"
+          ],
+          "properties": {
+            "kind": {
+              "anyOf": [
+                {
+                  "const": "screenshot",
+                  "type": "string"
+                },
+                {
+                  "const": "frame",
+                  "type": "string"
+                },
+                {
+                  "const": "trace",
+                  "type": "string"
+                },
+                {
+                  "const": "video",
+                  "type": "string"
+                },
+                {
+                  "const": "har",
+                  "type": "string"
+                },
+                {
+                  "const": "packet",
+                  "type": "string"
+                },
+                {
+                  "const": "report",
+                  "type": "string"
+                },
+                {
+                  "const": "baseline",
+                  "type": "string"
+                },
+                {
+                  "const": "log",
+                  "type": "string"
+                }
+              ]
+            },
+            "ref": {
+              "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+              "maxLength": 1024,
+              "description": "Artifact reference, art://…",
+              "type": "string"
+            },
+            "bytes": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "sha256": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "usage.recorded",
+          "type": "string"
+        },
+        "stepId": {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "operation",
+            "quantity"
+          ],
+          "properties": {
+            "operation": {
+              "anyOf": [
+                {
+                  "const": "step",
+                  "type": "string"
+                },
+                {
+                  "const": "ai_vision",
+                  "type": "string"
+                },
+                {
+                  "const": "escalation",
+                  "type": "string"
+                },
+                {
+                  "const": "report",
+                  "type": "string"
+                },
+                {
+                  "const": "compile",
+                  "type": "string"
+                },
+                {
+                  "const": "runner_minute",
+                  "type": "string"
+                }
+              ]
+            },
+            "quantity": {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "type",
+        "data",
+        "prev"
+      ],
+      "properties": {
+        "runId": {
+          "minLength": 1,
+          "maxLength": 128,
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+          "description": "ISO 8601 timestamp with a zone",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.finished",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "termination",
+            "reason",
+            "counters"
+          ],
+          "properties": {
+            "termination": {
+              "anyOf": [
+                {
+                  "const": "completed",
+                  "type": "string"
+                },
+                {
+                  "const": "aborted",
+                  "type": "string"
+                },
+                {
+                  "const": "canceled",
+                  "type": "string"
+                },
+                {
+                  "const": "setup_failed",
+                  "type": "string"
+                },
+                {
+                  "const": "runner_lost",
+                  "type": "string"
+                }
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "const": "TARGET_NOT_FOUND",
+                      "type": "string"
+                    },
+                    {
+                      "const": "GROUNDING_AMBIGUOUS",
+                      "type": "string"
+                    },
+                    {
+                      "const": "AUTH_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BLOCKING_MODAL",
+                      "type": "string"
+                    },
+                    {
+                      "const": "UNEXPECTED_ERROR_UI",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ASSERTION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "VISUAL_DIFF",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EXPECTATION_UNCERTAIN",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NO_EFFECT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CONSOLE_OR_NETWORK_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ACTION_ERROR",
+                      "type": "string"
+                    },
+                    {
+                      "const": "TIMEOUT",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OFF_PATH",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OBSERVE_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "SETUP_FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "BUDGET_EXHAUSTED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "RUNNER_LOST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_UNAVAILABLE",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ANALYST_INVALID",
+                      "type": "string"
+                    },
+                    {
+                      "const": "NAVIGATOR_UNAVAILABLE",
+                      "type": "string"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "counters": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "steps",
+                "passed",
+                "failed",
+                "broken",
+                "skipped",
+                "escalations",
+                "handlerFirings",
+                "jevCalls",
+                "llmCalls",
+                "durationMs"
+              ],
+              "properties": {
+                "steps": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "passed": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "failed": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "broken": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "skipped": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "escalations": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "handlerFirings": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "jevCalls": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "llmCalls": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "durationMs": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "sha256:<64 hex>",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

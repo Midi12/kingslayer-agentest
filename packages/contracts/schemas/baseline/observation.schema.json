@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/observation.schema.json",
+  "title": "Observation",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "obsId",
+    "ts",
+    "url",
+    "title",
+    "page",
+    "candidates",
+    "console",
+    "network",
+    "frames",
+    "digestHash"
+  ],
+  "properties": {
+    "obsId": {
+      "pattern": "^obs_[A-Za-z0-9_-]{1,64}$",
+      "type": "string"
+    },
+    "ts": {
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+      "description": "ISO 8601 timestamp with a zone",
+      "type": "string"
+    },
+    "url": {
+      "maxLength": 2048,
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 500,
+      "type": "string"
+    },
+    "page": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "headings",
+        "dialogs",
+        "alerts",
+        "loading",
+        "textDigest"
+      ],
+      "properties": {
+        "headings": {
+          "maxItems": 64,
+          "type": "array",
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "dialogs": {
+          "maxItems": 16,
+          "type": "array",
+          "items": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "alerts": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "loading": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "inflightRequests",
+            "spinners"
+          ],
+          "properties": {
+            "inflightRequests": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "spinners": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "textDigest": {
+          "maxLength": 20000,
+          "type": "string"
+        }
+      }
+    },
+    "candidates": {
+      "maxItems": 5000,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cid",
+          "role",
+          "name",
+          "tag",
+          "state",
+          "context",
+          "attrs",
+          "bbox",
+          "source",
+          "fingerprint"
+        ],
+        "properties": {
+          "cid": {
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          },
+          "role": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "tag": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "state": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "visible": {
+                "type": "boolean"
+              },
+              "checked": {
+                "type": "boolean"
+              },
+              "selected": {
+                "type": "boolean"
+              },
+              "expanded": {
+                "type": "boolean"
+              },
+              "focused": {
+                "type": "boolean"
+              },
+              "readonly": {
+                "type": "boolean"
+              },
+              "value": {
+                "maxLength": 1000,
+                "type": "string"
+              }
+            }
+          },
+          "context": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "row": {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              "heading": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "legend": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "region": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "labels": {
+                "maxItems": 16,
+                "type": "array",
+                "items": {
+                  "maxLength": 300,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "attrs": {
+            "additionalProperties": false,
+            "x-runner-only": true,
+            "type": "object",
+            "patternProperties": {
+              "^[A-Za-z_:][A-Za-z0-9_:.-]{0,127}$": {
+                "maxLength": 2000,
+                "type": "string"
+              }
+            }
+          },
+          "bbox": {
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[x, y, width, height] in CSS pixels",
+            "x-runner-only": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "color": {
+            "anyOf": [
+              {
+                "const": "red",
+                "type": "string"
+              },
+              {
+                "const": "amber",
+                "type": "string"
+              },
+              {
+                "const": "yellow",
+                "type": "string"
+              },
+              {
+                "const": "green",
+                "type": "string"
+              },
+              {
+                "const": "blue",
+                "type": "string"
+              },
+              {
+                "const": "grey",
+                "type": "string"
+              },
+              {
+                "const": "white",
+                "type": "string"
+              },
+              {
+                "const": "black",
+                "type": "string"
+              }
+            ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "dom",
+                "type": "string"
+              },
+              {
+                "const": "ocr",
+                "type": "string"
+              },
+              {
+                "const": "region",
+                "type": "string"
+              }
+            ]
+          },
+          "fingerprint": {
+            "minLength": 1,
+            "maxLength": 128,
+            "x-runner-only": true,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "console": {
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "level",
+          "text"
+        ],
+        "properties": {
+          "level": {
+            "anyOf": [
+              {
+                "const": "error",
+                "type": "string"
+              },
+              {
+                "const": "warning",
+                "type": "string"
+              },
+              {
+                "const": "info",
+                "type": "string"
+              },
+              {
+                "const": "debug",
+                "type": "string"
+              }
+            ]
+          },
+          "text": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+            "description": "ISO 8601 timestamp with a zone",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "network": {
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "url",
+          "status"
+        ],
+        "properties": {
+          "method": {
+            "minLength": 1,
+            "maxLength": 16,
+            "type": "string"
+          },
+          "url": {
+            "minLength": 1,
+            "maxLength": 2048,
+            "type": "string"
+          },
+          "status": {
+            "minimum": 0,
+            "maximum": 999,
+            "description": "0 when the request failed",
+            "type": "integer"
+          },
+          "failure": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+            "description": "ISO 8601 timestamp with a zone",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "frames": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "ringHead"
+      ],
+      "properties": {
+        "before": {
+          "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+          "maxLength": 1024,
+          "description": "Artifact reference, art://…",
+          "type": "string"
+        },
+        "after": {
+          "pattern": "^art://[A-Za-z0-9._~!$&()*+,;=:@%/-]+$",
+          "maxLength": 1024,
+          "description": "Artifact reference, art://…",
+          "type": "string"
+        },
+        "ringHead": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "digestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "sha256:<64 hex>",
+      "type": "string"
+    }
+  }
+}

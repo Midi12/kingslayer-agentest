@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/heartbeat-request.schema.json",
+  "title": "HeartbeatRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "leaseId"
+  ],
+  "properties": {
+    "leaseId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "state": {
+      "anyOf": [
+        {
+          "const": "PREPARE",
+          "type": "string"
+        },
+        {
+          "const": "OBSERVE",
+          "type": "string"
+        },
+        {
+          "const": "HANDLERS",
+          "type": "string"
+        },
+        {
+          "const": "GROUND",
+          "type": "string"
+        },
+        {
+          "const": "ACT",
+          "type": "string"
+        },
+        {
+          "const": "SETTLE",
+          "type": "string"
+        },
+        {
+          "const": "VERIFY",
+          "type": "string"
+        },
+        {
+          "const": "DECIDE",
+          "type": "string"
+        },
+        {
+          "const": "ESCALATE",
+          "type": "string"
+        },
+        {
+          "const": "NEXT",
+          "type": "string"
+        },
+        {
+          "const": "FINALIZE",
+          "type": "string"
+        }
+      ]
+    },
+    "stepId": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lastSeq": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/vision-assert-request.schema.json",
+  "title": "VisionAssertRequest",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "runId",
+    "stepId",
+    "question",
+    "expected",
+    "image"
+  ],
+  "properties": {
+    "runId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    },
+    "stepId": {
+      "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+      "type": "string"
+    },
+    "question": {
+      "minLength": 1,
+      "maxLength": 500,
+      "type": "string"
+    },
+    "expected": {
+      "type": "boolean"
+    },
+    "image": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "mediaType",
+        "data"
+      ],
+      "properties": {
+        "mediaType": {
+          "anyOf": [
+            {
+              "const": "image/png",
+              "type": "string"
+            },
+            {
+              "const": "image/jpeg",
+              "type": "string"
+            },
+            {
+              "const": "image/webp",
+              "type": "string"
+            }
+          ]
+        },
+        "data": {
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "minLength": 4,
+          "maxLength": 11184812,
+          "type": "string"
+        }
+      }
+    },
+    "frames": {
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mediaType",
+          "data"
+        ],
+        "properties": {
+          "mediaType": {
+            "anyOf": [
+              {
+                "const": "image/png",
+                "type": "string"
+              },
+              {
+                "const": "image/jpeg",
+                "type": "string"
+              },
+              {
+                "const": "image/webp",
+                "type": "string"
+              }
+            ]
+          },
+          "data": {
+            "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+            "minLength": 4,
+            "maxLength": 11184812,
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
