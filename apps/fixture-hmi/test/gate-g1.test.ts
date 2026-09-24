@@ -1,7 +1,9 @@
 /**
  * M02-G1: determinism. The same seed and the same call sequence, played twice against
- * two independent server processes, render byte-identical DOM and pixel-identical
- * screenshots on all eight pages.
+ * two independently constructed `FixtureSimulator`/server instances (both started in
+ * this Node process, not two OS processes — the spec's determinism claim is about the
+ * simulator's state, not process isolation), render byte-identical DOM and
+ * pixel-identical screenshots on all eight pages.
  */
 import { recordGateMetrics } from '@argus/testkit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

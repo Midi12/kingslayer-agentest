@@ -2,8 +2,11 @@
 
 A small, deterministic, seeded web HMI with switchable faults: everything later gates
 have something real to break against, without a customer's plant. It is a test fixture
-and depends on `@argus/testkit`; no production package may import it (dependency-cruiser
-enforces this).
+and depends on `@argus/testkit`; dependency-cruiser's `no-testkit-in-production` rule
+enforces that no production package outside `apps/fixture-hmi` and `tools/**` may import
+`@argus/testkit` in the first place. (There is no separate rule stopping a production
+package from importing `@argus/fixture-hmi` itself — nothing in the workspace has reason
+to, since it is a test double, not a runtime dependency.)
 
 ## Quick start
 
