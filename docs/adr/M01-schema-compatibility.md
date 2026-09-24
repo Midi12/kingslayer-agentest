@@ -16,7 +16,8 @@ M01-G4 diffs the schemas against the last release tag, and no release tag exists
   of the current schemas.
 - The snapshot changes only at a release, with `export-schemas --baseline`, reviewed as
   part of the release; an implementation commit that edits it outside a release is a
-  gate change.
+  gate change. G4 also compares with every version of the snapshot ever committed (gate
+  change M01-1), so a rewritten snapshot cannot hide a breaking change.
 - The candidate set is generated from the registry at test time, and a separate check
   requires the committed `schemas/argus/v1/` files to equal it byte for byte.
 - `diffSchemaSets` reports removed schemas, removed properties and pattern properties,
