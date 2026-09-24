@@ -1,0 +1,41 @@
+{
+  "name": "@argus/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Every public ARGUS type and schema (TypeBox and JSON Schema 2020-12), port interfaces, canonical JSON, lint and step rendering",
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schemas/*": "./schemas/argus/v1/*"
+  },
+  "files": [
+    "src",
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "export-schemas": "tsx --conditions=@argus/source scripts/export-schemas.ts",
+    "test:gate-g1": "vitest run test/gate-g1.test.ts",
+    "test:gate-g2": "vitest run test/gate-g2.test.ts",
+    "test:gate-g3": "vitest run test/gate-g3.test.ts",
+    "test:gate-g4": "vitest run test/gate-g4.test.ts",
+    "test:gate-g5": "vitest run test/gate-g5.test.ts"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "0.34.52"
+  },
+  "devDependencies": {
+    "@argus/testkit": "workspace:*",
+    "ajv": "8.17.1",
+    "fast-check": "4.10.2"
+  }
+}
