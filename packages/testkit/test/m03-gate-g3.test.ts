@@ -53,6 +53,12 @@ const SECRETS = {
   hex: piece('3f5a9c2e8b7d1046', 'aa3e9f0c5d2b8e71', '6c4a0f9e3d2b1c8a'),
   base64: piece('QWxhZGRpbjpvcGVu', 'IHNlc2FtZSBhbmQg', 'bW9yZTEyMzQ1Njc4OQ=='),
   bearer: piece('eyJhbGciOi', 'JIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.', 'c2lnbmF0dXJl'),
+  // 39 characters: below the generic 40-character threshold.
+  google: piece('AIza', 'SyD3xQ9vN2mK7pL4', 'rT8wB1cF6hJ0gY5eZ-q'),
+  // 42 characters, lower case and digits only.
+  lowercase: piece('k3j9x2m8q7w4e6r1', 't5y0u2i8o3p9a7s4', 'd6f1g5h2j0'),
+  // 39 characters after a newline: 40 once the file escapes the newline as \n.
+  glued: piece('Zq8vT4mN2pR7wK1xY5bC', '9dF3gH6jL0nMaBc1De2'),
 };
 
 /**
@@ -66,6 +72,7 @@ const INDEPENDENT_PATTERNS: readonly RegExp[] = [
   /\bwhsec_\S{8,}/g,
   /\beyJ[\w-]{4,}\.[\w-]{4,}\.[\w-]{4,}/g,
   /\bbearer\s+(?!\[REDACTED\])\S{8,}/gi,
+  /\bAIza[\w-]{35}/g,
   /(?<!sha256:)(?<![\w+/=-])[A-Za-z0-9+/_-]{40,}={0,2}/g,
   /(?<!sha256:)(?<![\w])[0-9a-fA-F]{32,}(?!\w)/g,
 ];
@@ -167,7 +174,7 @@ function binaryWithSecret(secret: string): Buffer {
 
 function secretRequest(path: string): [string, RequestInit] {
   return [
-    `${upstreamUrl}${path}?key=${SECRETS.typesafe}`,
+    `${upstreamUrl}${path}?key=${SECRETS.typesafe}&google=${SECRETS.google}`,
     {
       method: 'POST',
       headers: {
@@ -179,6 +186,8 @@ function secretRequest(path: string): [string, RequestInit] {
       body: JSON.stringify({
         prompt: `use ${SECRETS.typesafe} and ${SECRETS.hex}`,
         token: SECRETS.base64,
+        session: `issued ${SECRETS.lowercase} today`,
+        log: `first line\n${SECRETS.glued}`,
         header: `Bearer ${SECRETS.bearer}`,
         image: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo'.repeat(200) },
         url: `data:image/png;base64,${'iVBORw0KGgoAAAANSUhEUg'.repeat(50)}`,
