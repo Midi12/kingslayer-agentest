@@ -33,6 +33,15 @@ export interface CreateFixtureServerOptions {
   readonly port?: number;
   readonly host?: string;
   readonly clock?: ClockMode;
+  /**
+   * With `clock: 'frozen'`, the instant to freeze at. Without it, a frozen server still
+   * freezes at `Date.now()` at construction, which is not reproducible across two
+   * servers unless a caller follows up with `POST /sim/clock {mode:'frozen', now}` (as
+   * `test/helpers/browser.ts`'s `startFrozenServer` does). Passing it here does that in
+   * one step, for byte-identical goldens across separate `createFixtureServer` calls,
+   * processes or runs.
+   */
+  readonly frozenAtMs?: number;
   readonly operatorPassword?: string;
   /** Fastify's own request logging; off by default so tests stay quiet. */
   readonly logger?: boolean;
@@ -51,7 +60,7 @@ export async function createFixtureServer(
   options: CreateFixtureServerOptions = {},
 ): Promise<FixtureServerHandle> {
   const seed = options.seed ?? 1;
-  const startAtMs = Date.now();
+  const startAtMs = options.frozenAtMs ?? Date.now();
   const clock = new SimClock(options.clock ?? 'real', startAtMs);
   const sim = new FixtureSimulator({
     seed,

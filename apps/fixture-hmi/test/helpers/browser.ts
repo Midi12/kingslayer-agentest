@@ -33,23 +33,12 @@ export async function loginContext(
 }
 
 /**
- * Starts a server and pins its frozen clock and state to the same instant every time, so
- * two independently-started processes with the same seed are byte-identical: the initial
- * `Date.now()` each process happens to freeze at would otherwise differ.
+ * Starts a server pinned to the same seed and frozen instant every time, so two
+ * independently-started servers with the same seed are byte-identical: without
+ * `frozenAtMs`, each would freeze at its own construction-time `Date.now()` instead.
  */
 export async function startFrozenServer(seed: number, atMs = 1_700_000_000_000): Promise<FixtureServerHandle> {
-  const handle = await createFixtureServer({ seed, clock: 'frozen', logger: false });
-  await fetch(`${handle.url}/sim/clock`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ mode: 'frozen', now: atMs }),
-  });
-  await fetch(`${handle.url}/sim/reset`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ seed }),
-  });
-  return handle;
+  return createFixtureServer({ seed, clock: 'frozen', frozenAtMs: atMs, logger: false });
 }
 
 export const PROTECTED_PAGES = [
