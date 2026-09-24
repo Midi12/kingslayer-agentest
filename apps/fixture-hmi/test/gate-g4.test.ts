@@ -70,9 +70,36 @@ describe('M02-G4 the alarm blink is a real 1 Hz square wave', () => {
     }
     const meanPeriod = periods.reduce((sum, p) => sum + p, 0) / periods.length;
 
-    recordGateMetrics({ samples: samples.length, transitions: transitions.length, meanPeriodMs: meanPeriod });
+    // Half-periods: the gap between one transition and the next should itself be ~500ms
+    // (the spec's "500 ms on, 500 ms off"), not just the full on-off-on period averaging
+    // to 1000ms — a wave with a 200/800 duty cycle can still average a ~1000ms period.
+    const halfPeriods: number[] = [];
+    for (let i = 1; i < transitions.length; i += 1) {
+      const cur = transitions[i];
+      const prev = transitions[i - 1];
+      if (cur === undefined || prev === undefined) {
+        continue;
+      }
+      halfPeriods.push(cur - prev);
+    }
+    const meanHalfPeriod = halfPeriods.reduce((sum, p) => sum + p, 0) / halfPeriods.length;
+
+    // A true square wave alternates between exactly two colours, not a gradient or a
+    // flicker through more states.
+    const distinctColors = new Set(samples.map((sample) => sample.color)).size;
+
+    recordGateMetrics({
+      samples: samples.length,
+      transitions: transitions.length,
+      meanPeriodMs: meanPeriod,
+      meanHalfPeriodMs: meanHalfPeriod,
+      distinctColors,
+    });
 
     expect(meanPeriod).toBeGreaterThanOrEqual(900);
     expect(meanPeriod).toBeLessThanOrEqual(1100);
+    expect(meanHalfPeriod).toBeGreaterThanOrEqual(400);
+    expect(meanHalfPeriod).toBeLessThanOrEqual(600);
+    expect(distinctColors).toBe(2);
   });
 });
