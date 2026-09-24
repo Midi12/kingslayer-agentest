@@ -18,6 +18,12 @@ M01-G4 diffs the schemas against the last release tag, and no release tag exists
   part of the release; an implementation commit that edits it outside a release is a
   gate change. G4 also compares with every version of the snapshot ever committed (gate
   change M01-1), so a rewritten snapshot cannot hide a breaking change.
+- G4 runs in two halves (gate change M01-4). `test/gate-g4.test.ts` is in the
+  package's default suite and needs no git: comparison with the committed snapshot,
+  fixture pairs and schema freshness. `test/gate-g4.git.ts` reads git (the tag and the
+  snapshot history), is run only by `test:gate-g4` through `vitest.git.config.ts`, and
+  fails outright outside a git work tree. The default suite must pass in a clean
+  `git archive` export (M00-G1), which has no history; G4 itself requires git.
 - The candidate set is generated from the registry at test time, and a separate check
   requires the committed `schemas/argus/v1/` files to equal it byte for byte.
 - `diffSchemaSets` reports removed schemas, removed properties and pattern properties,

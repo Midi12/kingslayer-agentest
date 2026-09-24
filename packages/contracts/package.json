@@ -27,7 +27,7 @@
     "test:gate-g1": "vitest run test/gate-g1.test.ts",
     "test:gate-g2": "vitest run test/gate-g2.test.ts",
     "test:gate-g3": "vitest run test/gate-g3.test.ts",
-    "test:gate-g4": "vitest run test/gate-g4.test.ts",
+    "test:gate-g4": "vitest run test/gate-g4.test.ts && vitest run --config vitest.git.config.ts",
     "test:gate-g5": "vitest run test/gate-g5.test.ts"
   },
   "dependencies": {
