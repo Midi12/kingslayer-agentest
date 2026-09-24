@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M03",
   "title": "AI fakes and cassettes",
-  "commit": "e51a835",
+  "commit": "3a3c721",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T22:54:18.689Z",
-  "finishedAt": "2026-09-24T22:56:06.795Z",
+  "startedAt": "2026-09-24T23:20:18.815Z",
+  "finishedAt": "2026-09-24T23:22:09.384Z",
   "gates": [
     {
       "id": "M03-G0",
@@ -20,14 +20,14 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 50923,
+      "durationMs": 47792,
       "metrics": {
         "packages": 2,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 181,
+        "tests": 186,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
@@ -42,10 +42,10 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 166,
+            "tests": 171,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 98.97,
+            "coverageLines": 98.99,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
@@ -82,7 +82,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2871,
+      "durationMs": 2735,
       "metrics": {
         "modes": 3,
         "choiceAnswers": 3,
@@ -112,7 +112,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6167,
+      "durationMs": 6507,
       "metrics": {
         "requests": 1000,
         "choiceSumViolations": 0,
@@ -135,12 +135,12 @@
       "title": "Cassettes are strict",
       "command": "pnpm --filter @argus/testkit test:gate-m03-g3",
       "requires": [],
-      "passExpression": "exitCode == 0 && metrics.missCases >= 3 && metrics.missesDetected == metrics.missCases && metrics.outboundConnections == 0 && metrics.replayHits >= 2 && metrics.filesScanned >= 3 && metrics.keyPatternMatches == 0 && metrics.plantedSecretsFound == 0 && metrics.credentialHeadersFound == 0",
+      "passExpression": "exitCode == 0 && metrics.missCases >= 3 && metrics.missesDetected == metrics.missCases && metrics.outboundConnections == 0 && metrics.replayHits >= 2 && metrics.filesScanned >= 3 && metrics.keyPatternMatches == 0 && metrics.plantedSecretsFound == 0 && metrics.credentialHeadersFound == 0 && metrics.independentMatches == 0 && metrics.binaryCases >= 2",
       "status": "pass",
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2691,
+      "durationMs": 3155,
       "metrics": {
         "missCases": 3,
         "missesDetected": 3,
@@ -149,7 +149,9 @@
         "filesScanned": 4,
         "keyPatternMatches": 0,
         "plantedSecretsFound": 0,
-        "credentialHeadersFound": 0
+        "credentialHeadersFound": 0,
+        "independentMatches": 0,
+        "binaryCases": 3
       },
       "missingMetrics": [],
       "expressionErrors": [],
@@ -167,7 +169,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 3865,
+      "durationMs": 4402,
       "metrics": {
         "attempts": 3,
         "statuses": "429,529,200",
@@ -191,7 +193,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 3659,
+      "durationMs": 3788,
       "metrics": {
         "faultModes": 7,
         "shapes": 2,
@@ -216,11 +218,11 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 37798,
+      "durationMs": 42007,
       "metrics": {
         "imageBuilt": true,
         "services": 2,
-        "healthyWithinMs": 980,
+        "healthyWithinMs": 1075,
         "uid": 10001,
         "readOnlyRootFs": true,
         "dockerHealthy": true,
@@ -246,5 +248,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:83a6f1bcaee1d595aac2888c8e872b2e447d10663cb26dfb09bfc8a6c7958024"
+  "evidenceHash": "sha256:86f998869b0aa00758b965e28503c6d64b379cfd5240868a642be1ee60a304ce"
 }
