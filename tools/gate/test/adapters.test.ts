@@ -17,7 +17,8 @@ import {
 } from '../src/index.js';
 
 const scratch = mkdtempSync(join(tmpdir(), 'argus-adapters-'));
-const env = { PATH: process.env.PATH, HOME: process.env.HOME };
+// The whole environment: pnpm may run through corepack, which needs COREPACK_HOME.
+const env = { ...process.env };
 const processes = new NodeProcessRunner();
 
 afterAll(() => {
