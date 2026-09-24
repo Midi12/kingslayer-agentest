@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  CASSETTE_BINARY_BODY,
+  CassetteBinaryBodyError,
   CassetteMissError,
   FileCassetteStore,
   MemoryCassetteStore,
@@ -14,7 +16,9 @@ import {
   encodeBody,
   findKeyMaterial,
   maskCredential,
+  parseJevOutcomes,
   parseJevScript,
+  parseLlmOutcomes,
   parseLlmScript,
   parseTargetMap,
   redactJson,
@@ -215,6 +219,52 @@ describe('createCassetteFetch', () => {
     expect(empty.status).toBe(204);
   });
 
+  it('refuses to record a body that is not UTF-8 text', async () => {
+    const secret = ['sk-', 'ant-api03-', 'Zq8vT4mN2pR7wK1xY5bC9dF3gH6jL0nM'].join('');
+    const binary = new Uint8Array([0xff, 0xfe, ...new TextEncoder().encode(` key=${secret}`)]);
+    const store = new MemoryCassetteStore();
+    const echo = upstream(() => new Response('ok'));
+    const recorder = createCassetteFetch({ store, mode: 'record', fetch: echo });
+    const refused = await recorder(`http://a/v1/upload?key=${secret}`, {
+      method: 'POST',
+      body: binary,
+    }).catch((e: unknown) => e);
+    expect(refused).toBeInstanceOf(CassetteBinaryBodyError);
+    expect(refused).toMatchObject({
+      code: CASSETTE_BINARY_BODY,
+      method: 'POST',
+      path: '/v1/upload?key=[REDACTED]',
+      part: 'request',
+    });
+    expect(echo.calls).toBe(0);
+
+    const binaryReply = upstream(() => new Response(Buffer.from(binary)));
+    const auto = createCassetteFetch({ store, mode: 'auto', fetch: binaryReply });
+    await expect(auto('http://a/v1/file')).rejects.toMatchObject({
+      code: CASSETTE_BINARY_BODY,
+      part: 'response',
+    });
+    expect(binaryReply.calls).toBe(1);
+    expect(await store.keys()).toEqual([]);
+
+    const proxy = await startCassetteProxy({
+      upstream: 'http://upstream.test',
+      store,
+      mode: 'record',
+      fetch: binaryReply,
+    });
+    try {
+      const response = await fetch(`${proxy.url}/v1/file`);
+      expect(response.status).toBe(502);
+      expect(await response.json()).toMatchObject({
+        error: { type: 'cassette_binary_body', code: CASSETTE_BINARY_BODY },
+      });
+    } finally {
+      await proxy.close();
+    }
+    expect(await store.keys()).toEqual([]);
+  });
+
   it('throws CASSETTE_MISS with the key, method and path in strict mode', async () => {
     const cassette = createCassetteFetch({
       store: tempDir(),
@@ -311,6 +361,14 @@ describe('script files', () => {
       ok: false,
       error: expect.stringMatching(/^LLM script: \/fault/) as unknown,
     });
+    expect(parseJevOutcomes([{ status: 429, retryAfterMs: 5 }, { delayMs: 1 }]).ok).toBe(true);
+    expect(parseJevOutcomes([{ status: 200 }])).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/^Jev outcomes: \/0\/status/) as unknown,
+    });
+    expect(parseJevOutcomes({})).toMatchObject({ ok: false });
+    expect(parseLlmOutcomes([{ fault: 'server-error', status: 503 }]).ok).toBe(true);
+    expect(parseLlmOutcomes([{ status: 'abc' }, 7])).toMatchObject({ ok: false });
     expect(parseTargetMap([])).toMatchObject({
       ok: false,
       error: expect.stringMatching(/^oracle targets: \//) as unknown,

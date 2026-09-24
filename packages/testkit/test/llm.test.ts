@@ -716,6 +716,24 @@ describe('fake LLM server', () => {
     expect((await fetch(`${base}/_fake/outcomes`, { method: 'POST', body: '{}' })).status).toBe(
       400,
     );
+    // An invalid script or outcome list is refused and leaves the script in force.
+    for (const [path, method, payload] of [
+      ['/_fake/script', 'PUT', { rules: 'x', fault: 'explode' }],
+      ['/_fake/outcomes', 'POST', [{ status: 'abc' }, 7]],
+      ['/_fake/outcomes', 'POST', [{ fault: 'server-error', status: 200 }]],
+    ] as const) {
+      const refused = await fetch(`${base}${path}`, { method, body: JSON.stringify(payload) });
+      expect(refused.status).toBe(400);
+      expect(((await refused.json()) as { error: string }).error).toMatch(
+        /^LLM (script|outcomes): /,
+      );
+    }
+    expect(() => {
+      server?.enqueue({ fault: 'server-error', status: 299 });
+    }).toThrow(RangeError);
+    expect(() => {
+      server?.setScript({ rules: [{ match: {}, outcomes: [{ status: 600 }] }] });
+    }).toThrow(/400 to 599, got 600/);
     expect(
       await (
         await fetch(`${base}/_fake/outcomes`, {

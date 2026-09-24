@@ -6,8 +6,8 @@ import { Type, type TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { err, ok, type Result } from '@argus/contracts';
 import { LLM_FAULT_MODES } from './llm/faults.js';
-import type { JevScript } from './jev/script.js';
-import type { LlmScript } from './llm/script.js';
+import type { JevOutcome, JevScript } from './jev/script.js';
+import type { LlmOutcome, LlmScript } from './llm/script.js';
 
 const Probabilities = Type.Record(Type.String(), Type.Number({ minimum: 0 }));
 
@@ -167,6 +167,16 @@ export function parseJevScript(value: unknown): Result<JevScript, string> {
 
 export function parseLlmScript(value: unknown): Result<LlmScript, string> {
   return parseWith<LlmScript>(LlmScriptSchema, value, 'LLM script');
+}
+
+/** A JSON list of per-call Jev outcomes (`POST /_fake/outcomes`). */
+export function parseJevOutcomes(value: unknown): Result<JevOutcome[], string> {
+  return parseWith<JevOutcome[]>(Type.Array(JevOutcomeSchema), value, 'Jev outcomes');
+}
+
+/** A JSON list of per-call LLM outcomes (`POST /_fake/outcomes`). */
+export function parseLlmOutcomes(value: unknown): Result<LlmOutcome[], string> {
+  return parseWith<LlmOutcome[]>(Type.Array(LlmOutcomeSchema), value, 'LLM outcomes');
 }
 
 /** A map of target description to correct candidate id (null when absent). */

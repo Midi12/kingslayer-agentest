@@ -20,6 +20,7 @@ import {
 } from '../core/jev/script.js';
 import type { JevAnswer, JevModelCard, JevRequest } from '../core/jev/types.js';
 import { estimateJevInputTokens, validateJevRequest } from '../core/jev/validate.js';
+import { parseJevOutcomes, parseJevScript } from '../core/script-files.js';
 import type { CassetteStore } from '../ports/cassette.js';
 import {
   listen,
@@ -131,6 +132,12 @@ function parseJson(bytes: Uint8Array): { ok: true; value: unknown } | { ok: fals
 
 export async function startFakeJev(options: FakeJevOptions = {}): Promise<FakeJevServer> {
   const mode: FakeJevMode = options.mode ?? { kind: 'scripted', script: {} };
+  if (
+    mode.kind === 'oracle' &&
+    !(mode.noise === undefined || (mode.noise >= 0 && mode.noise <= 1))
+  ) {
+    throw new RangeError(`oracle noise must lie in [0, 1], got ${String(mode.noise)}`);
+  }
   const apiKeys = options.apiKeys ?? [DEFAULT_FAKE_JEV_API_KEY];
   const models = options.models ?? JEV_MODELS;
   const aliases = options.aliases ?? JEV_MODEL_ALIASES;
@@ -299,26 +306,29 @@ export async function startFakeJev(options: FakeJevOptions = {}): Promise<FakeJe
     }
     if (call.pathname === '/_fake/outcomes' && call.method === 'POST') {
       const parsed = parseJson(call.body);
-      if (!parsed.ok || !Array.isArray(parsed.value)) {
-        sendJson(response, 400, { detail: 'expected a JSON array of outcomes' });
+      const outcomes = parsed.ok ? parseJevOutcomes(parsed.value) : undefined;
+      if (outcomes === undefined || !outcomes.ok) {
+        sendJson(response, 400, {
+          detail: outcomes?.error ?? 'expected a JSON array of outcomes',
+        });
         return true;
       }
-      runner.enqueue(...(parsed.value as JevOutcome[]));
+      runner.enqueue(...outcomes.value);
       sendJson(response, 200, { pending: runner.pending });
       return true;
     }
     if (call.pathname === '/_fake/script' && call.method === 'PUT') {
       const parsed = parseJson(call.body);
-      if (
-        mode.kind !== 'scripted' ||
-        !parsed.ok ||
-        typeof parsed.value !== 'object' ||
-        parsed.value === null
-      ) {
-        sendJson(response, 400, { detail: 'expected a JSON script, in scripted mode only' });
+      const script = parsed.ok ? parseJevScript(parsed.value) : undefined;
+      if (mode.kind !== 'scripted') {
+        sendJson(response, 400, { detail: 'the script can be replaced in scripted mode only' });
         return true;
       }
-      runner.replace(parsed.value);
+      if (script === undefined || !script.ok) {
+        sendJson(response, 400, { detail: script?.error ?? 'expected a JSON script' });
+        return true;
+      }
+      runner.replace(script.value);
       sendJson(response, 200, { pending: runner.pending });
       return true;
     }

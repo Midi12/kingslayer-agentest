@@ -204,7 +204,9 @@ export type { KeyMatch, KeyPattern } from './core/cassette/redact.js';
 export { MemoryCassetteStore } from './core/cassette/memory-store.js';
 export type { CassetteStore } from './ports/cassette.js';
 export {
+  CASSETTE_BINARY_BODY,
   CASSETTE_MISS,
+  CassetteBinaryBodyError,
   CassetteMissError,
   FileCassetteStore,
   cassetteDir,
@@ -225,7 +227,9 @@ export type {
 export {
   JevScriptSchema,
   LlmScriptSchema,
+  parseJevOutcomes,
   parseJevScript,
+  parseLlmOutcomes,
   parseLlmScript,
   parseTargetMap,
 } from './core/script-files.js';

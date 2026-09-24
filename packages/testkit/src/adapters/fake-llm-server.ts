@@ -32,6 +32,7 @@ import {
   type LlmAnswer,
 } from '../core/llm/respond.js';
 import { LlmScriptRunner, type LlmOutcome, type LlmScript } from '../core/llm/script.js';
+import { parseLlmOutcomes, parseLlmScript } from '../core/script-files.js';
 import {
   listen,
   pause,
@@ -291,21 +292,23 @@ export async function startFakeLlm(options: FakeLlmOptions = {}): Promise<FakeLl
     }
     if (call.pathname === '/_fake/outcomes' && call.method === 'POST') {
       const parsed = parseBody(call.body);
-      if (!parsed.ok || !Array.isArray(parsed.value)) {
-        sendJson(response, 400, { error: 'expected a JSON array of outcomes' });
+      const outcomes = parsed.ok ? parseLlmOutcomes(parsed.value) : undefined;
+      if (outcomes === undefined || !outcomes.ok) {
+        sendJson(response, 400, { error: outcomes?.error ?? 'expected a JSON array of outcomes' });
         return;
       }
-      runner.enqueue(...(parsed.value as LlmOutcome[]));
+      runner.enqueue(...outcomes.value);
       sendJson(response, 200, { pending: runner.pending });
       return;
     }
     if (call.pathname === '/_fake/script' && call.method === 'PUT') {
       const parsed = parseBody(call.body);
-      if (!parsed.ok || typeof parsed.value !== 'object' || parsed.value === null) {
-        sendJson(response, 400, { error: 'expected a JSON script' });
+      const script = parsed.ok ? parseLlmScript(parsed.value) : undefined;
+      if (script === undefined || !script.ok) {
+        sendJson(response, 400, { error: script?.error ?? 'expected a JSON script' });
         return;
       }
-      runner.replace(parsed.value);
+      runner.replace(script.value);
       sendJson(response, 200, { pending: runner.pending });
       return;
     }

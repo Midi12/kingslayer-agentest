@@ -239,6 +239,25 @@ export interface ScriptedCall {
   readonly answers: ScriptedAnswers;
 }
 
+/** Throws when an outcome's status is not an error status (an integer from 400 to 599). */
+export function assertJevOutcomes(outcomes: readonly JevOutcome[]): void {
+  for (const outcome of outcomes) {
+    const status = outcome.status;
+    if (status !== undefined && !(Number.isInteger(status) && status >= 400 && status <= 599)) {
+      throw new RangeError(
+        `a queued outcome status is an error status from 400 to 599, got ${String(status)}`,
+      );
+    }
+  }
+}
+
+function assertJevScript(script: JevScript): void {
+  assertJevOutcomes(script.outcomes ?? []);
+  for (const rule of script.rules ?? []) {
+    assertJevOutcomes(rule.outcomes ?? []);
+  }
+}
+
 /** Mutable queue state over a script; one instance per server. */
 export class ScriptRunner {
   #script: JevScript;
@@ -246,6 +265,7 @@ export class ScriptRunner {
   #ruleQueues: JevOutcome[][];
 
   constructor(script: JevScript = {}) {
+    assertJevScript(script);
     this.#script = script;
     this.#globalQueue = [...(script.outcomes ?? [])];
     this.#ruleQueues = (script.rules ?? []).map((rule) => [...(rule.outcomes ?? [])]);
@@ -257,6 +277,7 @@ export class ScriptRunner {
 
   /** Replaces the script and its queues. */
   replace(script: JevScript): void {
+    assertJevScript(script);
     this.#script = script;
     this.#globalQueue = [...(script.outcomes ?? [])];
     this.#ruleQueues = (script.rules ?? []).map((rule) => [...(rule.outcomes ?? [])]);
@@ -264,6 +285,7 @@ export class ScriptRunner {
 
   /** Appends outcomes to the global queue. */
   enqueue(...outcomes: readonly JevOutcome[]): void {
+    assertJevOutcomes(outcomes);
     this.#globalQueue.push(...outcomes);
   }
 

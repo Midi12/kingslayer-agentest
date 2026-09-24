@@ -165,9 +165,11 @@ function candidatesOf(request: JevRequest): readonly string[] {
 
 /**
  * A truth function from a map of target description to the correct candidate id (null
- * when the target is absent). Choice questions get the id when it is an option; the
- * presence Noul is true when the id is among the candidates; a confirmation Noul is true
- * when it asks about the correct candidate.
+ * when the target is absent). A Choice question that offers the id gets it; a Choice over
+ * the request's candidates (`state.candidates`, else the options of the first Choice
+ * question) that does not offer it gets the uniform answer; every other Choice question keeps the fallback's truth. The presence Noul is
+ * true when the id is among the candidates; a confirmation Noul is true when it asks
+ * about the correct candidate. Questions the oracle does not know keep the fallback's truth.
  */
 export function oracleFromTargets(
   targets: Readonly<Record<string, string | null>>,
@@ -183,12 +185,18 @@ export function oracleFromTargets(
     }
     const correct = targets[description] ?? null;
     const truths: Record<string, OracleTruth> = { ...base };
+    const candidates = candidatesOf(request);
     for (const [key, question] of Object.entries(request.questions)) {
       if (question.type === 'choice') {
-        truths[key] =
-          correct !== null && Object.hasOwn(question.criteria, correct) ? correct : undefined;
+        const options = Object.keys(question.criteria);
+        if (correct !== null && options.includes(correct)) {
+          truths[key] = correct;
+        } else if (options.some((option) => candidates.includes(option))) {
+          // A choice among the request's candidates that does not offer the target.
+          truths[key] = undefined;
+        }
       } else if (question.type === 'noul' && key === presentKey) {
-        truths[key] = correct !== null && candidatesOf(request).includes(correct);
+        truths[key] = correct !== null && candidates.includes(correct);
       } else if (question.type === 'noul' && key.startsWith(confirmPrefix)) {
         const about =
           options.confirmCandidate?.(request, key) ??

@@ -349,6 +349,34 @@ describe('oracle', () => {
     expect(custom(request({ present: noul }, 'row 3'))).toEqual({ present: false });
   });
 
+  it('keeps the fallback truth of Choice questions that are not about the target', () => {
+    const fn = oracleFromTargets(
+      { 'Start C12': 'c17', 'Missing thing': null },
+      { fallback: () => ({ status: 'stopped', target: 'c16' }) },
+    );
+    const status = { type: 'choice', criteria: { running: null, stopped: null } } as const;
+    const target = { type: 'choice', criteria: { c16: null, c17: null } } as const;
+    const known = { step: { target: 'Start C12' } };
+    expect(fn(request({ target, status }, known))).toEqual({ status: 'stopped', target: 'c17' });
+    expect(fn(request({ target, status }, { step: { target: 'Unknown' } }))).toEqual({
+      status: 'stopped',
+      target: 'c16',
+    });
+    // An absent target makes the candidate Choice uniform; the other Choice keeps its truth.
+    const absent = fn(request({ target, status }, { step: { target: 'Missing thing' } }));
+    expect(absent.status).toBe('stopped');
+    expect(absent.target).toBeUndefined();
+    // With listed candidates, a Choice over some of them that lacks the target is uniform.
+    const listed = fn(
+      request(
+        { shortlist: { type: 'choice', criteria: { c16: null, c18: null } }, status },
+        { step: { target: 'Start C12' }, candidates: { c16: {}, c17: {}, c18: {} } },
+      ),
+    );
+    expect(listed).toEqual({ status: 'stopped', target: 'c16', shortlist: undefined });
+    expect(Object.hasOwn(listed, 'shortlist')).toBe(true);
+  });
+
   it('seeds randomness from any JSON value', () => {
     const a = seededRandom({ seed: 1 });
     const b = seededRandom({ seed: 1 });

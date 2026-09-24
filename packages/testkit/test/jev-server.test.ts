@@ -180,7 +180,25 @@ describe('fake Jev server', () => {
         })
       ).json,
     ).toEqual({ pending: 0 });
+    // An invalid script or outcome list is refused and changes nothing.
+    const badScript = await call('/_fake/script', {
+      method: 'PUT',
+      body: JSON.stringify({ answers: 5, rules: 'x' }),
+    });
+    expect(badScript.status).toBe(400);
+    expect(badScript.json).toMatchObject({
+      detail: expect.stringMatching(/^Jev script: /) as unknown,
+    });
     expect((await call('/_fake/outcomes', { method: 'POST', body: '{}' })).status).toBe(400);
+    const badOutcomes = await call('/_fake/outcomes', {
+      method: 'POST',
+      body: JSON.stringify([{ status: 'abc' }, 7]),
+    });
+    expect(badOutcomes.status).toBe(400);
+    expect(
+      (await call('/_fake/outcomes', { method: 'POST', body: JSON.stringify([{ status: 200 }]) }))
+        .status,
+    ).toBe(400);
     expect(
       (await call('/_fake/outcomes', { method: 'POST', body: JSON.stringify([{ status: 529 }]) }))
         .json,
@@ -198,6 +216,12 @@ describe('fake Jev server', () => {
     expect(log.requests[0]?.headers.authorization).toBe('Bearer ***-key');
     expect((await call('/_fake/reset', { method: 'POST' })).status).toBe(200);
     expect(server.requests).toHaveLength(0);
+    expect(() => {
+      server?.enqueue({ status: 200 });
+    }).toThrow(RangeError);
+    expect(() => {
+      server?.setScript({ rules: [{ match: {}, outcomes: [{ status: 302 }] }] });
+    }).toThrow(/400 to 599, got 302/);
     server.enqueue({ status: 401 });
     expect(
       (await call('/v1/systemone', { method: 'POST', headers: auth, body: JSON.stringify(body) }))
@@ -211,6 +235,16 @@ describe('fake Jev server', () => {
     server.clearRequests();
     expect(server.requests).toHaveLength(0);
     expect(server.mode).toBe('scripted');
+  });
+
+  it('refuses an oracle noise amplitude outside [0, 1] at start', async () => {
+    await expect(
+      startFakeJev({ mode: { kind: 'oracle', truth: () => ({}), noise: 2 } }),
+    ).rejects.toThrow(/noise must lie in \[0, 1\], got 2/);
+    await expect(
+      startFakeJev({ mode: { kind: 'oracle', truth: () => ({}), noise: Number.NaN } }),
+    ).rejects.toThrow(RangeError);
+    await expect(startFakeJev({ outcomes: [{ status: 204 }] })).rejects.toThrow(RangeError);
   });
 
   it('refuses a script in other modes and reports oracle and script errors as 400', async () => {

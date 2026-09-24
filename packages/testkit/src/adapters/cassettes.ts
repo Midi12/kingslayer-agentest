@@ -40,6 +40,30 @@ export class CassetteMissError extends Error {
   }
 }
 
+export const CASSETTE_BINARY_BODY = 'CASSETTE_BINARY_BODY';
+
+/**
+ * A request or response body that is not UTF-8 text cannot be checked for key material,
+ * so the recorder refuses to store it (ADR M03-cassettes).
+ */
+export class CassetteBinaryBodyError extends Error {
+  readonly code = CASSETTE_BINARY_BODY;
+  readonly method: string;
+  readonly path: string;
+  readonly part: 'request' | 'response';
+
+  constructor(method: string, path: string, part: 'request' | 'response') {
+    super(
+      `${CASSETTE_BINARY_BODY}: the ${part} body of ${method} ${path} is not UTF-8 text; ` +
+        'cassettes record only text and JSON bodies, which can be checked for key material',
+    );
+    this.name = 'CassetteBinaryBodyError';
+    this.method = method;
+    this.path = path;
+    this.part = part;
+  }
+}
+
 /** The directory of one suite's cassettes under a root. */
 export function cassetteDir(root: string, suite: string): string {
   return join(root, suiteSlug(suite));
@@ -158,8 +182,14 @@ const UNREPLAYED_RESPONSE_HEADERS = [
   'keep-alive',
 ];
 
-function sanitizedBody(body: CassetteBody): CassetteBody {
-  if (body === null || 'base64' in body) {
+type TextBody = Exclude<CassetteBody, { base64: string }>;
+
+function isBinary(body: CassetteBody): body is { base64: string } {
+  return body !== null && 'base64' in body;
+}
+
+function sanitizedBody(body: TextBody): TextBody {
+  if (body === null) {
     return body;
   }
   if ('json' in body) {
@@ -216,26 +246,34 @@ export function createCassetteFetch(options: CassetteFetchOptions): CassetteFetc
         throw new CassetteMissError(key, method, path);
       }
     }
+    const recordedPath = redactJson(path) as string;
+    if (isBinary(body)) {
+      throw new CassetteBinaryBodyError(method, recordedPath, 'request');
+    }
     const requestHeaders = new Headers(input instanceof Request ? input.headers : undefined);
     new Headers(init?.headers).forEach((value, name) => {
       requestHeaders.set(name, value);
     });
     const response = await upstream(input, init);
     const responseBytes = new Uint8Array(await response.arrayBuffer());
+    const responseBody = encodeBody(responseBytes);
+    if (isBinary(responseBody)) {
+      throw new CassetteBinaryBodyError(method, recordedPath, 'response');
+    }
     const entry: CassetteEntry = {
       version: 1,
       key,
       recordedAt: new Date(clock.now()).toISOString(),
       request: {
         method,
-        path: redactJson(path) as string,
+        path: recordedPath,
         headers: sanitizeHeaders(headerRecord(requestHeaders)),
         body: sanitizedBody(body),
       },
       response: {
         status: response.status,
         headers: sanitizeHeaders(headerRecord(response.headers)),
-        body: sanitizedBody(encodeBody(responseBytes)),
+        body: sanitizedBody(responseBody),
       },
     };
     await store.write(entry);
@@ -356,6 +394,17 @@ export async function startCassetteProxy(
         return;
       }
       record.status = 502;
+      if (error instanceof CassetteBinaryBodyError) {
+        sendJson(response, 502, {
+          error: {
+            type: 'cassette_binary_body',
+            code: CASSETTE_BINARY_BODY,
+            message: error.message,
+          },
+          detail: error.message,
+        });
+        return;
+      }
       sendJson(response, 502, {
         error: { type: 'upstream_error', message: (error as Error).message },
         detail: (error as Error).message,

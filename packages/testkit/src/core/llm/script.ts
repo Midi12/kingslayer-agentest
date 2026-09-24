@@ -84,12 +84,32 @@ export interface LlmCall {
   readonly response: LlmScriptedResponse | undefined;
 }
 
+/** Throws when an outcome's status is not an error status (an integer from 400 to 599). */
+export function assertLlmOutcomes(outcomes: readonly LlmOutcome[]): void {
+  for (const outcome of outcomes) {
+    const status = outcome.status;
+    if (status !== undefined && !(Number.isInteger(status) && status >= 400 && status <= 599)) {
+      throw new RangeError(
+        `a queued outcome status is an error status from 400 to 599, got ${String(status)}`,
+      );
+    }
+  }
+}
+
+function assertLlmScript(script: LlmScript): void {
+  assertLlmOutcomes(script.outcomes ?? []);
+  for (const rule of script.rules ?? []) {
+    assertLlmOutcomes(rule.outcomes ?? []);
+  }
+}
+
 export class LlmScriptRunner {
   #script: LlmScript;
   #queue: LlmOutcome[];
   #ruleQueues: LlmOutcome[][];
 
   constructor(script: LlmScript = {}) {
+    assertLlmScript(script);
     this.#script = script;
     this.#queue = [...(script.outcomes ?? [])];
     this.#ruleQueues = (script.rules ?? []).map((rule) => [...(rule.outcomes ?? [])]);
@@ -100,12 +120,14 @@ export class LlmScriptRunner {
   }
 
   replace(script: LlmScript): void {
+    assertLlmScript(script);
     this.#script = script;
     this.#queue = [...(script.outcomes ?? [])];
     this.#ruleQueues = (script.rules ?? []).map((rule) => [...(rule.outcomes ?? [])]);
   }
 
   enqueue(...outcomes: readonly LlmOutcome[]): void {
+    assertLlmOutcomes(outcomes);
     this.#queue.push(...outcomes);
   }
 
