@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M01",
   "title": "Contracts",
-  "commit": "2549925",
+  "commit": "7583144",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T20:44:44.394Z",
-  "finishedAt": "2026-09-24T20:45:32.046Z",
+  "startedAt": "2026-09-24T21:02:31.020Z",
+  "finishedAt": "2026-09-24T21:03:23.057Z",
   "gates": [
     {
       "id": "M01-G0",
@@ -20,18 +20,18 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 28339,
+      "durationMs": 30952,
       "metrics": {
         "packages": 1,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 395,
+        "tests": 458,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
-        "coverageLines": 99.18,
+        "coverageLines": 99.21,
         "coverageBelowFloor": 0,
         "depViolations": 0,
         "markers": 0,
@@ -42,14 +42,14 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 395,
+            "tests": 458,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 99.18,
+            "coverageLines": 99.21,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
-            "networkGuardInstalls": 13
+            "networkGuardInstalls": 15
           }
         }
       },
@@ -69,7 +69,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6795,
+      "durationMs": 6801,
       "metrics": {
         "schemas": 51,
         "validDocuments": 96,
@@ -97,7 +97,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6033,
+      "durationMs": 7469,
       "metrics": {
         "runs": 1000,
         "roundTripFailures": 0,
@@ -122,7 +122,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2051,
+      "durationMs": 2083,
       "metrics": {
         "rules": 8,
         "fixtures": 16,
@@ -144,12 +144,12 @@
       "requires": [
         "git"
       ],
-      "passExpression": "exitCode == 0 && metrics.gitRepository == true && metrics.schemasCompared >= 40 && metrics.breakingChanges == 0 && metrics.fixtureCases >= 5 && metrics.fixtureCasesDetected == metrics.fixtureCases && metrics.additiveCasesClean == true && metrics.requiredKindsMissing == 0 && metrics.committedSchemasFresh == true",
+      "passExpression": "exitCode == 0 && metrics.gitRepository == true && metrics.schemasCompared >= 40 && metrics.breakingChanges == 0 && metrics.fixtureCases >= 5 && metrics.fixtureCasesDetected == metrics.fixtureCases && metrics.additiveCasesClean == true && metrics.requiredKindsMissing == 0 && metrics.committedSchemasFresh == true && metrics.baselineRevisions >= 1 && metrics.historyBreakingChanges == 0",
       "status": "pass",
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2281,
+      "durationMs": 2543,
       "metrics": {
         "baseline": "schemas/baseline",
         "gitRepository": true,
@@ -160,7 +160,10 @@
         "fixtureCasesDetected": 10,
         "additiveCasesClean": true,
         "requiredKindsMissing": 0,
-        "committedSchemasFresh": true
+        "committedSchemasFresh": true,
+        "baselineRevisions": 1,
+        "historyBreakingChanges": 0,
+        "historyBreakingList": []
       },
       "missingMetrics": [],
       "expressionErrors": [],
@@ -178,7 +181,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2113,
+      "durationMs": 2150,
       "metrics": {
         "scripts": 10,
         "mismatches": 0,
@@ -202,5 +205,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:7c20fa4d1d56bb336583484664091e827652b9cf04da1e5c03e21e35e37b975e"
+  "evidenceHash": "sha256:21d8dadbf5ea17d7c750d01f34249709a5cbf579746402c7bcc3df726a7c1b7d"
 }
