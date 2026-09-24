@@ -7,8 +7,8 @@
  */
 import type { ServerResponse } from 'node:http';
 import type { Clock } from '@argus/contracts';
-import { cassetteKey, decodeBody, encodeBody } from '../core/cassette/entry.js';
-import { maskHeaders } from '../core/cassette/redact.js';
+import { decodeBody, encodeBody } from '../core/cassette/entry.js';
+import { maskHeaders, recordingKey } from '../core/cassette/redact.js';
 import { SeqIdGenerator } from '../core/fakes/ids.js';
 import { JEV_MODEL_ALIASES, JEV_MODELS } from '../core/jev/models.js';
 import { oracleAnswers, type OracleTruthFunction } from '../core/jev/oracle.js';
@@ -32,6 +32,9 @@ import {
   type IncomingCall,
   type ListenOptions,
 } from './http.js';
+
+/** Error code of a request the fake itself failed to answer (a bug in the test setup). */
+export const FAKE_JEV_ERROR = 'FAKE_JEV_ERROR';
 
 /** The key the fake accepts when none is configured. */
 export const DEFAULT_FAKE_JEV_API_KEY = 'fake-typesafe-key';
@@ -73,6 +76,7 @@ export type JevCallOutcome =
   | 'invalid'
   | 'injected-error'
   | 'script-error'
+  | 'fake-error'
   | 'cassette-miss'
   | 'hung'
   | 'models'
@@ -203,7 +207,7 @@ export async function startFakeJev(options: FakeJevOptions = {}): Promise<FakeJe
     scripted: ScriptedAnswers,
   ): Promise<void> {
     if (mode.kind === 'cassette') {
-      const key = cassetteKey({ method: 'POST', path: call.path, body: encodeBody(call.body) });
+      const key = recordingKey({ method: 'POST', path: call.path, body: encodeBody(call.body) });
       const entry = await mode.store.read(key);
       if (entry === undefined) {
         record.outcome = 'cassette-miss';
@@ -335,6 +339,35 @@ export async function startFakeJev(options: FakeJevOptions = {}): Promise<FakeJe
     return false;
   }
 
+  async function route(
+    call: IncomingCall,
+    response: ServerResponse,
+    record: JevRequestRecord,
+  ): Promise<void> {
+    if (call.pathname !== '/v1/systemone' && call.pathname !== '/v1/models') {
+      reply(response, record, 404, { detail: 'Not Found' });
+      return;
+    }
+    const unauthorized = authorize(call);
+    if (unauthorized !== undefined) {
+      record.outcome = 'unauthorized';
+      reply(response, record, 401, { detail: unauthorized }, { 'www-authenticate': 'Bearer' });
+    } else if (call.pathname === '/v1/models' && call.method === 'GET') {
+      record.outcome = 'models';
+      reply(response, record, 200, { models });
+    } else if (call.pathname === '/v1/systemone' && call.method === 'POST') {
+      await systemOne(call, response, record);
+    } else {
+      reply(
+        response,
+        record,
+        405,
+        { detail: 'Method Not Allowed' },
+        { allow: call.pathname === '/v1/models' ? 'GET' : 'POST' },
+      );
+    }
+  }
+
   const listening = await listen(async (call, response) => {
     if (admin(call, response)) {
       return;
@@ -354,27 +387,16 @@ export async function startFakeJev(options: FakeJevOptions = {}): Promise<FakeJe
       outcome: 'not-found',
     };
     requests.push(record);
-    const known = call.pathname === '/v1/systemone' || call.pathname === '/v1/models';
-    if (!known) {
-      reply(response, record, 404, { detail: 'Not Found' });
-    } else {
-      const unauthorized = authorize(call);
-      if (unauthorized !== undefined) {
-        record.outcome = 'unauthorized';
-        reply(response, record, 401, { detail: unauthorized }, { 'www-authenticate': 'Bearer' });
-      } else if (call.pathname === '/v1/models' && call.method === 'GET') {
-        record.outcome = 'models';
-        reply(response, record, 200, { models });
-      } else if (call.pathname === '/v1/systemone' && call.method === 'POST') {
-        await systemOne(call, response, record);
-      } else {
-        reply(
-          response,
-          record,
-          405,
-          { detail: 'Method Not Allowed' },
-          { allow: call.pathname === '/v1/models' ? 'GET' : 'POST' },
-        );
+    try {
+      await route(call, response, record);
+    } catch (error) {
+      // A failure of the fake itself (an unreadable cassette, a throwing truth function):
+      // a 400 that the SDK does not retry, still carrying the request id.
+      const message = error instanceof Error ? error.message : String(error);
+      record.outcome = 'fake-error';
+      record.error = message;
+      if (!response.headersSent) {
+        reply(response, record, 400, { detail: `fake-jev: ${message}`, code: FAKE_JEV_ERROR });
       }
     }
     options.onRequest?.(record);

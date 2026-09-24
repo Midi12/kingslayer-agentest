@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -21,7 +21,9 @@ import {
   parseLlmOutcomes,
   parseLlmScript,
   parseTargetMap,
+  recordingKey,
   redactJson,
+  redactString,
   replayResponse,
   sanitizeHeaders,
   startCassetteProxy,
@@ -350,6 +352,8 @@ describe('script files', () => {
       ok: true,
       value: { 'Start C12': 'c17', Missing: null },
     });
+    expect(parseTargetMap({ 'Start C12': ['c17', 'c18'] }).ok).toBe(true);
+    expect(parseTargetMap({ 'Start C12': [] }).ok).toBe(false);
   });
 
   it('names the first problem of an invalid file', () => {
@@ -373,5 +377,102 @@ describe('script files', () => {
       ok: false,
       error: expect.stringMatching(/^oracle targets: \//) as unknown,
     });
+  });
+});
+
+describe('key hygiene beyond the prefixed shapes', () => {
+  // Assembled at run time so this file holds no literal key.
+  const google = ['AIza', 'SyD3xQ9vN2mK7pL4rT8wB1cF6hJ0gY5eZ-q'].join('');
+  const lower = ['k3j9x2m8', 'q7w4e6r1t5y0u2i8o3p9a7s4d6f1g5h2j0'].join('');
+  const glued = ['Zq8vT4mN2pR7wK1xY5bC9dF3gH6jL0nMa', 'Bc1De2'].join('');
+
+  it('redacts Google-style keys, long alphanumeric tokens and runs glued by a JSON escape', () => {
+    expect(google).toHaveLength(39);
+    expect(lower).toHaveLength(42);
+    expect(glued).toHaveLength(39);
+    expect(findKeyMaterial(`/v1/x?key=${google}`).map((m) => m.pattern)).toEqual([
+      'google-api-key',
+    ]);
+    expect(redactString(`/v1/x?key=${google}&a=1`)).toBe('/v1/x?key=[REDACTED]&a=1');
+    expect(redactString(`token ${lower}.`)).toBe('token [REDACTED].');
+    expect(redactString(`/files/${lower}`)).toBe('/files/[REDACTED]');
+    // Ordinary text survives: words, hyphenated slugs and short ids.
+    const ordinary = 'the-quick-brown-fox-jumps-over-the-lazy-dog-2024 msg_01AbCdEf toolu_01XyZ';
+    expect(redactString(ordinary)).toBe(ordinary);
+    // "\n" + 39 characters reads as a 40-character run once the file escapes it.
+    const text = `line one\n${glued}\ttail`;
+    expect(findKeyMaterial(text)).toEqual([]);
+    expect(findKeyMaterial(JSON.stringify(text)).length).toBeGreaterThan(0);
+    const redacted = redactString(text);
+    expect(findKeyMaterial(JSON.stringify(redacted))).toEqual([]);
+    expect(redacted).toBe('line one[REDACTED]\ttail');
+    // An escaped backslash is not an escape of the run that follows it.
+    expect(redactString(`C:\\${glued}x`)).toBe('C:\\[REDACTED]');
+  });
+
+  it('writes files in which no key pattern matches, including after JSON escaping', async () => {
+    const dir = tempDir();
+    const fetcher = upstream(
+      () =>
+        new Response(JSON.stringify({ note: `a\n${glued}`, id: lower }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    const recorder = createCassetteFetch({ store: dir, mode: 'record', fetch: fetcher });
+    await recorder(`http://api.invalid/v1/x?key=${google}`, {
+      method: 'POST',
+      body: JSON.stringify({ prompt: `use ${lower}\n${glued}`, [`k\n${glued}`]: 1 }),
+    });
+    const store = new FileCassetteStore(dir);
+    const [key] = await store.keys();
+    const text = readFileSync(join(dir, cassetteFileName(key ?? '')), 'utf8');
+    expect(findKeyMaterial(text)).toEqual([]);
+    for (const secret of [google, lower, glued]) expect(text).not.toContain(secret);
+  });
+
+  it('keys a recording over its redacted form, so a request echoing a redacted value replays', async () => {
+    const dir = tempDir();
+    let turn = 0;
+    const fetcher = upstream((_url, init) => {
+      turn += 1;
+      const sent = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as {
+        echo?: string;
+      };
+      return new Response(
+        JSON.stringify({ turn, signature: turn === 1 ? lower : `seen ${sent.echo ?? ''}` }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    });
+    // A client that sends back the signature of the previous answer.
+    async function conversation(fetchImpl: FetchLike): Promise<unknown[]> {
+      const first = (await (
+        await fetchImpl('http://api.invalid/v1/messages', {
+          method: 'POST',
+          body: JSON.stringify({ turn: 1 }),
+        })
+      ).json()) as { signature: string };
+      const second: unknown = await (
+        await fetchImpl('http://api.invalid/v1/messages', {
+          method: 'POST',
+          body: JSON.stringify({ turn: 2, echo: first.signature }),
+        })
+      ).json();
+      return [first, second];
+    }
+    await conversation(createCassetteFetch({ store: dir, mode: 'record', fetch: fetcher }));
+    const strict = createCassetteFetch({ store: dir, mode: 'strict', fetch: fetcher });
+    const replayed = await conversation(strict);
+    expect(strict.stats).toEqual({ hits: 2, misses: 0, recorded: 0 });
+    expect(fetcher.calls).toBe(2);
+    expect(replayed).toEqual([
+      { turn: 1, signature: '[REDACTED]' },
+      { turn: 2, signature: 'seen [REDACTED]' },
+    ]);
+    // The key of a request without key material is its plain cassetteKey.
+    const plain = { method: 'POST', path: '/v1/x', body: { json: { a: 1 } } };
+    expect(recordingKey(plain)).toBe(cassetteKey(plain));
+    expect(recordingKey({ method: 'POST', path: '/v1/x', body: { json: { token: lower } } })).toBe(
+      recordingKey({ method: 'POST', path: '/v1/x', body: { json: { token: '[REDACTED]' } } }),
+    );
   });
 });

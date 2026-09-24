@@ -17,7 +17,7 @@ import {
   type CassetteBody,
   type CassetteEntry,
 } from '../core/cassette/entry.js';
-import { redactJson, sanitizeHeaders } from '../core/cassette/redact.js';
+import { sanitizeBody, sanitizeHeaders, sanitizeRequest } from '../core/cassette/redact.js';
 import type { CassetteStore } from '../ports/cassette.js';
 import { listen, sendBytes, sendJson, type FakeServer, type ListenOptions } from './http.js';
 
@@ -182,20 +182,8 @@ const UNREPLAYED_RESPONSE_HEADERS = [
   'keep-alive',
 ];
 
-type TextBody = Exclude<CassetteBody, { base64: string }>;
-
 function isBinary(body: CassetteBody): body is { base64: string } {
   return body !== null && 'base64' in body;
-}
-
-function sanitizedBody(body: TextBody): TextBody {
-  if (body === null) {
-    return body;
-  }
-  if ('json' in body) {
-    return { json: redactJson(body.json) };
-  }
-  return { text: redactJson(body.text) as string };
 }
 
 /** Builds the Response a recorded entry replays as. */
@@ -234,7 +222,10 @@ export function createCassetteFetch(options: CassetteFetchOptions): CassetteFetc
     const path = `${url.pathname}${url.search}`;
     const bytes = await bodyBytes(input, init);
     const body = encodeBody(bytes);
-    const key = cassetteKey({ method, path, body });
+    // Keyed over the stored, redacted form (ADR M03-cassettes).
+    const stored = sanitizeRequest({ method, path, body });
+    const key = cassetteKey(stored);
+    const recordedPath = stored.path;
     if (options.mode !== 'record') {
       const entry = await store.read(key);
       if (entry !== undefined) {
@@ -243,10 +234,9 @@ export function createCassetteFetch(options: CassetteFetchOptions): CassetteFetc
       }
       if (options.mode === 'strict') {
         stats.misses += 1;
-        throw new CassetteMissError(key, method, path);
+        throw new CassetteMissError(key, method, recordedPath);
       }
     }
-    const recordedPath = redactJson(path) as string;
     if (isBinary(body)) {
       throw new CassetteBinaryBodyError(method, recordedPath, 'request');
     }
@@ -268,12 +258,12 @@ export function createCassetteFetch(options: CassetteFetchOptions): CassetteFetc
         method,
         path: recordedPath,
         headers: sanitizeHeaders(headerRecord(requestHeaders)),
-        body: sanitizedBody(body),
+        body: stored.body,
       },
       response: {
         status: response.status,
         headers: sanitizeHeaders(headerRecord(response.headers)),
-        body: sanitizedBody(responseBody),
+        body: sanitizeBody(responseBody),
       },
     };
     await store.write(entry);

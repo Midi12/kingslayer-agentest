@@ -10,6 +10,7 @@ import {
   distributionWithConfidence,
   noulAnswer,
   scoreAnswer,
+  setOwn,
   uniformAnswer,
 } from './answers.js';
 import type { JevAnswer, JevQuestion, JevRequest, JsonValue } from './types.js';
@@ -319,7 +320,7 @@ export class ScriptRunner {
       const spec = lookupAnswer(answers, key);
       if (spec === undefined) {
         if (this.#script.fallback === 'uniform') {
-          result[key] = uniformAnswer(question);
+          setOwn(result, key, uniformAnswer(question));
           continue;
         }
         return { ok: false, message: `no scripted answer for question '${key}'` };
@@ -328,7 +329,7 @@ export class ScriptRunner {
       if (!built.ok) {
         return built;
       }
-      result[key] = built.answer;
+      setOwn(result, key, built.answer);
     }
     return { ok: true, answers: result };
   }

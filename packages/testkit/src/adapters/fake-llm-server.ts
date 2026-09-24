@@ -61,7 +61,7 @@ export interface FakeLlmOptions extends ListenOptions {
 }
 
 export type LlmCallOutcome =
-  'response' | 'fault' | 'unauthorized' | 'invalid' | 'unscripted' | 'not-found';
+  'response' | 'fault' | 'unauthorized' | 'invalid' | 'unscripted' | 'fake-error' | 'not-found';
 
 export interface LlmRequestRecord {
   readonly seq: number;
@@ -242,7 +242,13 @@ export async function startFakeLlm(options: FakeLlmOptions = {}): Promise<FakeLl
       sendJson(
         response,
         status,
-        llmErrorBody(shape, status, 'Internal server error (fake-llm fault server-error)'),
+        llmErrorBody(
+          shape,
+          status,
+          status >= 500
+            ? 'Internal server error (fake-llm fault server-error)'
+            : `Error ${String(status)} (fake-llm scripted status)`,
+        ),
       );
       return;
     }
@@ -343,7 +349,18 @@ export async function startFakeLlm(options: FakeLlmOptions = {}): Promise<FakeLl
     } else if (call.method !== 'POST') {
       error(response, record, shape, 405, `Method ${call.method} is not allowed`, 'invalid');
     } else {
-      await complete(call, response, record, shape);
+      try {
+        await complete(call, response, record, shape);
+      } catch (thrown) {
+        // A failure of the fake itself (a throwing matcher): a 400 that clients do not retry.
+        const message = thrown instanceof Error ? thrown.message : String(thrown);
+        if (response.headersSent) {
+          record.outcome = 'fake-error';
+          record.error = message;
+        } else {
+          error(response, record, shape, 400, `fake-llm: ${message}`, 'fake-error');
+        }
+      }
     }
     options.onRequest?.(record);
   }, options);

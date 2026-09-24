@@ -68,6 +68,49 @@ describe('answers', () => {
   });
 });
 
+describe('answers with unusual labels', () => {
+  it('keeps a __proto__ label as an own probability and picks it', () => {
+    const criteria = JSON.parse('{"__proto__":null,"b":null}') as Record<string, null>;
+    const answer = choiceAnswer(Object.keys(criteria), [3, 1]);
+    expect(answer.choice).toBe('__proto__');
+    expect(Object.hasOwn(answer.probabilities, '__proto__')).toBe(true);
+    expect(Object.keys(answer.probabilities)).toEqual(['__proto__', 'b']);
+    const sum = Object.values(answer.probabilities).reduce((total, p) => total + p, 0);
+    expect(sum).toBeCloseTo(1, 12);
+    expect(JSON.parse(JSON.stringify(answer)) as unknown).toMatchObject({
+      probabilities: JSON.parse('{"__proto__":0.75,"b":0.25}') as unknown,
+    });
+  });
+
+  it('answers a __proto__ question key in scripted and oracle modes', () => {
+    const questions = JSON.parse('{"__proto__":{"type":"noul"}}') as Record<string, JevQuestion>;
+    const scripted = new ScriptRunner({ fallback: 'uniform' }).answer(request(questions), {});
+    expect(scripted.ok && Object.hasOwn(scripted.answers, '__proto__')).toBe(true);
+    const oracle = oracleAnswers(request(questions), {
+      truth: () => JSON.parse('{"__proto__":true}') as Record<string, boolean>,
+    });
+    expect(oracle.ok && Object.hasOwn(oracle.answers, '__proto__')).toBe(true);
+    expect(oracle.ok ? Object.entries(oracle.answers) : []).toEqual([
+      ['__proto__', { type: 'noul', noul: 1 }],
+    ]);
+    // A truth object without the key gives the uniform answer, not Object.prototype.
+    const unknown = oracleAnswers(request(questions), { truth: () => ({}) });
+    expect(unknown.ok ? Object.values(unknown.answers) : []).toEqual([{ type: 'noul', noul: 0.5 }]);
+  });
+
+  it('breaks ties in the key order the parsed request gives, which is the order a JS client sends', () => {
+    const criteria = JSON.parse(JSON.stringify({ b: null, 10: null, 2: null })) as Record<
+      string,
+      null
+    >;
+    const labels = Object.keys(criteria);
+    expect(labels).toEqual(['2', '10', 'b']);
+    expect(choiceAnswer(labels, [1, 1, 1]).choice).toBe('2');
+    expect(Object.keys(choiceAnswer(labels, [1, 2, 2]).probabilities)).toEqual(labels);
+    expect(choiceAnswer(labels, [1, 2, 2]).choice).toBe('10');
+  });
+});
+
 describe('validateJevRequest', () => {
   const valid = { state: 's', questions: { q: noul } };
 
@@ -375,6 +418,42 @@ describe('oracle', () => {
     );
     expect(listed).toEqual({ status: 'stopped', target: 'c16', shortlist: undefined });
     expect(Object.hasOwn(listed, 'shortlist')).toBe(true);
+  });
+
+  it('keeps an ambiguous target ambiguous: a set of ids shares the Choice and confirms each', () => {
+    const fn = oracleFromTargets({ 'Start C12': ['c17', 'c18'], 'Stop C12': ['c20'] });
+    const state = {
+      step: { target: 'Start C12' },
+      candidates: { c16: {}, c17: {}, c18: {} },
+      top: { a: 'c17', b: 'c18', c: 'c16' },
+    };
+    const target = { type: 'choice', criteria: { c16: null, c17: null, c18: null } } as const;
+    const questions = {
+      target,
+      narrow: { type: 'choice', criteria: { c16: null, c18: null } },
+      target_present: noul,
+      confirm_a: noul,
+      confirm_b: noul,
+      confirm_c: noul,
+    } as const;
+    const truths = fn(request(questions, state));
+    expect(truths).toEqual({
+      target: ['c17', 'c18'],
+      narrow: 'c18',
+      target_present: true,
+      confirm_a: true,
+      confirm_b: true,
+      confirm_c: false,
+    });
+    const answered = oracleAnswers(request(questions, state), { truth: fn });
+    expect(answered.ok && answered.answers.target).toMatchObject({
+      type: 'choice',
+      probabilities: { c16: 0, c17: 0.5, c18: 0.5 },
+    });
+    // A one-element list behaves as the id itself.
+    expect(fn(request({ target }, { step: { target: 'Stop C12' } }))).toEqual({
+      target: undefined,
+    });
   });
 
   it('seeds randomness from any JSON value', () => {

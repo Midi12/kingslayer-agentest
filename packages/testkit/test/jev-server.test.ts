@@ -1,7 +1,15 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BadRequestError, TypeSafeClient } from '@typesafe-ai/sdk';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_FAKE_JEV_API_KEY,
+  FAKE_JEV_ERROR,
+  FileCassetteStore,
   MemoryCassetteStore,
+  cassetteFileName,
+  recordingKey,
   cassetteKey,
   encodeBody,
   startFakeJev,
@@ -161,6 +169,62 @@ describe('fake Jev server', () => {
     expect(replay.headers.get('content-type')).toBe('application/json');
     expect(await replay.text()).toBe('upstream exploded');
     expect(replay.headers.get('x-typesafe-request-id')).toBe('req_0001');
+  });
+
+  it('answers a failure of the fake itself with a non-retried 400 that carries the request id', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'argus-jev-corrupt-'));
+    try {
+      const path = '/v1/systemone';
+      const key = recordingKey({
+        method: 'POST',
+        path,
+        body: encodeBody(new TextEncoder().encode(JSON.stringify(body))),
+      });
+      writeFileSync(join(dir, cassetteFileName(key)), '{ corrupt');
+      server = await startFakeJev({
+        mode: { kind: 'cassette', store: new FileCassetteStore(dir) },
+      });
+      const raw = await call(path, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+      expect(raw.status).toBe(400);
+      expect(raw.json).toMatchObject({ code: FAKE_JEV_ERROR });
+      expect(raw.headers.get('x-typesafe-request-id')).toBe('req_0001');
+      expect(server.requests[0]).toMatchObject({ status: 400, outcome: 'fake-error' });
+      const sdk = new TypeSafeClient({
+        apiKey: DEFAULT_FAKE_JEV_API_KEY,
+        baseURL: server.url,
+        logLevel: 'off',
+      });
+      const error = await sdk
+        .systemOne({ model: body.model, state: body.state, questions: { q: { type: 'noul' } } })
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        );
+      expect(error).toBeInstanceOf(BadRequestError);
+      // One call, no retry.
+      expect(server.requests).toHaveLength(2);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('answers a throwing oracle truth function with FAKE_JEV_ERROR', async () => {
+    server = await startFakeJev({
+      mode: {
+        kind: 'oracle',
+        truth: () => {
+          throw new Error('truth bug');
+        },
+      },
+    });
+    const failed = await call('/v1/systemone', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify(body),
+    });
+    expect(failed).toMatchObject({ status: 400, json: { code: FAKE_JEV_ERROR } });
+    expect(failed.headers.get('x-typesafe-request-id')).toBe('req_0001');
+    expect(server.requests[0]?.error).toBe('truth bug');
   });
 
   it('exposes its log, queue and script through the admin endpoints', async () => {

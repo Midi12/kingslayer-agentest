@@ -6,8 +6,14 @@ import { Type, type TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { err, ok, type Result } from '@argus/contracts';
 import { LLM_FAULT_MODES } from './llm/faults.js';
+import type { TargetTruth } from './jev/oracle.js';
 import type { JevOutcome, JevScript } from './jev/script.js';
-import type { LlmOutcome, LlmScript } from './llm/script.js';
+import {
+  assertLlmOutcomes,
+  assertLlmScript,
+  type LlmOutcome,
+  type LlmScript,
+} from './llm/script.js';
 
 const Probabilities = Type.Record(Type.String(), Type.Number({ minimum: 0 }));
 
@@ -151,8 +157,18 @@ export const LlmScriptSchema = Type.Object(
   { additionalProperties: false },
 );
 
-function parseWith<T>(schema: TSchema, value: unknown, what: string): Result<T, string> {
+function parseWith<T>(
+  schema: TSchema,
+  value: unknown,
+  what: string,
+  check?: (parsed: T) => void,
+): Result<T, string> {
   if (Value.Check(schema, value)) {
+    try {
+      check?.(value as T);
+    } catch (error) {
+      return err(`${what}: ${(error as Error).message}`);
+    }
     return ok(value as T);
   }
   const first = Value.Errors(schema, value).First();
@@ -166,7 +182,7 @@ export function parseJevScript(value: unknown): Result<JevScript, string> {
 }
 
 export function parseLlmScript(value: unknown): Result<LlmScript, string> {
-  return parseWith<LlmScript>(LlmScriptSchema, value, 'LLM script');
+  return parseWith<LlmScript>(LlmScriptSchema, value, 'LLM script', assertLlmScript);
 }
 
 /** A JSON list of per-call Jev outcomes (`POST /_fake/outcomes`). */
@@ -176,13 +192,24 @@ export function parseJevOutcomes(value: unknown): Result<JevOutcome[], string> {
 
 /** A JSON list of per-call LLM outcomes (`POST /_fake/outcomes`). */
 export function parseLlmOutcomes(value: unknown): Result<LlmOutcome[], string> {
-  return parseWith<LlmOutcome[]>(Type.Array(LlmOutcomeSchema), value, 'LLM outcomes');
+  return parseWith<LlmOutcome[]>(
+    Type.Array(LlmOutcomeSchema),
+    value,
+    'LLM outcomes',
+    assertLlmOutcomes,
+  );
 }
 
-/** A map of target description to correct candidate id (null when absent). */
-export function parseTargetMap(value: unknown): Result<Record<string, string | null>, string> {
-  return parseWith<Record<string, string | null>>(
-    Type.Record(Type.String(), Type.Union([Type.String(), Type.Null()])),
+/**
+ * A map of target description to the correct candidate id, a list of equally correct ids
+ * (an ambiguous target), or null when absent.
+ */
+export function parseTargetMap(value: unknown): Result<Record<string, TargetTruth>, string> {
+  return parseWith<Record<string, TargetTruth>>(
+    Type.Record(
+      Type.String(),
+      Type.Union([Type.String(), Type.Array(Type.String(), { minItems: 1 }), Type.Null()]),
+    ),
     value,
     'oracle targets',
   );

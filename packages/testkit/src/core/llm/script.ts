@@ -32,8 +32,13 @@ export interface LlmScriptedResponse {
 }
 
 export interface LlmOutcome {
+  /** `server-error` when only `status` is given. */
   readonly fault?: LlmFault;
-  /** Status of a `server-error` fault; 500 by default. */
+  /**
+   * An error status from 400 to 599: the call answers it in the shape's error body. It
+   * implies the `server-error` fault and cannot be combined with another one; the status
+   * of a `server-error` fault is 500 by default.
+   */
   readonly status?: number;
   readonly delayMs?: number;
   readonly response?: LlmScriptedResponse;
@@ -84,19 +89,31 @@ export interface LlmCall {
   readonly response: LlmScriptedResponse | undefined;
 }
 
-/** Throws when an outcome's status is not an error status (an integer from 400 to 599). */
+/**
+ * Throws when an outcome's status is not an error status (an integer from 400 to 599), or
+ * when it comes with a fault other than `server-error`, which would ignore it.
+ */
 export function assertLlmOutcomes(outcomes: readonly LlmOutcome[]): void {
   for (const outcome of outcomes) {
     const status = outcome.status;
-    if (status !== undefined && !(Number.isInteger(status) && status >= 400 && status <= 599)) {
+    if (status === undefined) {
+      continue;
+    }
+    if (!(Number.isInteger(status) && status >= 400 && status <= 599)) {
       throw new RangeError(
         `a queued outcome status is an error status from 400 to 599, got ${String(status)}`,
+      );
+    }
+    if (outcome.fault !== undefined && outcome.fault !== 'server-error') {
+      throw new RangeError(
+        `a queued outcome status answers an error; it cannot be combined with fault '${outcome.fault}'`,
       );
     }
   }
 }
 
-function assertLlmScript(script: LlmScript): void {
+/** Throws when an outcome of the script or of one of its rules is invalid. */
+export function assertLlmScript(script: LlmScript): void {
   assertLlmOutcomes(script.outcomes ?? []);
   for (const rule of script.rules ?? []) {
     assertLlmOutcomes(rule.outcomes ?? []);
@@ -141,8 +158,10 @@ export class LlmScriptRunner {
     const rule = index >= 0 ? rules[index] : undefined;
     const outcome =
       (index >= 0 ? this.#ruleQueues[index]?.shift() : undefined) ?? this.#queue.shift();
+    const statusFault: LlmFault | undefined =
+      outcome?.status === undefined ? undefined : 'server-error';
     return {
-      fault: outcome?.fault ?? rule?.fault ?? this.#script.fault,
+      fault: outcome?.fault ?? statusFault ?? rule?.fault ?? this.#script.fault,
       status: outcome?.status,
       delayMs: outcome?.delayMs,
       response: outcome?.response ?? rule?.response ?? this.#script.response,

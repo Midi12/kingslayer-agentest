@@ -83,6 +83,7 @@ export type {
   OracleTruth,
   OracleTruthFunction,
   TargetOracleOptions,
+  TargetTruth,
 } from './core/jev/oracle.js';
 export { ScriptRunner, answerFromScript, lookupAnswer, matches } from './core/jev/script.js';
 export type {
@@ -120,7 +121,11 @@ export {
   validateJevRequest,
 } from './core/jev/validate.js';
 export type { JevValidation, JevValidationOptions } from './core/jev/validate.js';
-export { DEFAULT_FAKE_JEV_API_KEY, startFakeJev } from './adapters/fake-jev-server.js';
+export {
+  DEFAULT_FAKE_JEV_API_KEY,
+  FAKE_JEV_ERROR,
+  startFakeJev,
+} from './adapters/fake-jev-server.js';
 export type {
   FakeJevMode,
   FakeJevOptions,
@@ -196,9 +201,13 @@ export {
   findKeyMaterial,
   maskCredential,
   maskHeaders,
+  recordingKey,
   redactJson,
+  redactString,
   redactText,
+  sanitizeBody,
   sanitizeHeaders,
+  sanitizeRequest,
 } from './core/cassette/redact.js';
 export type { KeyMatch, KeyPattern } from './core/cassette/redact.js';
 export { MemoryCassetteStore } from './core/cassette/memory-store.js';

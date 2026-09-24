@@ -9,6 +9,8 @@ import {
   obey,
   overlongText,
   parseAnthropicRequest,
+  parseLlmOutcomes,
+  parseLlmScript,
   parseOpenAiRequest,
   schemaViolation,
   startFakeLlm,
@@ -681,6 +683,46 @@ describe('fake LLM server', () => {
     expect((await post('/v1/chat/completions', openaiBody, openaiHeaders)).json).toMatchObject({
       error: { type: 'server_error' },
     });
+  });
+
+  it('answers a queued status alone as that error, and refuses a status with another fault', async () => {
+    server = await startFakeLlm({ script: { response: { text: 'fine' } } });
+    server.enqueue({ status: 429 });
+    const limited = await post('/v1/chat/completions', openaiBody, openaiHeaders);
+    expect(limited.status).toBe(429);
+    expect(limited.json).toMatchObject({ error: { type: 'rate_limit_exceeded' } });
+    expect(server.requests.at(-1)).toMatchObject({ status: 429, fault: 'server-error' });
+    expect(() => {
+      server?.enqueue({ fault: 'refusal', status: 429 });
+    }).toThrow(RangeError);
+    expect(parseLlmOutcomes([{ fault: 'refusal', status: 429 }]).ok).toBe(false);
+    expect(
+      parseLlmScript({ rules: [{ match: {}, outcomes: [{ fault: 'timeout', status: 500 }] }] }).ok,
+    ).toBe(false);
+    const admin = await post('/_fake/outcomes', [{ fault: 'refusal', status: 429 }]);
+    expect(admin.status).toBe(400);
+    expect((await post('/v1/chat/completions', openaiBody, openaiHeaders)).status).toBe(200);
+  });
+
+  it('answers a failure of the fake itself with a 400 that clients do not retry', async () => {
+    server = await startFakeLlm({
+      script: {
+        rules: [
+          {
+            match: {
+              where: () => {
+                throw new Error('matcher bug');
+              },
+            },
+          },
+        ],
+      },
+    });
+    const failed = await post('/v1/messages', anthropicBody, anthropicHeaders);
+    expect(failed.status).toBe(400);
+    expect(JSON.stringify(failed.json)).toContain('matcher bug');
+    expect(server.requests).toHaveLength(1);
+    expect(server.requests[0]).toMatchObject({ status: 400, outcome: 'fake-error' });
   });
 
   it('holds a timeout until the client leaves, and drops it at the hold limit', async () => {

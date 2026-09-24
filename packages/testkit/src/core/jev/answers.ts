@@ -12,6 +12,19 @@ import type {
   ScoreAnswer,
 } from './types.js';
 
+/**
+ * Writes an own, enumerable property, even for a key such as `__proto__` that a plain
+ * assignment would turn into a prototype change.
+ */
+export function setOwn<T>(record: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(record, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
@@ -60,7 +73,7 @@ export function choiceAnswer(
   const p = normalize(probabilities);
   const record: Record<string, number> = {};
   labels.forEach((label, index) => {
-    record[label] = p[index] ?? 0;
+    setOwn(record, label, p[index] ?? 0);
   });
   return {
     type: 'choice',

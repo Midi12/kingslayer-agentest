@@ -23,7 +23,7 @@ server answers `GET /healthz`; the fakes also serve `GET /_fake/requests`, `POST
 | `FAKE_JEV_MODE` | `scripted` | `scripted`, `cassette` or `oracle` |
 | `FAKE_JEV_SCRIPT` | uniform answers | JSON Jev script (answers, rules, outcomes) |
 | `FAKE_JEV_CASSETTE_DIR` | required in cassette mode | directory of recorded cassettes |
-| `FAKE_JEV_ORACLE_TARGETS`, `FAKE_JEV_ORACLE_SEED`, `FAKE_JEV_ORACLE_NOISE` | required, 0, 0 | JSON map description → candidate id, seed, noise amplitude |
+| `FAKE_JEV_ORACLE_TARGETS`, `FAKE_JEV_ORACLE_SEED`, `FAKE_JEV_ORACLE_NOISE` | required, 0, 0 | JSON map description → candidate id (a list of ids when ambiguous, null when absent), seed, noise amplitude |
 | `FAKE_JEV_API_KEY`, `FAKE_LLM_API_KEY` | `fake-typesafe-key`, `fake-llm-key` | accepted keys, comma separated |
 | `FAKE_LLM_SCRIPT`, `FAKE_LLM_FAULT` | none | JSON LLM script; a fault applied to every call |
 | `FAKE_PROXY_UPSTREAM`, `FAKE_PROXY_CASSETTE_DIR`, `FAKE_PROXY_MODE` | required, required, `strict` | cassette proxy |

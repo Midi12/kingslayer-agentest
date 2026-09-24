@@ -6,7 +6,7 @@
  * Amplitude 0 gives the truth with probability 1; the same seed and request always give
  * the same answer.
  */
-import { choiceAnswer, noulAnswer, scoreAnswer, uniformAnswer } from './answers.js';
+import { choiceAnswer, noulAnswer, scoreAnswer, setOwn, uniformAnswer } from './answers.js';
 import type { JevAnswer, JevQuestion, JevRequest, JsonValue } from './types.js';
 import { seededRandom } from '../random.js';
 
@@ -105,11 +105,12 @@ export function oracleAnswers(request: JevRequest, options: OracleOptions): Orac
       key,
       request: request as unknown as JsonValue,
     });
-    const answer = answerFor(key, question, truths[key], amplitude, draw);
+    const truth = Object.hasOwn(truths, key) ? truths[key] : undefined;
+    const answer = answerFor(key, question, truth, amplitude, draw);
     if (typeof answer === 'string') {
       return { ok: false, message: answer };
     }
-    answers[key] = answer;
+    setOwn(answers, key, answer);
   }
   return { ok: true, answers };
 }
@@ -164,15 +165,23 @@ function candidatesOf(request: JevRequest): readonly string[] {
 }
 
 /**
- * A truth function from a map of target description to the correct candidate id (null
- * when the target is absent). A Choice question that offers the id gets it; a Choice over
- * the request's candidates (`state.candidates`, else the options of the first Choice
- * question) that does not offer it gets the uniform answer; every other Choice question keeps the fallback's truth. The presence Noul is
- * true when the id is among the candidates; a confirmation Noul is true when it asks
- * about the correct candidate. Questions the oracle does not know keep the fallback's truth.
+ * What a target description maps to: the correct candidate id, a set of equally correct
+ * ids (an ambiguous target, such as two rows with the same label), or null when absent.
+ */
+export type TargetTruth = string | readonly string[] | null;
+
+/**
+ * A truth function from a map of target description to the correct candidate id, a set of
+ * equally correct ids, or null when the target is absent. A Choice question that offers
+ * some of the ids gets those (shared equally, so an ambiguous target stays ambiguous); a
+ * Choice over the request's candidates (`state.candidates`, else the options of the first
+ * Choice question) that offers none of them gets the uniform answer; every other Choice
+ * question keeps the fallback's truth. The presence Noul is true when one of the ids is
+ * among the candidates; a confirmation Noul is true when it asks about one of the ids.
+ * Questions the oracle does not know keep the fallback's truth.
  */
 export function oracleFromTargets(
-  targets: Readonly<Record<string, string | null>>,
+  targets: Readonly<Record<string, TargetTruth>>,
   options: TargetOracleOptions = {},
 ): OracleTruthFunction {
   const presentKey = options.presentKey ?? 'target_present';
@@ -183,25 +192,32 @@ export function oracleFromTargets(
     if (description === undefined || !Object.hasOwn(targets, description)) {
       return base;
     }
-    const correct = targets[description] ?? null;
+    const target = targets[description] ?? null;
+    const correct: readonly string[] =
+      target === null ? [] : typeof target === 'string' ? [target] : target;
     const truths: Record<string, OracleTruth> = { ...base };
     const candidates = candidatesOf(request);
     for (const [key, question] of Object.entries(request.questions)) {
       if (question.type === 'choice') {
-        const options = Object.keys(question.criteria);
-        if (correct !== null && options.includes(correct)) {
-          truths[key] = correct;
-        } else if (options.some((option) => candidates.includes(option))) {
-          // A choice among the request's candidates that does not offer the target.
-          truths[key] = undefined;
+        const labels = Object.keys(question.criteria);
+        const offered = correct.filter((id) => labels.includes(id));
+        if (offered.length > 0) {
+          setOwn(truths, key, offered.length === 1 ? offered[0] : offered);
+        } else if (labels.some((label) => candidates.includes(label))) {
+          // A choice among the request's candidates that offers none of the targets.
+          setOwn(truths, key, undefined);
         }
       } else if (question.type === 'noul' && key === presentKey) {
-        truths[key] = correct !== null && candidates.includes(correct);
+        setOwn(
+          truths,
+          key,
+          correct.some((id) => candidates.includes(id)),
+        );
       } else if (question.type === 'noul' && key.startsWith(confirmPrefix)) {
         const about =
           options.confirmCandidate?.(request, key) ??
           candidateId(record(record(request.state)?.top)?.[key.slice(confirmPrefix.length)]);
-        truths[key] = about === undefined ? undefined : about === correct;
+        setOwn(truths, key, about === undefined ? undefined : correct.includes(about));
       }
     }
     return truths;

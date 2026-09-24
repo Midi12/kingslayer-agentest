@@ -94,8 +94,17 @@ services:
       secrets: [extra-ca]
     image: argus/fakes:dev
     command: [fake-jev]
+    # Files named below are paths inside the container, under /fixtures (the directory
+    # FAKE_FIXTURES_DIR, ./deploy/fakes by default, mounted read-only).
     environment:
       FAKE_JEV_MODE: ${FAKE_JEV_MODE:-scripted}
+      FAKE_JEV_SCRIPT: ${FAKE_JEV_SCRIPT:-}
+      FAKE_JEV_CASSETTE_DIR: ${FAKE_JEV_CASSETTE_DIR:-}
+      FAKE_JEV_ORACLE_TARGETS: ${FAKE_JEV_ORACLE_TARGETS:-}
+      FAKE_JEV_ORACLE_SEED: ${FAKE_JEV_ORACLE_SEED:-}
+      FAKE_JEV_ORACLE_NOISE: ${FAKE_JEV_ORACLE_NOISE:-}
+    volumes: &fakes-fixtures
+      - ${FAKE_FIXTURES_DIR:-./deploy/fakes}:/fixtures:ro
     ports:
       - 127.0.0.1:4100:4100
     read_only: true
@@ -108,7 +117,8 @@ services:
       timeout: 3s
       retries: 6
       start_period: 5s
-    restart: unless-stopped
+    # A configuration error exits 78: stop after three attempts instead of looping.
+    restart: on-failure:3
 
   fake-llm:
     profiles: [fakes]
@@ -117,6 +127,8 @@ services:
     command: [fake-llm]
     environment:
       FAKE_LLM_FAULT: ${FAKE_LLM_FAULT:-}
+      FAKE_LLM_SCRIPT: ${FAKE_LLM_SCRIPT:-}
+    volumes: *fakes-fixtures
     ports:
       - 127.0.0.1:4200:4200
     read_only: true
@@ -124,7 +136,7 @@ services:
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
     healthcheck: *fakes-health
-    restart: unless-stopped
+    restart: on-failure:3
 
 # Optional CA of a network that re-terminates TLS, for the image build only.
 secrets:
