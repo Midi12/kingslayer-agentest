@@ -1,0 +1,78 @@
+/**
+ * M02-G4: the blink is a real 1 Hz. In real-time clock mode, the computed background
+ * colour of an unacknowledged alarm row, sampled for 5 s, shows a period of
+ * 1,000 ± 100 ms.
+ */
+import { recordGateMetrics } from '@argus/testkit';
+import { describe, expect, it } from 'vitest';
+import { launchBrowser, loginContext } from './helpers/browser.js';
+import { createFixtureServer } from '../src/index.js';
+
+describe('M02-G4 the alarm blink is a real 1 Hz square wave', () => {
+  it('samples the computed background for 5s and measures a ~1000ms period', async () => {
+    const browser = await launchBrowser();
+    const handle = await createFixtureServer({ seed: 12, clock: 'real', logger: false });
+    const { context, page } = await loginContext(browser, handle);
+    await page.goto(`${handle.url}/alarms`);
+
+    const samples = await page.evaluate(async () => {
+      const found = document.querySelector('[data-testid^="alarm-row-"]');
+      if (found === null) {
+        throw new Error('no alarm row found');
+      }
+      const row: Element = found;
+      const out: { t: number; color: string }[] = [];
+      const start = performance.now();
+      await new Promise<void>((resolve) => {
+        function tick(): void {
+          const color = getComputedStyle(row).backgroundColor;
+          out.push({ t: performance.now() - start, color });
+          if (performance.now() - start < 5000) {
+            requestAnimationFrame(tick);
+          } else {
+            resolve();
+          }
+        }
+        requestAnimationFrame(tick);
+      });
+      return out;
+    });
+
+    await context.close();
+    await browser.close();
+    await handle.close();
+
+    expect(samples.length).toBeGreaterThan(50);
+
+    // Find transition timestamps: consecutive samples where the colour changes.
+    const transitions: number[] = [];
+    for (let i = 1; i < samples.length; i += 1) {
+      const prev = samples[i - 1];
+      const cur = samples[i];
+      if (prev === undefined || cur === undefined) {
+        continue;
+      }
+      if (prev.color !== cur.color) {
+        transitions.push(cur.t);
+      }
+    }
+    expect(transitions.length).toBeGreaterThanOrEqual(4);
+
+    // A period is two consecutive transitions (on->off->on).
+    const periods: number[] = [];
+    for (let i = 2; i < transitions.length; i += 1) {
+      const cur = transitions[i];
+      const prevPrev = transitions[i - 2];
+      if (cur === undefined || prevPrev === undefined) {
+        continue;
+      }
+      periods.push(cur - prevPrev);
+    }
+    const meanPeriod = periods.reduce((sum, p) => sum + p, 0) / periods.length;
+
+    recordGateMetrics({ samples: samples.length, transitions: transitions.length, meanPeriodMs: meanPeriod });
+
+    expect(meanPeriod).toBeGreaterThanOrEqual(900);
+    expect(meanPeriod).toBeLessThanOrEqual(1100);
+  });
+});

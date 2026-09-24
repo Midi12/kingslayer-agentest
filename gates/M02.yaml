@@ -1,0 +1,63 @@
+module: M02
+title: Fixture HMI
+gates:
+  - id: M02-G0
+    tier: A
+    title: Global gate G0 on the package M02 owns
+    command: pnpm g0 apps/fixture-hmi
+    timeoutSec: 1800
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.packages == 1 && metrics.typecheckFailures == 0
+      && metrics.typecheckErrors == 0 && metrics.lintErrors == 0 && metrics.lintWarnings == 0
+      && metrics.tests > 0 && metrics.testsFailed == 0 && metrics.testsSkipped == 0
+      && metrics.vitestFailures == 0 && metrics.coverageBelowFloor == 0 && metrics.coverageLines >= 70
+      && metrics.depViolations == 0 && metrics.markers == 0 && metrics.networkGuardMissing == 0
+
+  - id: M02-G1
+    tier: A
+    title: Determinism
+    command: pnpm --filter @argus/fixture-hmi test:gate-g1
+    timeoutSec: 300
+    requires: []
+    pass: exitCode == 0 && metrics.pages == 8 && metrics.domMismatches == 0 && metrics.screenshotMismatches == 0
+
+  - id: M02-G2
+    tier: A
+    title: Every fault does what it says
+    command: pnpm --filter @argus/fixture-hmi test:gate-g2
+    timeoutSec: 300
+    requires: []
+    pass: exitCode == 0 && metrics.faults == 14 && metrics.tested == 14
+
+  - id: M02-G3
+    tier: A
+    title: Datasets are sound
+    command: pnpm --filter @argus/fixture-hmi test:gate-g3
+    timeoutSec: 300
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.groundingTasks >= 120 && metrics.svgTasks >= 20
+      && metrics.frTasks >= 30 && metrics.noneTasksDeclared >= 5
+      && metrics.groundingIdsUnique == true && metrics.groundingSchemaInvalid == 0
+      && metrics.breakTasks >= 60 && metrics.breaksIdsUnique == true
+      && metrics.breaksSchemaInvalid == 0 && metrics.breaksStepInvalid == 0
+      && metrics.resolutionFailures == 0 && metrics.everyTaskAccountedFor == true
+
+  - id: M02-G4
+    tier: A
+    title: The blink is a real 1 Hz
+    command: pnpm --filter @argus/fixture-hmi test:gate-g4
+    timeoutSec: 60
+    requires: []
+    pass: exitCode == 0 && metrics.meanPeriodMs >= 900 && metrics.meanPeriodMs <= 1100 && metrics.transitions >= 4
+
+  - id: M02-G5
+    tier: C
+    title: The image works as a service
+    command: pnpm --filter @argus/fixture-hmi test:gate-g5
+    timeoutSec: 540
+    requires: [docker]
+    pass: >-
+      exitCode == 0 && metrics.buildExit == 0 && metrics.healthzOk == true
+      && metrics.healthyWithinMs >= 0 && metrics.healthyWithinMs <= 5000 && metrics.nonRoot == true
