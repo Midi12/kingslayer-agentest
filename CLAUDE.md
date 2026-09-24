@@ -18,6 +18,8 @@ Read the module section of `docs/spec/03-implementation-spec.md`, every contract
 | Shared dev services from `compose.dev.yaml` (project name `argus-dev`) | Postgres 16 on `127.0.0.1:5432` (user `argus`, password `argus`, db `argus`); S3 (VersityGW) on `127.0.0.1:9000` (key `argus`, secret `argus-dev-secret`). Tests create their own database or bucket prefix with a random suffix and drop it afterwards. Never stop or recreate these services. |
 | Helm, kind, kubeconform, gitleaks, tflint, terraform and, when installed, cosign, syft, trivy are on `PATH` | Tier C gates may use them. Check with `command -v` and report `not_run` with a reason when a tool is missing. |
 | No `TYPESAFE_API_KEY` or LLM key on this host | Tier B gates are implemented fully and report `not_run: missing credentials`. They are never faked into a pass (ADR-0016). |
+| One shell command may run at most 10 minutes, and an agent cannot wait on a background job | Run longer commands with `/home/user/wt/bin/job-start <name> <dir> '<command>'` and poll with `/home/user/wt/bin/job-wait <name> 540` until it prints `DONE exit=<code>`; logs are in `/home/user/wt/jobs/`. |
+| The shell profile exports `DOCKERHUB_MIRROR=mirror.gcr.io` | Gates, builds and Compose pick up the mirror without extra flags. |
 | Only loopback is reachable from Tier A tests | The network guard in `packages/testkit` throws `NETWORK_DENIED` on any non-loopback socket. |
 
 ## 2. Working loop per module (autonomous form, ADR-0015)
