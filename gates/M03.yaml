@@ -51,6 +51,7 @@ gates:
       && metrics.outboundConnections == 0 && metrics.replayHits >= 2
       && metrics.filesScanned >= 3 && metrics.keyPatternMatches == 0
       && metrics.plantedSecretsFound == 0 && metrics.credentialHeadersFound == 0
+      && metrics.independentMatches == 0 && metrics.binaryCases >= 2
 
   - id: M03-G4
     tier: A

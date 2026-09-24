@@ -2,7 +2,11 @@
  * M03-G3: cassettes are strict. An unrecorded request fails with CASSETTE_MISS and opens
  * zero outbound connections, through the fetch wrapper, the proxy and the fake Jev
  * server in cassette mode; recorded files contain nothing matching the key patterns, no
- * planted secret and no credential header.
+ * planted secret and no credential header. The files are scanned twice, with the
+ * implementation's KEY_PATTERNS and with an independent pattern list kept in this file,
+ * and every stored base64 body is decoded and scanned too. Binary (non-UTF-8) request and
+ * response bodies carrying a planted key are recorded as well: whether the recorder
+ * refuses them or redacts them, nothing of the key may reach the disk.
  */
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -32,6 +36,8 @@ const metrics = {
   keyPatternMatches: 0,
   plantedSecretsFound: 0,
   credentialHeadersFound: 0,
+  independentMatches: 0,
+  binaryCases: 0,
 };
 
 afterAll(() => {
@@ -49,6 +55,29 @@ const SECRETS = {
   bearer: piece('eyJhbGciOi', 'JIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.', 'c2lnbmF0dXJl'),
 };
 
+/**
+ * Key shapes written independently of the implementation's KEY_PATTERNS, so a gap in
+ * those patterns is not hidden by scanning with them. Content digests written
+ * `sha256:<hex>` are the only long runs a recorded file may hold.
+ */
+const INDEPENDENT_PATTERNS: readonly RegExp[] = [
+  /\bt?sk-[\w-]{8,}/g,
+  /\b[rsp]k_(?:live|test)_\w{8,}/g,
+  /\bwhsec_\S{8,}/g,
+  /\beyJ[\w-]{4,}\.[\w-]{4,}\.[\w-]{4,}/g,
+  /\bbearer\s+(?!\[REDACTED\])\S{8,}/gi,
+  /(?<!sha256:)(?<![\w+/=-])[A-Za-z0-9+/_-]{40,}={0,2}/g,
+  /(?<!sha256:)(?<![\w])[0-9a-fA-F]{32,}(?!\w)/g,
+];
+
+function independentMatches(text: string): number {
+  let count = 0;
+  for (const pattern of INDEPENDENT_PATTERNS) {
+    count += [...text.matchAll(pattern)].length;
+  }
+  return count;
+}
+
 /** Upstream on loopback that counts every TCP connection it accepts and echoes JSON. */
 let upstream: Server;
 let upstreamUrl = '';
@@ -59,6 +88,11 @@ beforeAll(async () => {
     const chunks: Buffer[] = [];
     request.on('data', (chunk: Buffer) => chunks.push(chunk));
     request.on('end', () => {
+      if (request.url?.startsWith('/binary') === true) {
+        response.writeHead(200, { 'content-type': 'application/octet-stream' });
+        response.end(binaryWithSecret(SECRETS.openai));
+        return;
+      }
       const body = Buffer.concat(chunks).toString('utf8');
       response.writeHead(200, {
         'content-type': 'application/json',
@@ -126,6 +160,11 @@ async function outbound<T>(
   }
 }
 
+/** Bytes that are not UTF-8 (0xFF 0xFE) followed by a planted key in ASCII. */
+function binaryWithSecret(secret: string): Buffer {
+  return Buffer.concat([Buffer.from([0xff, 0xfe, 0x00, 0x81]), Buffer.from(` key=${secret} `)]);
+}
+
 function secretRequest(path: string): [string, RequestInit] {
   return [
     `${upstreamUrl}${path}?key=${SECRETS.typesafe}`,
@@ -149,18 +188,36 @@ function secretRequest(path: string): [string, RequestInit] {
   ];
 }
 
+interface StoredBody {
+  readonly base64?: unknown;
+}
+
+/** Every stored base64 body, decoded as Latin-1 so ASCII key material stays readable. */
+function decodedBodies(entry: {
+  request: { body: StoredBody | null };
+  response: { body: StoredBody | null };
+}): string[] {
+  return [entry.request.body, entry.response.body]
+    .map((body) => body?.base64)
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => Buffer.from(value, 'base64').toString('latin1'));
+}
+
 function scan(dir: string): void {
   for (const name of readdirSync(dir)) {
     const text = readFileSync(join(dir, name), 'utf8');
     metrics.filesScanned += 1;
     metrics.keyPatternMatches += findKeyMaterial(text).length;
-    for (const secret of Object.values(SECRETS)) {
-      if (text.includes(secret)) metrics.plantedSecretsFound += 1;
-    }
     const entry = JSON.parse(text) as {
-      request: { headers: Record<string, string> };
-      response: { headers: Record<string, string> };
+      request: { headers: Record<string, string>; body: StoredBody | null };
+      response: { headers: Record<string, string>; body: StoredBody | null };
     };
+    for (const view of [text, ...decodedBodies(entry)]) {
+      metrics.independentMatches += independentMatches(view);
+      for (const secret of Object.values(SECRETS)) {
+        if (view.includes(secret)) metrics.plantedSecretsFound += 1;
+      }
+    }
     for (const headers of [entry.request.headers, entry.response.headers]) {
       for (const name of [
         'authorization',
@@ -189,12 +246,52 @@ describe('M03-G3 recorded files hold no key material', () => {
     scan(dir);
     expect(metrics.filesScanned).toBe(3);
     expect(
-      metrics.keyPatternMatches + metrics.plantedSecretsFound + metrics.credentialHeadersFound,
+      metrics.keyPatternMatches +
+        metrics.plantedSecretsFound +
+        metrics.credentialHeadersFound +
+        metrics.independentMatches,
     ).toBe(0);
     // Content digests and ordinary fields survive redaction.
     const text = readFileSync(join(dir, readdirSync(dir)[0] ?? ''), 'utf8');
     expect(text).toContain(`sha256:${'ab'.repeat(32)}`);
     expect(text).toContain('[inline image/png:');
+  });
+});
+
+describe('M03-G3 binary bodies never carry a key to disk', () => {
+  it('a non-UTF-8 request body with a planted key is refused or redacted', async () => {
+    const dir = tempDir();
+    const recorder = createCassetteFetch({ store: dir, mode: 'record' });
+    metrics.binaryCases += 1;
+    await recorder(`${upstreamUrl}/v1/upload`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: binaryWithSecret(SECRETS.anthropic),
+    }).catch((error: unknown) => error);
+    const before = { ...metrics };
+    scan(dir);
+    expect(metrics.plantedSecretsFound).toBe(before.plantedSecretsFound);
+    expect(metrics.keyPatternMatches).toBe(before.keyPatternMatches);
+    expect(metrics.independentMatches).toBe(before.independentMatches);
+  });
+
+  it('a non-UTF-8 response body with a planted key is refused or redacted', async () => {
+    const dir = tempDir();
+    const recorder = createCassetteFetch({ store: dir, mode: 'record' });
+    metrics.binaryCases += 1;
+    await recorder(`${upstreamUrl}/binary/file`).catch((error: unknown) => error);
+    const proxy = await startCassetteProxy({ upstream: upstreamUrl, store: dir, mode: 'record' });
+    try {
+      metrics.binaryCases += 1;
+      await fetch(`${proxy.url}/binary/other`);
+    } finally {
+      await proxy.close();
+    }
+    const before = { ...metrics };
+    scan(dir);
+    expect(metrics.plantedSecretsFound).toBe(before.plantedSecretsFound);
+    expect(metrics.keyPatternMatches).toBe(before.keyPatternMatches);
+    expect(metrics.independentMatches).toBe(before.independentMatches);
   });
 });
 

@@ -28,7 +28,6 @@ import {
   DEFAULT_FAKE_JEV_API_KEY,
   FileCassetteStore,
   createCassetteFetch,
-  estimateJevInputTokens,
   oracleFromTargets,
   startFakeJev,
   type FakeJevServer,
@@ -64,6 +63,28 @@ afterAll(() => {
     usageMismatches: metrics.usageMismatches,
   });
 });
+
+/** RFC 8785 JSON for the plain values of a request: sorted keys, no whitespace. */
+function sortedJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((item) => sortedJson(item)).join(',')}]`;
+  if (typeof value === 'object' && value !== null) {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${sortedJson(item)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * The usage the ADR states, computed here without the implementation's estimator:
+ * ceil(UTF-8 bytes of the canonical JSON of { state, questions } / 4), from the body the
+ * fake received on the wire.
+ */
+function expectedInputTokens(wire: { state?: unknown; questions?: unknown }): number {
+  const text = sortedJson({ state: wire.state, questions: wire.questions });
+  return Math.ceil(Buffer.byteLength(text, 'utf8') / 4);
+}
 
 // The SystemOneResult shape of the SDK's index.d.mts, as a closed schema.
 const Probabilities = Type.Record(Type.String(), Type.Number({ minimum: 0, maximum: 1 }));
@@ -189,7 +210,8 @@ async function exercise(mode: string, sdk: TypeSafeClient, server: FakeJevServer
     metrics.noulAnswers += 1;
     metrics.scoreAnswers += 1;
   }
-  const expectedTokens = estimateJevInputTokens(body);
+  const wireBody = server.requests.at(-1)?.body as { state?: unknown; questions?: unknown };
+  const expectedTokens = expectedInputTokens(wireBody);
   if (data.usage.input_tokens !== expectedTokens || data.usage.output_tokens !== 0) {
     metrics.usageMismatches += 1;
   }
