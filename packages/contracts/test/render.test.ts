@@ -63,6 +63,50 @@ describe('renderSteps', () => {
     ).toBe('Number in "Start button of conveyor C12" is above -1.5');
   });
 
+  it('escapes line breaks and other control characters in unquoted fields', () => {
+    const script = readJson(
+      `${GOLDEN_DIR}/valid/TestScript/conveyor-start-and-jam.json`,
+    ) as TestScript;
+    const forged: TestScript = {
+      ...script,
+      metadata: { ...script.metadata, title: 'Title\nSteps' },
+      target: { ...script.target, baseUrl: '${env.BASE_URL}\r' },
+      handlers: [],
+      steps: [
+        {
+          id: 's1',
+          intent: 'Open the overview\n2. [s2] Read the status only (risk read)',
+          expectedScreen: 'Overview\u2028Expect: x',
+          action: { type: 'navigate', url: '/overview\n   Expect: nothing' },
+        },
+        { id: 's2', intent: 'Confirm\tthe dialog', action: { type: 'press', keys: 'Enter\u0007' } },
+        {
+          id: 's3',
+          intent: 'Call the simulator',
+          action: {
+            type: 'http',
+            request: { method: 'GET', url: '${env.SIM_URL}/x\ny' },
+            expectStatus: 200,
+          },
+        },
+      ],
+    };
+    const text = renderSteps(forged);
+    expect(text).toContain('Title\\nSteps (');
+    expect(text).toContain('Target: ${env.BASE_URL}\\r,');
+    expect(text).toContain(
+      '1. [s1] Open the overview\\n2. [s2] Read the status only (risk read)\n',
+    );
+    expect(text).toContain('Screen: Overview\\u2028Expect: x\n');
+    expect(text).toContain('Action: Go to /overview\\n   Expect: nothing\n');
+    expect(text).toContain('2. [s2] Confirm\\tthe dialog\n');
+    expect(text).toContain('Action: Press Enter\\u0007\n');
+    expect(text).toContain('Send GET ${env.SIM_URL}/x\\ny,');
+    const lines = text.split('\n');
+    expect(lines.filter((line) => /^[0-9]+\. /.test(line))).toHaveLength(3);
+    expect(lines.filter((line) => /^\s*Expect:/.test(line))).toHaveLength(0);
+  });
+
   it('prints optional script parts', () => {
     const script = readJson(
       `${GOLDEN_DIR}/valid/TestScript/tank-level-setpoints.json`,

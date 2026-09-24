@@ -10,6 +10,21 @@ import { isActionStep } from './script.js';
 
 const quote = (text: string): string => JSON.stringify(text);
 
+/**
+ * Text printed without quotes (intents, URLs, keys, screen names, titles): control
+ * characters and line or paragraph separators are written as escapes, so no field can
+ * start a line of its own and pass for another step or expectation.
+ */
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+const ESCAPES: Readonly<Record<string, string>> = { '\n': '\\n', '\r': '\\r', '\t': '\\t' };
+function inline(text: string): string {
+  return text.replace(
+    CONTROL,
+    (char) => ESCAPES[char] ?? `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+}
+
 export function renderTarget(target: Target): string {
   const hints = target.hints ?? {};
   const parts: string[] = [];
@@ -38,7 +53,7 @@ const POINTER_VERBS = {
 export function renderAction(action: Action): string {
   switch (action.type) {
     case 'navigate':
-      return `Go to ${action.url}`;
+      return `Go to ${inline(action.url)}`;
     case 'click':
     case 'dblclick':
     case 'rightclick':
@@ -53,7 +68,7 @@ export function renderAction(action: Action): string {
     case 'select':
       return `Select ${quote(action.option)} in ${renderTarget(action.target)}`;
     case 'press':
-      return `Press ${action.keys}${action.target === undefined ? '' : ` in ${renderTarget(action.target)}`}`;
+      return `Press ${inline(action.keys)}${action.target === undefined ? '' : ` in ${renderTarget(action.target)}`}`;
     case 'upload':
       return `Upload ${quote(action.file)} to ${renderTarget(action.target)}`;
     case 'drag':
@@ -77,9 +92,9 @@ export function renderAction(action: Action): string {
     }
     case 'http': {
       const request = action.request;
-      let text = `Send ${request.method} ${request.url}`;
+      let text = `Send ${request.method} ${inline(request.url)}`;
       const headers = Object.keys(request.headers ?? {}).sort();
-      if (headers.length > 0) text += ` with headers ${headers.join(', ')}`;
+      if (headers.length > 0) text += ` with headers ${headers.map(inline).join(', ')}`;
       if ('json' in request) {
         text += `${headers.length > 0 ? ' and' : ' with'} JSON ${canonicalize(request.json)}`;
       } else if (request.body !== undefined) {
@@ -189,13 +204,13 @@ function stepQualifiers(step: Step): string {
 function renderStep(step: Step, number: number, indent: string): string[] {
   const head = `${indent}${number}. [${step.id}]`;
   if (!isActionStep(step)) {
-    const intent = step.intent === undefined ? '' : ` ${step.intent}:`;
-    return [`${head}${intent} Use fragment ${step.use}`];
+    const intent = step.intent === undefined ? '' : ` ${inline(step.intent)}:`;
+    return [`${head}${intent} Use fragment ${inline(step.use)}`];
   }
   const detail = `${indent}${' '.repeat(String(number).length + 2)}`;
-  const lines = [`${head} ${step.intent}${stepQualifiers(step)}`];
+  const lines = [`${head} ${inline(step.intent)}${stepQualifiers(step)}`];
   if (step.expectedScreen !== undefined) {
-    lines.push(`${detail}Screen: ${step.expectedScreen}`);
+    lines.push(`${detail}Screen: ${inline(step.expectedScreen)}`);
   }
   lines.push(`${detail}Action: ${renderAction(step.action)}`);
   for (const expectation of step.expect ?? []) {
@@ -207,7 +222,7 @@ function renderStep(step: Step, number: number, indent: string): string[] {
 function renderHandler(handler: Handler): string[] {
   const condition =
     handler.when.kind === 'probe'
-      ? `the probe ${handler.when.name} fires`
+      ? `the probe ${inline(handler.when.name)} fires`
       : `Jev confirms ${quote(handler.when.statement)}`;
   const lines = [`- [${handler.id}] When ${condition}:`];
   handler.steps.forEach((step, index) => lines.push(...renderStep(step, index + 1, '  ')));
@@ -221,12 +236,12 @@ function renderValue(value: string | number | boolean): string {
 /** The step list of a script, as plain text ending with a newline. */
 export function renderSteps(script: TestScript): string {
   const { metadata, target, policy } = script;
-  const lines: string[] = [`${metadata.title} (${metadata.name})`];
+  const lines: string[] = [`${inline(metadata.title)} (${inline(metadata.name)})`];
   if (metadata.tags !== undefined && metadata.tags.length > 0) {
-    lines.push(`Tags: ${metadata.tags.join(', ')}`);
+    lines.push(`Tags: ${metadata.tags.map(inline).join(', ')}`);
   }
   lines.push(
-    `Target: ${target.baseUrl}, viewport ${target.viewport.width}x${target.viewport.height}, locale ${target.locale}, time zone ${target.timezone}${
+    `Target: ${inline(target.baseUrl)}, viewport ${target.viewport.width}x${target.viewport.height}, locale ${inline(target.locale)}, time zone ${inline(target.timezone)}${
       target.storageState === undefined ? '' : `, storage state ${quote(target.storageState)}`
     }`,
   );
