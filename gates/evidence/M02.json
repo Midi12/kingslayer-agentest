@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M02",
   "title": "Fixture HMI",
-  "commit": "ba0c5b5",
-  "worktreeClean": false,
+  "commit": "20b2b57",
+  "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T23:34:40.463Z",
-  "finishedAt": "2026-09-24T23:36:08.285Z",
+  "startedAt": "2026-09-24T23:37:57.539Z",
+  "finishedAt": "2026-09-24T23:39:58.318Z",
   "gates": [
     {
       "id": "M02-G0",
@@ -20,7 +20,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 42130,
+      "durationMs": 40281,
       "metrics": {
         "packages": 1,
         "typecheckErrors": 0,
@@ -69,7 +69,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 13800,
+      "durationMs": 14781,
       "metrics": {
         "pages": 8,
         "domMismatches": 0,
@@ -91,7 +91,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 13615,
+      "durationMs": 14816,
       "metrics": {
         "faults": 14,
         "tested": 14,
@@ -113,7 +113,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4815,
+      "durationMs": 5642,
       "metrics": {
         "groundingTasks": 134,
         "groundingIdsUnique": true,
@@ -148,12 +148,12 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 8970,
+      "durationMs": 9110,
       "metrics": {
         "samples": 301,
         "transitions": 10,
-        "meanPeriodMs": 999.9750000000931,
-        "meanHalfPeriodMs": 501.8333333333333,
+        "meanPeriodMs": 1000.2875000000931,
+        "meanHalfPeriodMs": 501.8444444441961,
         "distinctColors": 2
       },
       "missingMetrics": [],
@@ -174,11 +174,11 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4319,
+      "durationMs": 35943,
       "metrics": {
         "buildExit": 0,
         "healthzOk": true,
-        "healthyWithinMs": 553,
+        "healthyWithinMs": 454,
         "nonRoot": true,
         "uid": "10001"
       },
@@ -200,5 +200,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:ead23a725a34524123ae8f3f9e89da4919ec7dffca12a0d3da1df181240eb1b7"
+  "evidenceHash": "sha256:e2d09d463dd5827269c6a48df28039b10175d029fa897cc0dd0c1fd3c110edbf"
 }
