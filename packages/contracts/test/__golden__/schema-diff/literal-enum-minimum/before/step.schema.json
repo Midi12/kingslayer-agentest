@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/step.schema.json",
+  "title": "Step",
+  "type": "object",
+  "required": [
+    "id"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "priority": {
+      "enum": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  "additionalProperties": false
+}

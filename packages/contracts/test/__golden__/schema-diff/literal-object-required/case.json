@@ -1,0 +1,6 @@
+{
+  "note": "Step.options was the object {a: 1} and is now an object that requires b, which rejects it",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "note": "TestScript.tags took strings and its items schema is now false, which rejects every non-empty list",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

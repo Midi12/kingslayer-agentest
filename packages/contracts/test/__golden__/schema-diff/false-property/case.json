@@ -1,0 +1,6 @@
+{
+  "note": "Target.frame took a string and its schema is now false, which rejects every target that has a frame",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

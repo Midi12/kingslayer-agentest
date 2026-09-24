@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/variables.schema.json",
+  "title": "Variables",
+  "type": "object",
+  "patternProperties": {
+    "^[A-Za-z_][A-Za-z0-9_]*$": false
+  },
+  "additionalProperties": false
+}

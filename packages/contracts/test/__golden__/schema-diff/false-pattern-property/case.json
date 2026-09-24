@@ -1,0 +1,6 @@
+{
+  "note": "Variables took string values under its name pattern and that pattern schema is now false",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}
