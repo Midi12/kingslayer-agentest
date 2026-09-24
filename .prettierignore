@@ -9,3 +9,6 @@ docs/plan/
 **/test/fixtures/
 # Markdown is formatted by hand; tables in the program documents stay as written.
 *.md
+# Generated or byte-compared files: goldens and the published JSON Schemas.
+**/__golden__/
+packages/contracts/schemas/
