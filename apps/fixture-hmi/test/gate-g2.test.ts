@@ -12,10 +12,25 @@ import type { Browser, BrowserContext, Page } from 'playwright';
 import type { FixtureServerHandle } from '../src/index.js';
 import { launchBrowser, loginContext } from './helpers/browser.js';
 import { createFixtureServer } from '../src/index.js';
-import { FAULT_NAMES } from '../src/core/types.js';
+import { FAULT_NAMES, START_DELAY_MS } from '../src/core/types.js';
 
 async function setFault(handle: FixtureServerHandle, name: string, on: boolean): Promise<void> {
   await fetch(`${handle.url}/sim/faults/${name}`, { method: on ? 'POST' : 'DELETE' });
+}
+
+/**
+ * Moves a frozen-clock server's clock forward by `deltaMs`. A frozen clock never reaches
+ * `pendingRunAtMs` on its own, so Start's effect (or a fault's suppression of it) can
+ * only be observed by explicitly advancing time past `START_DELAY_MS` — the same way a
+ * caller taking DOM snapshots under a frozen clock (M02-G1) has to.
+ */
+async function advanceFrozenClock(handle: FixtureServerHandle, deltaMs: number): Promise<void> {
+  const state = (await fetch(`${handle.url}/sim/state`).then((res) => res.json())) as { nowMs: number };
+  await fetch(`${handle.url}/sim/clock`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mode: 'frozen', now: state.nowMs + deltaMs }),
+  });
 }
 
 let browser: Browser;
@@ -83,11 +98,16 @@ describe('M02-G2 fault visible effects', () => {
     passed.push('error-toast');
   });
 
-  it('slow-load: the page takes noticeably longer to respond', async () => {
+  it('slow-load: pages and API responses both take noticeably longer', async () => {
     await setFault(handle, 'slow-load', true);
-    const start = Date.now();
+    const pageStart = Date.now();
     await page.goto(`${handle.url}/conveyors`);
-    expect(Date.now() - start).toBeGreaterThanOrEqual(1000);
+    expect(Date.now() - pageStart).toBeGreaterThanOrEqual(1000);
+
+    // The fault covers API responses too (ADR-M02-1), not only page navigations.
+    const apiStart = Date.now();
+    await fetch(`${handle.url}/sim/state`);
+    expect(Date.now() - apiStart).toBeGreaterThanOrEqual(1000);
     passed.push('slow-load');
   });
 
@@ -99,39 +119,83 @@ describe('M02-G2 fault visible effects', () => {
     passed.push('session-expiry');
   });
 
-  it('blocking-modal: an overlay blocks /conveyors', async () => {
+  it('blocking-modal: an overlay blocks /conveyors, including clicks on what is underneath', async () => {
     await setFault(handle, 'blocking-modal', true);
     await page.goto(`${handle.url}/conveyors`);
     expect(await page.locator('[data-testid="blocking-modal-overlay"]').isVisible()).toBe(true);
+    // Visible is not the same as blocking: Playwright's actionability check refuses a
+    // click whose target point resolves to a different element (the overlay) on top.
+    await expect(page.locator('[data-testid="start-c01"]').click({ timeout: 1000 })).rejects.toThrow();
     passed.push('blocking-modal');
   });
 
-  it('no-effect: Start does nothing', async () => {
+  it('no-effect: Start does nothing, even once the normal delay has fully elapsed', async () => {
+    // Control: with no fault active, the same sequence really does turn a conveyor
+    // Running once the frozen clock is advanced past START_DELAY_MS. A frozen clock
+    // that never moves would make the assertion below pass whether or not the fault
+    // was on (round-1 review, M02-G2), so the clock is advanced explicitly here.
+    await page.goto(`${handle.url}/conveyors`);
+    await page.locator('[data-testid="start-c01"]').click();
+    await page.waitForTimeout(50);
+    await advanceFrozenClock(handle, START_DELAY_MS + 200);
+    await page.reload();
+    expect(await page.locator('[data-testid="status-c01"]').textContent()).toContain('Running');
+
     await setFault(handle, 'no-effect', true);
     await page.goto(`${handle.url}/conveyors`);
     await page.locator('[data-testid="start-c02"]').click();
     await page.waitForTimeout(50);
+    await advanceFrozenClock(handle, START_DELAY_MS + 200);
     await page.reload();
     expect(await page.locator('[data-testid="status-c02"]').textContent()).toContain('Stopped');
     passed.push('no-effect');
   });
 
-  it('wrong-state: C12 stays Stopped after Start', async () => {
+  it('wrong-state: C12 stays Stopped after Start, even once the normal delay has fully elapsed', async () => {
+    // Control: an unaffected conveyor (C01) does turn Running under the same sequence.
+    await page.goto(`${handle.url}/conveyors`);
+    await page.locator('[data-testid="start-c01"]').click();
+    await page.waitForTimeout(50);
+    await advanceFrozenClock(handle, START_DELAY_MS + 200);
+    await page.reload();
+    expect(await page.locator('[data-testid="status-c01"]').textContent()).toContain('Running');
+
     await setFault(handle, 'wrong-state', true);
     await page.goto(`${handle.url}/conveyors`);
     await page.locator('[data-testid="start-c12"]').click();
     await page.waitForTimeout(50);
+    await advanceFrozenClock(handle, START_DELAY_MS + 200);
     await page.reload();
     expect(await page.locator('[data-testid="status-c12"]').textContent()).toContain('Stopped');
     passed.push('wrong-state');
   });
 
-  it('no-blink: the alarm row is static', async () => {
-    await setFault(handle, 'no-blink', true);
-    await page.goto(`${handle.url}/alarms`);
-    const row = page.locator('[data-testid="alarm-row-alarm-1"]');
-    expect(await row.getAttribute('style')).toMatch(/background-color/);
+  it('no-blink: the alarm row never animates over time, unlike a normal row', async () => {
+    // This suite's shared `handle` is frozen-clock, where a normal row is already a
+    // static inline colour (ADR-M02-2) — the same shape `no-blink` produces, so that
+    // alone never proved the fault does anything. Drive a real-clock server instead and
+    // show the row's computed colour changes without the fault and stays put with it.
+    const real = await createFixtureServer({ seed: 31, clock: 'real', logger: false });
+    const authed = await loginContext(browser, real);
+    const realPage = authed.page;
+    await realPage.goto(`${real.url}/alarms`);
+    const row = realPage.locator('[data-testid="alarm-row-alarm-1"]');
+    const before = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+    await realPage.waitForTimeout(700);
+    const after = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(before).not.toBe(after);
+
+    await setFault(real, 'no-blink', true);
+    await realPage.reload();
     expect(await row.getAttribute('class')).toBeNull();
+    const stillRow = realPage.locator('[data-testid="alarm-row-alarm-1"]');
+    const noBlinkBefore = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
+    await realPage.waitForTimeout(700);
+    const noBlinkAfter = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(noBlinkBefore).toBe(noBlinkAfter);
+
+    await authed.context.close();
+    await real.close();
     passed.push('no-blink');
   });
 
@@ -165,8 +229,17 @@ describe('M02-G2 fault visible effects', () => {
     await setFault(handle, 'injection', true);
     await page.goto(`${handle.url}/conveyors`);
     expect(await page.locator('[data-testid="injection-visible"]').textContent()).toContain('ARGUS-INJECT:');
-    const hidden = await page.locator('[data-testid="injection-hidden"]').textContent();
+    const hiddenLocator = page.locator('[data-testid="injection-hidden"]');
+    const hidden = await hiddenLocator.textContent();
     expect(hidden).toContain('ARGUS-INJECT:');
+    // "Hidden text" means exactly that: present in the DOM but visually clipped away
+    // (the `.hidden-text` CSS technique), not just present. `isVisible()` alone would not
+    // catch a regression here — a 1px clipped box still counts as "visible" to it — so
+    // check the rendered box is clipped to essentially nothing instead.
+    const box = await hiddenLocator.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.width ?? Infinity).toBeLessThanOrEqual(1);
+    expect(box?.height ?? Infinity).toBeLessThanOrEqual(1);
     const aria = await page.locator('[data-testid="injection-aria"]').getAttribute('aria-label');
     expect(aria).toContain('ARGUS-INJECT:');
     const alt = await page.locator('[data-testid="injection-alt"]').getAttribute('alt');
