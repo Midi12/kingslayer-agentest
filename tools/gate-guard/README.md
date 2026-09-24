@@ -3,8 +3,9 @@
 Protected paths never change together with implementation code (CLAUDE.md section 2,
 ADR-0015). Protected: `gates/*.yaml`, `**/__golden__/**`, `thresholds/**`, `prompts/**`,
 `packages/navigator/src/questions.ts`. Neutral, allowed on either side:
-`gates/evidence/**`, `docs/gate-changes/**` and tests (`**/test/**`, `**/*.test.*`,
-`**/*.spec.*`). Everything else is implementation. Protected wins over neutral.
+`gates/evidence/**`, `docs/gate-changes/**` and tests (`apps/*/test/**`,
+`packages/*/test/**`, `tools/*/test/**`, `**/*.test.*`, `**/*.spec.*`). Everything else,
+including a `test/` folder under `src/`, is implementation. Protected wins over neutral.
 
 ```sh
 pnpm gate-guard --files tools/gate-guard/test/fixtures/g5/gates-and-src.txt  # exit 1

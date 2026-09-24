@@ -31,7 +31,22 @@ export type Parsed =
   | { readonly ok: true; readonly value: GuardCommand }
   | { readonly ok: false; readonly error: string };
 
-const RANGE = /^[^.\s]+\.\.[^.\s]+$/;
+/**
+ * True for `<base>..<head>`. Refs may contain single dots (`v1.2.0`, `release-1.0`) but
+ * never `..` (git-check-ref-format), so the range splits at its only `..`; git validates
+ * the refs themselves. The symmetric form `a...b` is refused.
+ */
+export function isRevisionRange(range: string): boolean {
+  if (/\s/.test(range)) {
+    return false;
+  }
+  const separator = range.indexOf('..');
+  if (separator <= 0) {
+    return false;
+  }
+  const head = range.slice(separator + 2);
+  return head !== '' && !head.startsWith('.') && !head.includes('..');
+}
 
 export function parseGuardArgs(argv: readonly string[]): Parsed {
   if (argv.includes('--help') || argv.includes('-h')) {
@@ -69,7 +84,7 @@ export function parseGuardArgs(argv: readonly string[]): Parsed {
         problem = setMode('range');
         range = argv[index + 1];
         index += 1;
-        if (problem === undefined && (range === undefined || !RANGE.test(range))) {
+        if (problem === undefined && (range === undefined || !isRevisionRange(range))) {
           problem = '--range needs <base>..<head>';
         }
         break;

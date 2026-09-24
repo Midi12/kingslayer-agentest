@@ -15,15 +15,18 @@ test files counted as implementation, that commit would always violate the rule.
 
 - Protected, exactly as CLAUDE.md: `gates/*.yaml`, `**/__golden__/**`, `thresholds/**`,
   `prompts/**`, `packages/navigator/src/questions.ts`.
-- Neutral: `gates/evidence/**`, `docs/gate-changes/**`, and tests: `**/test/**`,
-  `**/*.test.*`, `**/*.spec.*`. Protected wins, so a golden file under `test/` stays
-  protected.
+- Neutral: `gates/evidence/**`, `docs/gate-changes/**`, and tests: a project's root
+  test directory (`apps/*/test/**`, `packages/*/test/**`, `tools/*/test/**`) and
+  `**/*.test.*`, `**/*.spec.*`. A `test/` directory inside `src/` is implementation code.
+  Protected wins, so a golden file under `test/` stays protected.
 - Everything else, documentation and package manifests included, is implementation.
 - Violation: protected and implementation paths in the same change.
 - `--range` without `--per-commit` checks the range as one change; with it, each commit
   against its first parent; merge commits are skipped because their commits are checked
   one by one. `--conventional` also checks subjects:
   `type(scope)!: subject` with the usual types.
+- A range is `<base>..<head>` split at its only `..` (refs may contain single dots but
+  never `..`); git validates the refs.
 - Paths come from `git diff --name-only --no-renames -z`, so a rename counts on both
   sides.
 

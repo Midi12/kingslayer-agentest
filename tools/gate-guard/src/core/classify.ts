@@ -2,7 +2,9 @@
  * Protected-path rule (CLAUDE.md section 2, ADR-0015): protected paths never change in
  * the same commit, or merge request, as other paths. Neutral paths may accompany either
  * side: gate evidence, gate-change notes, and tests, because the gates-first commit
- * carries the gate tests and implementation commits may extend them.
+ * carries the gate tests and implementation commits may extend them. Tests are a
+ * project's root `test/` directory and `*.test.*`/`*.spec.*` files; a `test/` directory
+ * inside `src/` is implementation code.
  */
 import { globToRegExp, matchesAny, normalizePath } from './globs.js';
 
@@ -17,7 +19,9 @@ export const PROTECTED_GLOBS = [
 export const NEUTRAL_GLOBS = [
   'gates/evidence/**',
   'docs/gate-changes/**',
-  '**/test/**',
+  'apps/*/test/**',
+  'packages/*/test/**',
+  'tools/*/test/**',
   '**/*.test.*',
   '**/*.spec.*',
 ] as const;

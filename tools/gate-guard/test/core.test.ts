@@ -61,6 +61,10 @@ describe('classification', () => {
     expect(classifyPath('packages/x/src/a.spec.ts')).toBe('neutral');
     expect(classifyPath('packages/x/src/a.ts')).toBe('implementation');
     expect(classifyPath('.\\gates\\M01.yaml')).toBe('protected');
+    expect(classifyPath('tools/gate/test/fixtures/a.txt')).toBe('neutral');
+    expect(classifyPath('apps/api/test/helpers.ts')).toBe('neutral');
+    expect(classifyPath('packages/x/src/test/helpers.ts')).toBe('implementation');
+    expect(classifyPath('apps/fixture-hmi/src/test/page.ts')).toBe('implementation');
   });
 
   it('flags a change only when protected and implementation paths meet', () => {
@@ -151,6 +155,9 @@ describe('parseGuardArgs', () => {
       value: { kind: 'files', list: 'list.txt' },
     });
     expect(parseGuardArgs(['-h'])).toEqual({ ok: true, value: { kind: 'help' } });
+    for (const range of ['v1.2.0..HEAD', 'origin/release-1.0..HEAD', 'abc123..def.456']) {
+      expect(parseGuardArgs(['--range', range])).toMatchObject({ ok: true, value: { range } });
+    }
     expect(GUARD_USAGE).toMatch(/--per-commit/);
   });
 
@@ -158,6 +165,11 @@ describe('parseGuardArgs', () => {
     [[], /choose --diff, --range or --files/],
     [['--diff', 'a'], /needs <base> <head>/],
     [['--range', 'a...b'], /needs <base>..<head>/],
+    [['--range', '..b'], /needs <base>..<head>/],
+    [['--range', 'a..'], /needs <base>..<head>/],
+    [['--range', 'a..b..c'], /needs <base>..<head>/],
+    [['--range', 'a ..b'], /needs <base>..<head>/],
+    [['--range', 'ab'], /needs <base>..<head>/],
     [['--range'], /needs <base>..<head>/],
     [['--files'], /needs a file list/],
     [['--diff', 'a', 'b', '--files', 'x'], /cannot be combined/],
