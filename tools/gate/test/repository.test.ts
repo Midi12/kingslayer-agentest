@@ -170,7 +170,9 @@ describe('compose.dev.yaml', () => {
 
   it('has a fixed project name and the two shared services', () => {
     expect(compose.name).toBe('argus-dev');
-    expect(Object.keys(services).sort()).toEqual(['postgres', 's3']);
+    // Services behind a profile (the M03 fakes) start only on request.
+    const alwaysOn = Object.keys(services).filter((name) => services[name]?.profiles === undefined);
+    expect(alwaysOn.sort()).toEqual(['postgres', 's3']);
     expect(services.postgres?.image).toBe(
       '${DOCKERHUB_MIRROR:-docker.io}/library/postgres:16-bookworm',
     );
