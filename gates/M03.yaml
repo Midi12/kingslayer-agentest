@@ -1,0 +1,86 @@
+module: M03
+title: AI fakes and cassettes
+gates:
+  - id: M03-G0
+    tier: A
+    title: Global gate G0 on the packages M03 owns
+    command: pnpm g0 packages/testkit apps/fakes
+    timeoutSec: 1800
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.packages == 2 && metrics.typecheckFailures == 0
+      && metrics.typecheckErrors == 0 && metrics.lintErrors == 0 && metrics.lintWarnings == 0
+      && metrics.tests > 0 && metrics.testsFailed == 0 && metrics.testsSkipped == 0
+      && metrics.vitestFailures == 0 && metrics.coverageBelowFloor == 0 && metrics.coverageLines >= 70
+      && metrics.depViolations == 0 && metrics.markers == 0 && metrics.networkGuardMissing == 0
+
+  - id: M03-G1
+    tier: A
+    title: The official SDK cannot tell the difference
+    command: pnpm --filter @argus/testkit test:gate-m03-g1
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.modes == 3 && metrics.choiceAnswers >= 3
+      && metrics.scoreAnswers >= 3 && metrics.noulAnswers >= 3 && metrics.parseFailures == 0
+      && metrics.shapeMismatches == 0 && metrics.requestIdMissing == 0
+      && metrics.modelListed == true && metrics.errorCases >= 9 && metrics.errorClassMismatches == 0
+      && metrics.usageMismatches == 0
+
+  - id: M03-G2
+    tier: A
+    title: Probabilities are well-formed
+    command: pnpm --filter @argus/testkit test:gate-m03-g2
+    timeoutSec: 900
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.requests >= 1000 && metrics.choiceSumViolations == 0
+      && metrics.scoreSumViolations == 0 && metrics.rangeViolations == 0
+      && metrics.confidenceFormulaViolations == 0 && metrics.determinismViolations == 0
+      && metrics.noiseZeroCases >= 100 && metrics.noiseZeroTruthViolations == 0
+      && metrics.seedSensitive == true
+
+  - id: M03-G3
+    tier: A
+    title: Cassettes are strict
+    command: pnpm --filter @argus/testkit test:gate-m03-g3
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.missCases >= 3 && metrics.missesDetected == metrics.missCases
+      && metrics.outboundConnections == 0 && metrics.replayHits >= 2
+      && metrics.filesScanned >= 3 && metrics.keyPatternMatches == 0
+      && metrics.plantedSecretsFound == 0 && metrics.credentialHeadersFound == 0
+
+  - id: M03-G4
+    tier: A
+    title: Error injection works
+    command: pnpm --filter @argus/testkit test:gate-m03-g4
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.attempts == 3 && metrics.statuses == "429,529,200"
+      && metrics.sdkAnswered == true && metrics.retryHeaders == "0,1,2"
+      && metrics.retryAfterHonoured == true
+
+  - id: M03-G5
+    tier: A
+    title: LLM fault modes are reachable
+    command: pnpm --filter @argus/testkit test:gate-m03-g5
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.faultModes == 7 && metrics.shapes == 2
+      && metrics.faultTests == 14 && metrics.faultTestsPassed == 14
+
+  - id: M03-G6
+    tier: C
+    title: The argus/fakes image serves both fakes
+    command: pnpm --filter @argus/fakes test:gate-m03-g6
+    timeoutSec: 1800
+    requires: [docker]
+    pass: >-
+      exitCode == 0 && metrics.imageBuilt == true && metrics.services == 2
+      && metrics.healthyWithinMs <= 5000 && metrics.uid == 10001 && metrics.readOnlyRootFs == true
+      && metrics.dockerHealthy == true && metrics.jevAnswered == true && metrics.llmAnswered == true
+      && metrics.composeValid == true
