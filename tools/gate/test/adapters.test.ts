@@ -160,6 +160,12 @@ describe('system adapters', () => {
     const outside = mkdtempSync(join(tmpdir(), 'argus-nogit-'));
     expect(await source.shortCommit(outside)).toBeNull();
     expect(await source.isClean(outside)).toBeNull();
+    writeFileSync(join(repo, '.gitignore'), 'logs/\n');
+    expect(await source.isIgnored(repo, join(repo, 'logs', 'M00'))).toBe(true);
+    expect(await source.isIgnored(repo, 'logs/M00/M00-G1.log')).toBe(true);
+    expect(await source.isIgnored(repo, join(repo, 'a'))).toBe(false);
+    expect(await source.isIgnored(repo, join(outside, 'x'))).toBeNull();
+    expect(await source.isIgnored(outside, 'x')).toBeNull();
     rmSync(outside, { recursive: true, force: true });
   });
 

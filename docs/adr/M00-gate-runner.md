@@ -39,7 +39,11 @@ means with gates that did not run, and where tier-filtered runs and logs go.
   it. The canonicaliser lives in `tools/gate` until `@argus/contracts` exists.
 - A run with `--tier` writes `<MOD>.tier-<T>.json`; logs go to
   `gates/evidence/logs/<MOD>/<ID>.log`. Both are git-ignored: only the full
-  `<MOD>.json` is committed.
+  `<MOD>.json` is committed. The evidence says so in `logsGitIgnored` (from `git
+  check-ignore` on the log directory), so a reader of the merged tree knows the `log`
+  paths point at the machine that ran the gates. The evidence commit carries the JSON
+  alone (CLAUDE.md step 6); the verdict rests on the recorded metrics, exit code and
+  `reason`, not on the logs.
 - Exit code 2 for usage errors and invalid gate files, before any command runs.
 
 ## Consequences

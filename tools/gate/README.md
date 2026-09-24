@@ -80,8 +80,10 @@ applies to a whole comparison; comparisons do not chain.
 `gates[]` (`id`, `tier`, `title`, `command`, `requires`, `passExpression`, `status`
 `pass|fail|not_run`, `reason`, `exitCode`, `signal`, `timedOut`, `durationMs`, `metrics`,
 `missingMetrics`, `expressionErrors`, `pass`, `log`), `pass` (every selected gate passed),
-`passByTier`, `notRun[]`, `toolVersions` (node, pnpm, docker when present) and
-`evidenceHash`: `sha256:` plus the hex SHA-256 of the RFC 8785 canonical JSON of the
+`passByTier`, `notRun[]`, `toolVersions` (node, pnpm, docker when present),
+`logsGitIgnored` (true when git ignores the files named by `log`, as it does for
+`gates/evidence/logs/`: they stay on the machine that ran the gates; null when unknown or
+no gate wrote a log) and `evidenceHash`: `sha256:` plus the hex SHA-256 of the RFC 8785 canonical JSON of the
 document without `evidenceHash` (`src/core/canonical-json.ts`).
 
 ## `pnpm g0 <package-dir...>`

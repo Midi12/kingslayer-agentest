@@ -103,6 +103,7 @@ describe('gateCli', () => {
     expect(log).toContain('51');
     expect(log).not.toContain('50');
     expect(written.gates[0]?.log).toBe('gates/evidence/logs/M90/M90-G1.log');
+    expect(written.logsGitIgnored).toBe(true);
     expect(output.text()).toMatch(/PASS {4}M90-G1/);
   });
 
@@ -151,6 +152,19 @@ describe('gateCli', () => {
     expect(await gateCli(['all', '--tier', 'C'], deps())).toBe(1);
     expect(await gateCli(['M91', '--tier', 'A'], deps())).toBe(0);
     expect(output.text()).toMatch(/gate M91 --tier A: 0 modules/);
+  });
+
+  it('records whether git ignores the logs, and null when no gate wrote one', async () => {
+    writeGates('M90', gateYaml('M90-G1', 'true', 'exitCode == 0'));
+    const tracked = new FakeSourceControl('abc1234', true, false);
+    expect(await gateCli(['M90'], deps({ sourceControl: tracked }))).toBe(0);
+    expect(evidence('M90.json').logsGitIgnored).toBe(false);
+    writeGates(
+      'M91',
+      gateYaml('M91-G1', 'true', 'exitCode == 0', '    requires: [TYPESAFE_API_KEY]\n'),
+    );
+    expect(await gateCli(['M91'], deps())).toBe(0);
+    expect(evidence('M91.json').logsGitIgnored).toBeNull();
   });
 
   it('runs delivery-module gate files by id and in all', async () => {

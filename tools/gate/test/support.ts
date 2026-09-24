@@ -48,12 +48,16 @@ export class FakeSourceControl implements SourceControl {
   constructor(
     private readonly commit: string | null = 'abc1234',
     private readonly clean: boolean | null = true,
+    private readonly ignored: boolean | null = true,
   ) {}
   shortCommit(): Promise<string | null> {
     return Promise.resolve(this.commit);
   }
   isClean(): Promise<boolean | null> {
     return Promise.resolve(this.clean);
+  }
+  isIgnored(): Promise<boolean | null> {
+    return Promise.resolve(this.ignored);
   }
 }
 

@@ -55,6 +55,7 @@ const base = {
   startedAt: '2026-10-02T09:14:00.000Z',
   finishedAt: '2026-10-02T09:15:00.000Z',
   toolVersions: { node: '22.9.0', pnpm: '10.33.0' },
+  logsGitIgnored: true,
 };
 
 describe('buildEvidence', () => {
@@ -67,6 +68,7 @@ describe('buildEvidence', () => {
     expect(passing.passByTier).toEqual({ A: true, C: true });
     expect(passing.notRun).toEqual([]);
     expect(passing.evidenceVersion).toBe(1);
+    expect(passing.logsGitIgnored).toBe(true);
 
     const mixed = buildEvidence({
       ...base,

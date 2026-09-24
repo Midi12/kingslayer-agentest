@@ -238,6 +238,9 @@ async function runModule(
   } finally {
     await deps.fs.remove(metricsDir);
   }
+  const logsGitIgnored = results.some((result) => result.log !== null)
+    ? await deps.sourceControl.isIgnored(deps.root, join(evidenceDir, 'logs', file.module))
+    : null;
   const evidence = buildEvidence({
     module: file.module,
     title: file.title,
@@ -249,6 +252,7 @@ async function runModule(
     finishedAt: deps.clock.now().toISOString(),
     gates: results,
     toolVersions: await deps.toolVersions.collect(),
+    logsGitIgnored,
   });
   const name =
     command.tier === undefined ? `${file.module}.json` : `${file.module}.tier-${command.tier}.json`;

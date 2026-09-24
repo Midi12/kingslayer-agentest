@@ -67,6 +67,8 @@ export interface SourceControl {
   shortCommit(root: string): Promise<string | null>;
   /** Whether the working tree has no changes, or null outside a repository. */
   isClean(root: string): Promise<boolean | null>;
+  /** Whether git ignores `path` (so it is never committed), or null outside a repository. */
+  isIgnored(root: string, path: string): Promise<boolean | null>;
 }
 
 export interface ToolVersions {

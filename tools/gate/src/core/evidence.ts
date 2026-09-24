@@ -55,6 +55,11 @@ export interface Evidence {
   readonly passByTier: Readonly<Partial<Record<Tier, boolean>>>;
   readonly notRun: readonly NotRunEntry[];
   readonly toolVersions: Readonly<Record<string, string>>;
+  /**
+   * True when git ignores the log files named by `gates[].log`: they stay on the machine
+   * that ran the gates and are not part of the committed evidence. Null when unknown.
+   */
+  readonly logsGitIgnored: boolean | null;
   readonly evidenceHash: string;
 }
 
@@ -90,6 +95,7 @@ export function buildEvidence(input: EvidenceInput): Evidence {
       .filter((gate) => gate.status === 'not_run')
       .map((gate) => ({ id: gate.id, reason: gate.reason ?? 'not run' })),
     toolVersions: input.toolVersions,
+    logsGitIgnored: input.logsGitIgnored,
   };
   return { ...body, evidenceHash: canonicalHash(body) };
 }

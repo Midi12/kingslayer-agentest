@@ -56,6 +56,21 @@ export class GitSourceControl implements SourceControl {
     const status = await capture(this.processes, ['git', 'status', '--porcelain'], root, this.env);
     return status === null ? null : status === '';
   }
+
+  /** `git check-ignore` exits 0 for an ignored path, 1 for one that is not, 128 on errors. */
+  async isIgnored(root: string, path: string): Promise<boolean | null> {
+    const result = await this.processes.run({
+      argv: ['git', 'check-ignore', '--quiet', '--no-index', '--', path],
+      cwd: root,
+      env: this.env,
+      timeoutMs: PROBE_TIMEOUT_MS,
+      tailLines: 5,
+    });
+    if (result.exitCode === 0) {
+      return true;
+    }
+    return result.exitCode === 1 ? false : null;
+  }
 }
 
 export class ShellRequirementProbe implements RequirementProbe {
