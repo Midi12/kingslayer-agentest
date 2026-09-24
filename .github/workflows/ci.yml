@@ -73,6 +73,8 @@ jobs:
         # The gates run as a dedicated user whose outbound traffic is limited to loopback
         # and the Docker bridge networks (spec M00, ADR-0008). Docker builds and the
         # clean-clone container of M00-G1 run in the daemon, which keeps registry access.
+        # --strict: a Tier A gate that cannot run (daemon unreachable, tool missing) fails
+        # the job instead of passing silently as not_run.
         run: |
           set -euo pipefail
           sudo useradd --create-home --groups docker tiera
@@ -81,7 +83,7 @@ jobs:
           sudo iptables -A OUTPUT -m owner --uid-owner tiera -j REJECT
           sudo chmod -R a+rwX "$GITHUB_WORKSPACE"
           sudo -u tiera -H env "PATH=$PATH" "COREPACK_HOME=$COREPACK_HOME" CI=true TURBO_TELEMETRY_DISABLED=1 \
-            bash -c 'cd "$0" && git config --global --add safe.directory "$0" && pnpm gate all --tier A' "$GITHUB_WORKSPACE"
+            bash -c 'cd "$0" && git config --global --add safe.directory "$0" && pnpm gate all --tier A --strict' "$GITHUB_WORKSPACE"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

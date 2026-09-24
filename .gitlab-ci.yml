@@ -35,8 +35,10 @@ gate-guard:
 
 # Tier A runs in Docker-in-Docker so that compose.dev.yaml provides the same services on
 # loopback as on a developer host. The gates run in argus/toolchain with --network host,
-# which here is the dind network namespace. M00-G1 needs a Docker CLI in the job and
-# reports not_run inside the toolchain image.
+# which here is the dind network namespace. Known gaps of this reference job, recorded in
+# ADR M00-ci: it has no egress lockdown (only the in-process network guard applies), and
+# the toolchain image has no Docker CLI, so M00-G1 reports not_run; for that reason it
+# runs without --strict. The active GitHub job has neither gap and runs with --strict.
 tier-a:
   stage: test
   image: ${DOCKERHUB_MIRROR}/library/docker:27-cli
