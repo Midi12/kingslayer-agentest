@@ -16,7 +16,8 @@ pnpm g0 tools/gate                                                              
 
 ## `pnpm gate <MOD|all> [--tier A|B|C] [--evidence-dir <dir>] [--gates-dir <dir>] [--strict] [--verbose]`
 
-Reads `gates/<MOD>.yaml` (or every `gates/M*.yaml` and `gates/S*.yaml` for `all`), checks
+Reads `gates/<MOD>.yaml` (or, for `all`, every `gates/<id>.yaml` whose name is a module
+id: `M00`..`M99`, delivery `D1`, `D2`, scenario `S01`..`S99`), checks
 each gate's `requires`, runs its `command` with `bash -c` from the repository root under
 `timeoutSec`, evaluates `pass`, and writes `gates/evidence/<MOD>.json` plus a log with the
 last 200 output lines under `gates/evidence/logs/<MOD>/`. A tier-filtered run writes

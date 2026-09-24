@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateGateFile } from '../src/index.js';
+import { GATE_FILE_NAME, isModuleId, validateGateFile } from '../src/index.js';
 
 const gate = {
   id: 'M06-G1',
@@ -49,9 +49,20 @@ describe('validateGateFile', () => {
     ).toBe(true);
   });
 
+  it('accepts delivery modules and exposes the id rule', () => {
+    expect(
+      validateGateFile({ module: 'D1', title: 'Docker', gates: [{ ...gate, id: 'D1-G1' }] }).ok,
+    ).toBe(true);
+    expect(['M00', 'S12', 'D1', 'D2', 'D10'].every(isModuleId)).toBe(true);
+    expect(['M0', 'D', 'D100', 'X01', 'm00', 'M000'].some(isModuleId)).toBe(false);
+    expect(GATE_FILE_NAME.exec('D2.yaml')?.[1]).toBe('D2');
+    expect(GATE_FILE_NAME.exec('M00.tier-A.yaml')).toBeNull();
+  });
+
   it.each([
     ['a missing module', { title: 'x', gates: [gate] }, /module/],
     ['an invalid module id', file([gate], { module: 'M6' }), /\/module/],
+    ['a delivery id with three digits', file([gate], { module: 'D100' }), /\/module/],
     ['an unknown top-level key', file([gate], { owner: 'me' }), /owner|additional/i],
     ['no gates', file([]), /\/gates/],
     ['a bad gate id', file([{ ...gate, id: 'M06-1' }]), /\/gates\/0\/id/],

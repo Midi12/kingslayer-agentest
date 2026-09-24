@@ -12,7 +12,12 @@ import {
   exitCodeFor,
   verifyEvidenceHash,
 } from '../core/evidence.js';
-import { type GateFile, type GateDefinition, validateGateFile } from '../core/gate-file.js';
+import {
+  GATE_FILE_NAME,
+  type GateFile,
+  type GateDefinition,
+  validateGateFile,
+} from '../core/gate-file.js';
 import { commandResult, notRunResult, parseMetrics } from '../core/gate-outcome.js';
 import { type RequirementCheck, notRunReason, parseRequirement } from '../core/requirements.js';
 import type {
@@ -28,7 +33,6 @@ import type {
 
 export const LOG_TAIL_LINES = 200;
 const FAILURE_EXCERPT_LINES = 20;
-const GATE_FILE = /^([MS]\d{2})\.yaml$/;
 
 export interface GateRunnerDeps {
   readonly fs: FileSystem;
@@ -102,7 +106,7 @@ async function selectGateFiles(
     );
   }
   const names = (await deps.fs.list(gatesDir))
-    .map((name) => GATE_FILE.exec(name))
+    .map((name) => GATE_FILE_NAME.exec(name))
     .filter((match): match is RegExpExecArray => match !== null)
     .sort((a, b) => (a[1] ?? '').localeCompare(b[1] ?? ''));
   const files: GateFile[] = [];

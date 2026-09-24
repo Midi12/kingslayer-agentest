@@ -14,8 +14,10 @@ means with gates that did not run, and where tier-filtered runs and logs go.
 
 - Gate files are `gates/<MOD>.yaml` only (`.yml` is not read, so the protected glob
   `gates/*.yaml` covers every gate file). Unknown keys are errors; `timeoutSec` is
-  required; `requires` defaults to `[]`. Module ids are `M00` to `M20` style and
-  `S01` to `S12` style, gate ids `<module>-G<n>`.
+  required; `requires` defaults to `[]`. Module ids are `M` or `S` with two digits
+  (`M00`, `S03`) or `D` with one or two digits (the delivery modules `D1`, `D2` of the
+  plan); gate ids are `<module>-G<n>`. `all` reads every gate file named by a module id,
+  delivery files included, so a `gates/D1.yaml` joins the regression suite.
 - `requires`: UPPER_SNAKE_CASE means an environment variable (set and non-empty),
   anything else a tool (`command -v`), `env:`/`tool:` force the reading, and `docker`
   also needs `docker info`. Reasons read `missing credentials: A, B; missing tools: x (why)`.

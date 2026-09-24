@@ -1,13 +1,14 @@
 /** Argument parsing for `pnpm gate`, `pnpm g0` and `pnpm depcruise`. */
-import { TIERS, type Tier } from './gate-file.js';
+import { TIERS, type Tier, isModuleId } from './gate-file.js';
 import { type Result, err, ok } from './result.js';
 
 export const GATE_USAGE = `Usage:
   pnpm gate <MOD|all> [--tier A|B|C] [--evidence-dir <dir>] [--gates-dir <dir>] [--strict] [--verbose]
   pnpm gate verify <evidence.json...>
 
-  <MOD>            a module or scenario id such as M00 or S03, read from <gates-dir>/<MOD>.yaml
-  all              every gates/M*.yaml and gates/S*.yaml
+  <MOD>            a module, delivery or scenario id such as M00, D1 or S03, read from
+                   <gates-dir>/<MOD>.yaml
+  all              every gates/M*.yaml, gates/D*.yaml and gates/S*.yaml
   --tier           run only the gates of one tier
   --evidence-dir   where evidence and logs go (default gates/evidence)
   --gates-dir      where gate files are read (default gates)
@@ -100,8 +101,8 @@ export function parseGateArgs(argv: readonly string[]): Result<GateCommand, stri
   if (target === undefined) {
     return err('missing <MOD|all>');
   }
-  if (target !== 'all' && !/^[MS]\d{2}$/.test(target)) {
-    return err(`invalid module ${target}; expected an id such as M00 or S03, or all`);
+  if (target !== 'all' && !isModuleId(target)) {
+    return err(`invalid module ${target}; expected an id such as M00, D1 or S03, or all`);
   }
   return ok({ kind: 'run', target, tier, evidenceDir, gatesDir, strict, verbose });
 }

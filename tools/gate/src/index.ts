@@ -12,7 +12,15 @@ export type {
   Expression,
   ExpressionError,
 } from './core/expression.js';
-export { GateFileSchema, GateSchema, TIERS, validateGateFile } from './core/gate-file.js';
+export {
+  GATE_FILE_NAME,
+  GateFileSchema,
+  GateSchema,
+  MODULE_ID_PATTERN,
+  TIERS,
+  isModuleId,
+  validateGateFile,
+} from './core/gate-file.js';
 export type { GateDefinition, GateFile, Tier } from './core/gate-file.js';
 export {
   EVIDENCE_VERSION,

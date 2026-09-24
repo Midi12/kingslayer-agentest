@@ -153,6 +153,17 @@ describe('gateCli', () => {
     expect(output.text()).toMatch(/gate M91 --tier A: 0 modules/);
   });
 
+  it('runs delivery-module gate files by id and in all', async () => {
+    writeGates('D1', gateYaml('D1-G1', 'true', 'exitCode == 0'));
+    writeGates('M90', gateYaml('M90-G1', 'true', 'exitCode == 0'));
+    expect(await gateCli(['D1'], deps())).toBe(0);
+    expect(evidence('D1.json')).toMatchObject({ module: 'D1', pass: true });
+    output = new MemoryOutput();
+    expect(await gateCli(['all', '--tier', 'A'], deps())).toBe(0);
+    expect(output.text()).toMatch(/gate all --tier A: 2 modules, 2 pass/);
+    expect(output.text().indexOf('D1 ')).toBeLessThan(output.text().indexOf('M90 '));
+  });
+
   it('streams output with --verbose and prints the tail of a failing gate otherwise', async () => {
     writeGates('M90', gateYaml('M90-G1', 'echo visible-line; exit 4', 'exitCode == 0'));
     expect(await gateCli(['M90', '--verbose'], deps())).toBe(1);

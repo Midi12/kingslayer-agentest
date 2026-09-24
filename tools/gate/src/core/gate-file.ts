@@ -12,11 +12,23 @@ import { type Result, err, ok } from './result.js';
 export const TIERS = ['A', 'B', 'C'] as const;
 export type Tier = (typeof TIERS)[number];
 
-export const MODULE_ID_PATTERN = '^[MS]\\d{2}$';
+/**
+ * Module ids: build modules `M00`..`M99`, scenarios `S01`..`S99` and delivery modules
+ * `D1`, `D2` (implementation plan, delivery stream).
+ */
+export const MODULE_ID_SOURCE = '(?:[MS]\\d{2}|D\\d{1,2})';
+export const MODULE_ID_PATTERN = `^${MODULE_ID_SOURCE}$`;
+
+export function isModuleId(value: string): boolean {
+  return new RegExp(MODULE_ID_PATTERN).test(value);
+}
+
+/** Gate file names that `pnpm gate all` reads: `<module id>.yaml`. */
+export const GATE_FILE_NAME = new RegExp(`^(${MODULE_ID_SOURCE})\\.yaml$`);
 
 export const GateSchema = Type.Object(
   {
-    id: Type.String({ pattern: '^[MS]\\d{2}-G\\d+$' }),
+    id: Type.String({ pattern: `^${MODULE_ID_SOURCE}-G\\d+$` }),
     tier: Type.Union(TIERS.map((tier) => Type.Literal(tier))),
     title: Type.String({ minLength: 1 }),
     command: Type.String({ minLength: 1 }),
