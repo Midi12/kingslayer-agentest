@@ -58,14 +58,36 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const port = 34567;
+  // A fixed host port would collide with any other G5 run, or anything else, holding it
+  // at the same time (CLAUDE.md: never hard-code ports, other agents run in parallel).
+  // Docker picks a free one; `docker port` reads back which one it picked.
   const container = spawn(
     'docker',
-    ['run', '--rm', '--name', CONTAINER, '-p', `127.0.0.1:${String(port)}:4000`, IMAGE],
+    ['run', '--rm', '--name', CONTAINER, '-p', '127.0.0.1::4000', IMAGE],
     { stdio: 'ignore' },
   );
 
+  async function resolveHostPort(deadlineMs: number): Promise<number | undefined> {
+    const deadline = Date.now() + deadlineMs;
+    while (Date.now() < deadline && container.exitCode === null) {
+      const result = run(['docker', 'port', CONTAINER, '4000/tcp']);
+      const match = /:(\d+)\s*$/.exec(result.stdout.trim());
+      if (result.code === 0 && match?.[1] !== undefined) {
+        return Number(match[1]);
+      }
+      await delay(100);
+    }
+    return undefined;
+  }
+
   try {
+    const port = await resolveHostPort(5000);
+    if (port === undefined) {
+      console.error('fixture-hmi container did not publish its port within 5s');
+      recordGateMetrics({ buildExit: build.code, healthzOk: false, healthyWithinMs: -1, nonRoot: false });
+      return 1;
+    }
+
     const start = Date.now();
     let healthzOk = false;
     let healthyWithinMs = -1;
