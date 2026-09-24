@@ -6,6 +6,13 @@
  * for other unions of objects, inside the variant the value is closest to (fewest failing
  * locations, then the deepest one, then the first variant). The first error is the most
  * specific location that explains the failure.
+ *
+ * JSON Schema counts string lengths in code points, TypeBox in UTF-16 code units, and Ajv
+ * matches patterns with the `u` flag while TypeBox does not. Before checking, every
+ * astral character (a surrogate pair) in a string value is therefore replaced by a
+ * distinct private-use BMP character the document does not use, so lengths, bounded
+ * quantifiers and `.` count one per code point, as in any 2020-12 validator, while
+ * equality and uniqueness are preserved. Property names are left as they are.
  */
 import type { TSchema } from '@sinclair/typebox';
 import { TypeCompiler, type TypeCheck } from '@sinclair/typebox/compiler';
@@ -42,15 +49,72 @@ export function validate<N extends SchemaName>(
 /** Validates `value` against any TypeBox schema, with the same error reporting. */
 export function validateAgainst<T>(schema: TSchema, value: unknown): Result<T, ValidationError[]> {
   const checker = checkerFor(schema);
-  if (checker.Check(value)) {
+  const checked = inCodePoints(value);
+  if (checker.Check(checked)) {
     return ok(value as T);
   }
-  return err(explain(checker.Errors(value)));
+  return err(explain(checker.Errors(checked)));
 }
 
 /** True when `value` conforms to the registered schema `name`. */
 export function conforms<N extends SchemaName>(name: N, value: unknown): value is SchemaType<N> {
-  return checkerFor(SCHEMAS[name]).Check(value);
+  return checkerFor(SCHEMAS[name]).Check(inCodePoints(value));
+}
+
+const SURROGATE_PAIR = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+const PRIVATE_USE = /[\uE000-\uF8FF]/g;
+const PRIVATE_USE_FIRST = 0xe000;
+const PRIVATE_USE_LAST = 0xf8ff;
+
+function visitStrings(value: unknown, visit: (text: string) => void): void {
+  if (typeof value === 'string') {
+    visit(value);
+  } else if (Array.isArray(value)) {
+    value.forEach((item) => {
+      visitStrings(item, visit);
+    });
+  } else if (typeof value === 'object' && value !== null) {
+    Object.values(value).forEach((item) => {
+      visitStrings(item, visit);
+    });
+  }
+}
+
+function mapStrings(value: unknown, map: (text: string) => string): unknown {
+  if (typeof value === 'string') return map(value);
+  if (Array.isArray(value)) return value.map((item) => mapStrings(item, map));
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, mapStrings(item, map)]),
+    );
+  }
+  return value;
+}
+
+/**
+ * `value` with every astral character of its string values replaced by one BMP
+ * character, injectively; `value` itself when it has none. A document with more distinct
+ * astral characters than free private-use characters (6,400) is checked as it is.
+ */
+export function inCodePoints(value: unknown): unknown {
+  const astral = new Set<string>();
+  const used = new Set<string>();
+  visitStrings(value, (text) => {
+    for (const match of text.matchAll(SURROGATE_PAIR)) astral.add(match[0]);
+    for (const match of text.matchAll(PRIVATE_USE)) used.add(match[0]);
+  });
+  if (astral.size === 0) return value;
+  const replacement = new Map<string, string>();
+  let code = PRIVATE_USE_FIRST;
+  for (const character of astral) {
+    while (code <= PRIVATE_USE_LAST && used.has(String.fromCharCode(code))) code++;
+    if (code > PRIVATE_USE_LAST) return value;
+    replacement.set(character, String.fromCharCode(code));
+    code++;
+  }
+  return mapStrings(value, (text) =>
+    text.replace(SURROGATE_PAIR, (pair) => replacement.get(pair) ?? pair),
+  );
 }
 
 /** Turns TypeBox errors into refined, de-duplicated errors (one per location). */
