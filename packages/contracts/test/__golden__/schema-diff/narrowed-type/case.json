@@ -1,0 +1,6 @@
+{
+  "note": "check.value went from number to integer inside a discriminated variant",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "note": "Target.frame was removed",
+  "expectedKinds": [
+    "removed-property"
+  ]
+}

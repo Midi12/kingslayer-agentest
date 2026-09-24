@@ -1,0 +1,14 @@
+{
+  "name": "plant-runner-1",
+  "version": "1.0.0",
+  "kind": "self-hosted",
+  "slots": 2,
+  "labels": [
+    "site-lyon",
+    "chromium"
+  ],
+  "platform": {
+    "os": "linux",
+    "arch": "arm64"
+  }
+}

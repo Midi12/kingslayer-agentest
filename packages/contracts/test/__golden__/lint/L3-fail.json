@@ -1,0 +1,123 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l3-fail",
+      "title": "Lint fixture l3-fail"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "secrets": [
+      "OPERATOR_PASSWORD"
+    ],
+    "variables": {
+      "password": "hunter2"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Enter the password",
+        "action": {
+          "type": "fill",
+          "target": {
+            "description": "Password field of the login form"
+          },
+          "value": "hunter2"
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Enter the API token",
+        "action": {
+          "type": "fill",
+          "target": {
+            "description": "Token field of the settings form"
+          },
+          "value": "${secret.API_TOKEN}"
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Type ${secret.OPERATOR_PASSWORD} into the user field",
+        "action": {
+          "type": "fill",
+          "target": {
+            "description": "User name field of the login form"
+          },
+          "value": "operator"
+        }
+      },
+      {
+        "id": "s4",
+        "intent": "Trigger a jam through the simulator",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "POST",
+            "url": "https://sim.test:8443/faults",
+            "headers": {
+              "Authorization": "Bearer abcdefghijkl1234"
+            },
+            "json": {
+              "type": "jam"
+            }
+          },
+          "expectStatus": 202
+        }
+      }
+    ]
+  },
+  "expected": [
+    {
+      "code": "L3",
+      "stepId": "s1"
+    },
+    {
+      "code": "L3",
+      "stepId": "s2"
+    },
+    {
+      "code": "L3",
+      "stepId": "s3"
+    },
+    {
+      "code": "L3",
+      "stepId": "s4"
+    },
+    {
+      "code": "L3",
+      "stepId": null
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "runnerId": "rnr_7",
+  "sessionToken": "eyJhbGciOiJFZERTQSJ9.e30.c2ln",
+  "expiresAt": "2026-09-21T10:15:03.120Z",
+  "heartbeatIntervalSec": 15,
+  "leaseWaitSec": 30
+}

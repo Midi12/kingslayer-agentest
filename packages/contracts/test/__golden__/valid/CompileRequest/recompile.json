@@ -1,0 +1,123 @@
+{
+  "name": "shift-handover",
+  "source": "Log in. Sign the shift handover.",
+  "criticalVerbs": [],
+  "environment": {
+    "baseUrl": "${env.BASE_URL}",
+    "allowedOrigins": [],
+    "allowedHttpHosts": []
+  },
+  "previous": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "shift-handover",
+      "title": "Shift handover checklist"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "handlers": [
+      {
+        "id": "h-relogin",
+        "when": {
+          "kind": "probe",
+          "name": "auth_lost"
+        },
+        "steps": [
+          {
+            "id": "h-relogin-1",
+            "use": "login-operator"
+          }
+        ]
+      },
+      {
+        "id": "h-modal",
+        "when": {
+          "kind": "probe",
+          "name": "blocking_modal"
+        },
+        "steps": [
+          {
+            "id": "h-modal-1",
+            "intent": "Dismiss the blocking dialog",
+            "action": {
+              "type": "press",
+              "keys": "Escape"
+            }
+          }
+        ]
+      }
+    ],
+    "secrets": [
+      "OPERATOR_PASSWORD"
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "use": "login-operator",
+        "intent": "Log in as the incoming operator"
+      },
+      {
+        "id": "s2",
+        "intent": "Open the shift log",
+        "action": {
+          "type": "navigate",
+          "url": "/shift/log"
+        },
+        "expect": [
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Open entries section of the shift log"
+            },
+            "op": "exists"
+          },
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Unsigned warning of the shift log"
+            },
+            "op": "absent"
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Sign the handover",
+        "risk": "write",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Sign handover button of the shift log",
+            "hints": {
+              "role": "button"
+            }
+          }
+        },
+        "expect": [
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Handover signature line of the shift log"
+            },
+            "op": "visible"
+          }
+        ]
+      }
+    ]
+  }
+}

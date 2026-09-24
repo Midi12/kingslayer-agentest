@@ -1,0 +1,16 @@
+{
+  "runId": "run_01J8",
+  "seq": 18,
+  "ts": "2026-09-21T10:15:18.000Z",
+  "type": "step.finished",
+  "stepId": "s6",
+  "data": {
+    "attempt": 2,
+    "outcome": "broken",
+    "durationMs": 15000,
+    "reason": "GROUNDING_AMBIGUOUS",
+    "classification": "TEST_DRIFT",
+    "adjudicated": false
+  },
+  "prev": "sha256:239cb67b21fd72742f39c9fa372492f7fef7459e260230b0a0ce9e6ac3e2e551"
+}

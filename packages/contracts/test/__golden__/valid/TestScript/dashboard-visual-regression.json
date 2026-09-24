@@ -1,0 +1,114 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "dashboard-visual-regression",
+    "title": "Visual regression of the energy dashboard",
+    "tags": [
+      "visual"
+    ]
+  },
+  "target": {
+    "baseUrl": "${env.BASE_URL}",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "en-GB",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "intent": "Open the energy dashboard",
+      "action": {
+        "type": "navigate",
+        "url": "/energy"
+      },
+      "expect": [
+        {
+          "kind": "visual",
+          "baseline": "energy-dashboard",
+          "maxDiffRatio": 0.02,
+          "masks": [
+            {
+              "description": "Live clock in the header"
+            },
+            {
+              "rect": {
+                "x": 0,
+                "y": 1000,
+                "width": 1920,
+                "height": 80
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "intent": "Check the feeder lamps",
+      "action": {
+        "type": "assert"
+      },
+      "expect": [
+        {
+          "kind": "color",
+          "target": {
+            "description": "Status lamp of feeder F1"
+          },
+          "op": "isNot",
+          "value": "red"
+        },
+        {
+          "kind": "color",
+          "target": {
+            "description": "Status lamp of feeder F2",
+            "locator": "[data-testid=lamp-f2]"
+          },
+          "op": "is",
+          "value": "amber"
+        },
+        {
+          "kind": "blink",
+          "target": {
+            "description": "Warning beacon of feeder F2",
+            "frame": "beacons"
+          },
+          "minHz": 1,
+          "maxHz": 2.5
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "intent": "Open the embedded meter panel",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Details button of the meter panel",
+          "frame": "meters",
+          "hints": {
+            "testId": "meter-details",
+            "role": "button"
+          }
+        }
+      },
+      "expect": [
+        {
+          "kind": "visual",
+          "baseline": "meter-details",
+          "maxDiffRatio": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "summary": "All steps passed.",
+  "defects": [],
+  "adjudications": [
+    {
+      "stepId": "s4",
+      "decision": "MARK_PASSED",
+      "rationale": "The toast was a known banner."
+    }
+  ],
+  "heals": [],
+  "maintenance": [
+    {
+      "stepId": null,
+      "suggestion": "Add a data-testid to the alarm rows."
+    }
+  ],
+  "generatedBy": {
+    "model": "analyst-premium",
+    "promptVersion": "r-1"
+  }
+}

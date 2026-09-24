@@ -1,0 +1,124 @@
+{
+  "reason": "healApproval is manual or auto",
+  "expectedPath": "/policy/healApproval",
+  "document": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "tank-level-setpoints",
+      "title": "Adjust tank level setpoints",
+      "tags": [
+        "tanks",
+        "setpoints"
+      ]
+    },
+    "target": {
+      "baseUrl": "https://hmi.test",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/Chicago",
+      "storageState": "operator-session"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "skip",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "never",
+      "artifacts": "on-failure",
+      "pii": "strict",
+      "degrade": "fail",
+      "healApproval": "never"
+    },
+    "variables": {
+      "highLevel": 85,
+      "tank": "T1",
+      "dryRun": false
+    },
+    "secrets": [
+      "SIM_TOKEN"
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the tank farm",
+        "action": {
+          "type": "navigate",
+          "url": "/tanks"
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Set the high level alarm of tank T1",
+        "risk": "write",
+        "action": {
+          "type": "fill",
+          "target": {
+            "description": "High level setpoint field of tank T1",
+            "hints": {
+              "label": "High level"
+            }
+          },
+          "value": "${var.highLevel}"
+        },
+        "expect": [
+          {
+            "kind": "dom",
+            "target": {
+              "description": "High level setpoint field of tank T1"
+            },
+            "op": "valueEquals",
+            "value": "85"
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Push the setpoint through the maintenance API",
+        "risk": "write",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "PUT",
+            "url": "https://sim.test:8443/tanks/T1/setpoints",
+            "headers": {
+              "Content-Type": "text/plain",
+              "Authorization": "Bearer ${secret.SIM_TOKEN}"
+            },
+            "body": "high=${var.highLevel}"
+          },
+          "expectStatus": 204
+        }
+      },
+      {
+        "id": "s4",
+        "intent": "Check the tank level gauge colour",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "color",
+            "target": {
+              "description": "Level gauge of tank T1"
+            },
+            "op": "is",
+            "value": "blue"
+          },
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Level value of tank T1"
+            },
+            "op": "numberCompare",
+            "cmp": "le",
+            "value": 85,
+            "tolerance": 1
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "reason": "uploads use pre-signed PUT URLs",
+  "expectedPath": "/uploads/0/method",
+  "document": {
+    "uploads": [
+      {
+        "name": "s3/before.png",
+        "ref": "art://runs/run_01J8/s3/before.png",
+        "url": "https://s3.test/argus/org_1/runs/run_01J8/s3/before.png?X-Amz-Signature=abc",
+        "method": "POST",
+        "headers": {
+          "content-type": "image/png"
+        },
+        "expiresAt": "2026-09-21T10:15:03.120Z"
+      }
+    ]
+  }
+}

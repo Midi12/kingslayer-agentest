@@ -1,0 +1,17 @@
+{
+  "decision": "RESOLVE_TARGET",
+  "classification": "TEST_DRIFT",
+  "certainty": "low",
+  "rationale": "Candidate c17 sits in the row labelled C12, matching the description.",
+  "evidence": [
+    {
+      "console": 0,
+      "note": "No errors"
+    }
+  ],
+  "resolveTarget": {
+    "cid": "c17"
+  },
+  "defect": null,
+  "scriptSuggestion": "Add the hint near: C12 to step s3."
+}

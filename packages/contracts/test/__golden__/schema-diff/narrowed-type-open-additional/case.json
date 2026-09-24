@@ -1,0 +1,6 @@
+{
+  "note": "Problem, an open object, now requires every extension member to be a string",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

@@ -1,0 +1,22 @@
+Emergency stop drill on line 2 (emergency-stop-drill)
+Tags: safety
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+
+Steps
+1. [s1] Open the line 2 control page
+   Action: Go to /lines/2
+2. [s2] Trigger the emergency stop of line 2 (risk critical, within 3s, artifacts full)
+   Action: Click "Emergency stop button of line 2" (role button, text "E-STOP")
+   Expect: Jev confirms "The line 2 status banner reports an emergency stop."
+3. [s3] Wait for line 2 to come to rest (within 30s)
+   Action: Wait until the expectations hold
+   Expect: Text of "Line 2 status banner" equals "EMERGENCY STOP"
+4. [s4] Reset the emergency stop (risk critical, within 1m)
+   Action: Press F12
+   Expect: "Line 2 status banner" is absent
+
+Handlers
+- [h-confirm] When Jev confirms "A confirmation dialog asks to confirm the emergency stop.":
+  1. [h-confirm-1] Confirm the emergency stop dialog (risk critical)
+     Action: Click "Confirm button of the emergency stop dialog" (role button)

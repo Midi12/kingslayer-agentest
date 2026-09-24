@@ -1,0 +1,7 @@
+{
+  "strict": false,
+  "onBreak": "escalate",
+  "failOnConsoleError": false,
+  "shareScreenshotsWithLlm": "on-break",
+  "artifacts": "on-failure"
+}

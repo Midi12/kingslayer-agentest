@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/events-batch-response.schema.json",
+  "title": "EventsBatchResponse",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "accepted",
+    "duplicates",
+    "lastSeq"
+  ],
+  "properties": {
+    "accepted": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "duplicates": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "lastSeq": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  }
+}

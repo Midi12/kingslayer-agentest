@@ -1,0 +1,23 @@
+Log in and log out as operator (login-and-logout)
+Tags: smoke, auth
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+Secrets: OPERATOR_PASSWORD
+
+Steps
+1. [s1] Open the login page
+   Action: Go to /login
+2. [s2] Enter the operator user name (risk write)
+   Action: Fill "User name field of the login form" (label "User name") with "operator"
+3. [s3] Enter the operator password (risk write)
+   Action: Fill "Password field of the login form" (label "Password") with "${secret.OPERATOR_PASSWORD}"
+4. [s4] Submit the login form (risk write, within 10s)
+   Action: Press Enter in "Password field of the login form"
+   Expect: URL contains "/overview"
+   Expect: Jev confirms "The header shows the name of the signed-in operator." (true: "A user name appears in the page header."; false: "No user name appears in the page header.")
+5. [s5] Open the user menu
+   Action: Click "User menu button in the page header" (role button)
+   Expect: "Log out entry of the user menu" is visible
+6. [s6] Log out (risk write)
+   Action: Click "Log out entry of the user menu" (role menuitem, text "Log out")
+   Expect: URL matches "/login(\\?.*)?$"

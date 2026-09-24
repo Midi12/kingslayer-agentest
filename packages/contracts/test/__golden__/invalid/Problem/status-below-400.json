@@ -1,0 +1,21 @@
+{
+  "reason": "problems describe errors",
+  "expectedPath": "/status",
+  "document": {
+    "type": "https://argus.dev/problems/lint_failed",
+    "title": "The script violates lint rules L1 to L8",
+    "status": 200,
+    "code": "lint_failed",
+    "detail": "1 finding",
+    "instance": "/api/v1/tests/t1/compile",
+    "findings": [
+      {
+        "code": "L1",
+        "stepId": "s2",
+        "path": "/steps/1/action/target/description",
+        "message": "Target description \"Start\" has 1 word, at least three are needed.",
+        "severity": "error"
+      }
+    ]
+  }
+}

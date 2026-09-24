@@ -1,0 +1,6 @@
+{
+  "note": "Step.weight was the literal 3 and is now a multiple of 2, which rejects 3",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

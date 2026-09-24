@@ -1,0 +1,78 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l6-pass",
+      "title": "Lint fixture l6-pass"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Start conveyor C12",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Start button in the row of conveyor C12"
+          }
+        },
+        "within": "2m"
+      },
+      {
+        "id": "s2",
+        "intent": "Open the alarm list",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Alarm list entry of the navigation"
+          }
+        },
+        "within": "1m30s"
+      },
+      {
+        "id": "s3",
+        "intent": "Acknowledge the jam alarm",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Acknowledge button of the jam alarm"
+          }
+        },
+        "within": "500ms"
+      }
+    ]
+  },
+  "expected": []
+}

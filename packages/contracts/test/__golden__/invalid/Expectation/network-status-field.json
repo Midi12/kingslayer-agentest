@@ -1,0 +1,8 @@
+{
+  "reason": "network expectations have no status field",
+  "expectedPath": "/status",
+  "document": {
+    "kind": "network",
+    "status": 500
+  }
+}

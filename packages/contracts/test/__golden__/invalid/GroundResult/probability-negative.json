@@ -1,0 +1,19 @@
+{
+  "reason": "probabilities lie between 0 and 1",
+  "expectedPath": "/probabilities/c16",
+  "document": {
+    "pick": "c17",
+    "confidence": 0.93,
+    "probabilities": {
+      "c17": 0.95,
+      "c16": -0.1
+    },
+    "targetPresent": 0.97,
+    "model": "jev-1.13.0",
+    "usage": {
+      "inputTokens": 1830
+    },
+    "latencyMs": 212,
+    "cacheHit": false
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "type": "https://argus.dev/problems/gap_detected",
+  "title": "Gap",
+  "status": 409,
+  "code": "gap_detected",
+  "expectedSeq": 17,
+  "requestId": "req_9",
+  "traceparent": "00-abc-def-01"
+}

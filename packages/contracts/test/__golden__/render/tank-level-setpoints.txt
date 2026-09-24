@@ -1,0 +1,19 @@
+Adjust tank level setpoints (tank-level-setpoints)
+Tags: tanks, setpoints
+Target: https://hmi.test, viewport 1280x800, locale en-US, time zone America/Chicago, storage state "operator-session"
+Policy: not strict, on break skip, console errors ignored, screenshots to the LLM never, artifacts on-failure, PII strict, degrade to fail, heal approval auto
+Variables: dryRun = false, highLevel = 85, tank = "T1"
+Secrets: SIM_TOKEN
+
+Steps
+1. [s1] Open the tank farm
+   Action: Go to /tanks
+2. [s2] Set the high level alarm of tank T1 (risk write)
+   Action: Fill "High level setpoint field of tank T1" (label "High level") with "${var.highLevel}"
+   Expect: Value of "High level setpoint field of tank T1" equals "85"
+3. [s3] Push the setpoint through the maintenance API (risk write)
+   Action: Send PUT https://sim.test:8443/tanks/T1/setpoints with headers Authorization, Content-Type and body "high=${var.highLevel}", expect status 204
+4. [s4] Check the tank level gauge colour
+   Action: Check the expectations
+   Expect: Colour of "Level gauge of tank T1" is blue
+   Expect: Number in "Level value of tank T1" is at most 85 within a tolerance of 1

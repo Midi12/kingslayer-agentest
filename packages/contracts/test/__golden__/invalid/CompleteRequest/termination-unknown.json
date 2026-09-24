@@ -1,0 +1,21 @@
+{
+  "reason": "terminations are the closed list",
+  "expectedPath": "/termination",
+  "document": {
+    "leaseId": "lse_1",
+    "termination": "done",
+    "lastSeq": 16,
+    "counters": {
+      "steps": 7,
+      "passed": 5,
+      "failed": 1,
+      "broken": 0,
+      "skipped": 1,
+      "escalations": 1,
+      "handlerFirings": 0,
+      "jevCalls": 13,
+      "llmCalls": 2,
+      "durationMs": 74211
+    }
+  }
+}

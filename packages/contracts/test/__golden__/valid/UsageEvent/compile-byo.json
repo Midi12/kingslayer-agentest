@@ -1,0 +1,13 @@
+{
+  "id": "use_02",
+  "orgId": "org_1",
+  "projectId": null,
+  "runId": null,
+  "operation": "compile",
+  "quantity": 1,
+  "aiMode": "byo",
+  "modelTier": "premium",
+  "rate": 7.5,
+  "credits": 7.5,
+  "ts": "2026-09-21T10:15:03.120Z"
+}

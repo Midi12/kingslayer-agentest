@@ -1,0 +1,23 @@
+{
+  "runId": "run_01J8",
+  "stepId": "s9",
+  "step": {
+    "intent": "Open pump P7",
+    "target": {
+      "description": "Pump P7 symbol in the canvas synoptic"
+    }
+  },
+  "image": {
+    "mediaType": "image/png",
+    "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+  },
+  "marks": [
+    {
+      "mark": "1",
+      "label": "PUMP P7"
+    },
+    {
+      "mark": "2"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "reason": "answers are yes, no or unsure",
+  "expectedPath": "/answer",
+  "document": {
+    "answer": "maybe",
+    "certainty": "medium",
+    "rationale": "A blue line crosses the chart from left to right."
+  }
+}

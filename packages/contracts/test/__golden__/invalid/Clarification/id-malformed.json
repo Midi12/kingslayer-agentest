@@ -1,0 +1,14 @@
+{
+  "reason": "clarification ids are q<n>",
+  "expectedPath": "/id",
+  "document": {
+    "id": "question-1",
+    "question": "Which conveyor should be started: C12 on line 1 or C12 on line 2?",
+    "stepId": "s3",
+    "sourceExcerpt": "Start conveyor C12",
+    "options": [
+      "Line 1",
+      "Line 2"
+    ]
+  }
+}

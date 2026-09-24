@@ -1,0 +1,6 @@
+{
+  "note": "The variables record gained a named boolean property although its pattern admitted strings and numbers under that name",
+  "expectedKinds": [
+    "removed-variant"
+  ]
+}

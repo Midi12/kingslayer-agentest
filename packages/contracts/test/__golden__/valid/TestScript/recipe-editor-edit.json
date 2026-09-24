@@ -1,0 +1,180 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "recipe-editor-edit",
+    "title": "Edit a mixing recipe",
+    "tags": [
+      "recipes"
+    ],
+    "compiler": {
+      "model": "analyst-standard",
+      "promptVersion": "c-1"
+    }
+  },
+  "target": {
+    "baseUrl": "${env.BASE_URL}",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "en-GB",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "steps": [
+    {
+      "id": "open-recipes",
+      "intent": "Open the recipe list",
+      "action": {
+        "type": "navigate",
+        "url": "/recipes"
+      }
+    },
+    {
+      "id": "pick-recipe",
+      "intent": "Open recipe R-204",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Row of recipe R-204 in the recipe table",
+          "hints": {
+            "role": "row",
+            "near": "R-204"
+          }
+        }
+      }
+    },
+    {
+      "id": "clear-name",
+      "intent": "Clear the recipe name",
+      "risk": "write",
+      "action": {
+        "type": "clear",
+        "target": {
+          "description": "Name field of the recipe form",
+          "hints": {
+            "label": "Name"
+          }
+        }
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Save button of the recipe form"
+          },
+          "op": "disabled"
+        }
+      ]
+    },
+    {
+      "id": "set-name",
+      "intent": "Rename the recipe",
+      "risk": "write",
+      "action": {
+        "type": "fill",
+        "target": {
+          "description": "Name field of the recipe form",
+          "hints": {
+            "label": "Name"
+          }
+        },
+        "value": "Syrup base v2"
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Name field of the recipe form"
+          },
+          "op": "valueEquals",
+          "value": "Syrup base v2"
+        },
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Save button of the recipe form"
+          },
+          "op": "enabled"
+        }
+      ]
+    },
+    {
+      "id": "set-mixer",
+      "intent": "Choose the second mixer",
+      "risk": "write",
+      "action": {
+        "type": "select",
+        "target": {
+          "description": "Mixer drop-down of the recipe form",
+          "hints": {
+            "label": "Mixer"
+          }
+        },
+        "option": "Mixer 2"
+      }
+    },
+    {
+      "id": "heating-on",
+      "intent": "Enable preheating",
+      "risk": "write",
+      "action": {
+        "type": "check",
+        "target": {
+          "description": "Preheat checkbox of the recipe form",
+          "hints": {
+            "role": "checkbox",
+            "label": "Preheat"
+          }
+        }
+      }
+    },
+    {
+      "id": "agitator-off",
+      "intent": "Disable the agitator pause",
+      "risk": "write",
+      "action": {
+        "type": "uncheck",
+        "target": {
+          "description": "Agitator pause checkbox of the recipe form",
+          "hints": {
+            "role": "checkbox"
+          }
+        }
+      }
+    },
+    {
+      "id": "save",
+      "intent": "Save the recipe with the keyboard shortcut",
+      "risk": "write",
+      "action": {
+        "type": "press",
+        "keys": "Control+S",
+        "target": {
+          "description": "Name field of the recipe form"
+        }
+      },
+      "within": "5s",
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Notification area at the top of the page",
+            "hints": {
+              "region": "Notifications"
+            }
+          },
+          "op": "textContains",
+          "value": "Recipe saved"
+        }
+      ]
+    }
+  ]
+}

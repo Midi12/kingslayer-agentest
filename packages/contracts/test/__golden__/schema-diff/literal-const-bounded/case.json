@@ -1,0 +1,6 @@
+{
+  "note": "Step.retries was the literal 5 and is now a number of at most 3, which rejects 5",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

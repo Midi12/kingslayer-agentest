@@ -1,0 +1,121 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000,
+    "previous": {
+      "apiVersion": "argus/v1",
+      "kind": "TestScript",
+      "metadata": {
+        "name": "l8",
+        "title": "Lint fixture l8"
+      },
+      "target": {
+        "baseUrl": "${env.BASE_URL}",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "locale": "en-GB",
+        "timezone": "Europe/Paris"
+      },
+      "policy": {
+        "strict": false,
+        "onBreak": "escalate",
+        "failOnConsoleError": false,
+        "shareScreenshotsWithLlm": "on-break",
+        "artifacts": "on-failure"
+      },
+      "steps": [
+        {
+          "id": "s1",
+          "intent": "Open the conveyor overview.",
+          "action": {
+            "type": "click",
+            "target": {
+              "description": "Navigation entry that opens the conveyor overview"
+            }
+          }
+        },
+        {
+          "id": "start",
+          "intent": "Start conveyor C12",
+          "action": {
+            "type": "click",
+            "target": {
+              "description": "Start button in the row of conveyor C12"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l8",
+      "title": "Lint fixture l8"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the conveyor overview",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Navigation entry that opens the conveyor overview"
+          }
+        }
+      },
+      {
+        "id": "start",
+        "intent": "Start conveyor C12 from the overview",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Start button in the row of conveyor C12"
+          }
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Open the alarm list",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Alarm list entry of the navigation"
+          }
+        }
+      }
+    ]
+  },
+  "expected": []
+}

@@ -1,0 +1,65 @@
+{
+  "runId": "run_01J8",
+  "stepId": "s3",
+  "risk": "write",
+  "step": {
+    "intent": "Start conveyor C12",
+    "action": "click",
+    "target": {
+      "description": "Start button in the row of conveyor C12",
+      "hints": {
+        "role": "button",
+        "text": "Start",
+        "near": "C12"
+      }
+    }
+  },
+  "observation": {
+    "obsId": "obs_01J8",
+    "ts": "2026-09-21T10:15:03.120Z",
+    "url": "https://hmi.test/overview",
+    "title": "Conveyor overview",
+    "page": {
+      "headings": [
+        "Conveyor overview",
+        "Alarms"
+      ],
+      "dialogs": [],
+      "alerts": [
+        "Communication OK"
+      ],
+      "loading": {
+        "inflightRequests": 0,
+        "spinners": 0
+      },
+      "textDigest": "Conveyor overview | C11 Stopped | C12 Stopped | Alarms: none"
+    },
+    "candidates": [
+      {
+        "cid": "c17",
+        "role": "button",
+        "name": "Start",
+        "tag": "button",
+        "state": {
+          "enabled": true
+        },
+        "context": {
+          "row": "C12 | Stopped | 0.0 m/s",
+          "region": "Conveyor table",
+          "labels": [
+            "Conveyor C12"
+          ]
+        },
+        "color": "grey",
+        "source": "dom"
+      }
+    ],
+    "console": [],
+    "network": [],
+    "frames": {
+      "before": "art://runs/r1/s3/before.png",
+      "ringHead": 412
+    },
+    "digestHash": "sha256:fe3b313e0a6b65bb99b6764f3cb3db68bc67246a5ba30d7d86ecaef61b52c152"
+  }
+}

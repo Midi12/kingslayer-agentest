@@ -1,0 +1,70 @@
+module: M01
+title: Contracts
+gates:
+  - id: M01-G0
+    tier: A
+    title: Global gate G0 on the package M01 owns
+    command: pnpm g0 packages/contracts
+    timeoutSec: 1800
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.packages == 1 && metrics.typecheckFailures == 0
+      && metrics.typecheckErrors == 0 && metrics.lintErrors == 0 && metrics.lintWarnings == 0
+      && metrics.tests > 0 && metrics.testsFailed == 0 && metrics.testsSkipped == 0
+      && metrics.vitestFailures == 0 && metrics.coverageBelowFloor == 0 && metrics.coverageLines >= 85
+      && metrics.depViolations == 0 && metrics.markers == 0 && metrics.networkGuardMissing == 0
+
+  - id: M01-G1
+    tier: A
+    title: Schemas accept and reject correctly
+    command: pnpm --filter @argus/contracts test:gate-g1
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.schemas >= 40 && metrics.validDocuments >= 40
+      && metrics.invalidDocuments >= 60 && metrics.schemasWithoutValid == 0
+      && metrics.schemasWithoutInvalid == 0 && metrics.c12Valid == true
+      && metrics.failures == 0 && metrics.ajvDisagreements == 0
+
+  - id: M01-G2
+    tier: A
+    title: Canonical form is stable
+    command: pnpm --filter @argus/contracts test:gate-g2
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.runs >= 1000 && metrics.invalidGenerated == 0
+      && metrics.roundTripFailures == 0 && metrics.hashMismatches == 0
+      && metrics.jcsVectors >= 20 && metrics.jcsVectorFailures == 0
+
+  - id: M01-G3
+    tier: A
+    title: Every lint rule fires
+    command: pnpm --filter @argus/contracts test:gate-g3
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.rules == 8 && metrics.fixtures == 16
+      && metrics.failingFixtures == 8 && metrics.passingFixtures == 8 && metrics.mismatches == 0
+
+  - id: M01-G4
+    tier: A
+    title: v1 stays additive
+    command: pnpm --filter @argus/contracts test:gate-g4
+    timeoutSec: 600
+    requires: [git]
+    pass: >-
+      exitCode == 0 && metrics.gitRepository == true && metrics.schemasCompared >= 40
+      && metrics.breakingChanges == 0
+      && metrics.fixtureCases >= 5 && metrics.fixtureCasesDetected == metrics.fixtureCases
+      && metrics.additiveCasesClean == true && metrics.requiredKindsMissing == 0
+      && metrics.committedSchemasFresh == true
+      && metrics.baselineRevisions >= 1 && metrics.historyBreakingChanges == 0
+
+  - id: M01-G5
+    tier: A
+    title: Step rendering needs no model
+    command: pnpm --filter @argus/contracts test:gate-g5
+    timeoutSec: 600
+    requires: []
+    pass: exitCode == 0 && metrics.scripts >= 10 && metrics.mismatches == 0 && metrics.deterministic == true

@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/candidate.schema.json",
+  "title": "Candidate",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "cid",
+    "role",
+    "name",
+    "tag",
+    "state",
+    "context",
+    "attrs",
+    "bbox",
+    "source",
+    "fingerprint"
+  ],
+  "properties": {
+    "cid": {
+      "pattern": "^[A-Za-z0-9_-]{1,32}$",
+      "type": "string"
+    },
+    "role": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 500,
+      "type": "string"
+    },
+    "tag": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "state": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "checked": {
+          "type": "boolean"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "expanded": {
+          "type": "boolean"
+        },
+        "focused": {
+          "type": "boolean"
+        },
+        "readonly": {
+          "type": "boolean"
+        },
+        "value": {
+          "maxLength": 1000,
+          "type": "string"
+        }
+      }
+    },
+    "context": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "row": {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        "heading": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "legend": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "region": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "labels": {
+          "maxItems": 16,
+          "type": "array",
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "attrs": {
+      "additionalProperties": false,
+      "x-runner-only": true,
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z_:][A-Za-z0-9_:.-]{0,127}$": {
+          "maxLength": 2000,
+          "type": "string"
+        }
+      }
+    },
+    "bbox": {
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "[x, y, width, height] in CSS pixels",
+      "x-runner-only": true,
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "color": {
+      "anyOf": [
+        {
+          "const": "red",
+          "type": "string"
+        },
+        {
+          "const": "amber",
+          "type": "string"
+        },
+        {
+          "const": "yellow",
+          "type": "string"
+        },
+        {
+          "const": "green",
+          "type": "string"
+        },
+        {
+          "const": "blue",
+          "type": "string"
+        },
+        {
+          "const": "grey",
+          "type": "string"
+        },
+        {
+          "const": "white",
+          "type": "string"
+        },
+        {
+          "const": "black",
+          "type": "string"
+        }
+      ]
+    },
+    "source": {
+      "anyOf": [
+        {
+          "const": "dom",
+          "type": "string"
+        },
+        {
+          "const": "ocr",
+          "type": "string"
+        },
+        {
+          "const": "region",
+          "type": "string"
+        }
+      ]
+    },
+    "fingerprint": {
+      "minLength": 1,
+      "maxLength": 128,
+      "x-runner-only": true,
+      "type": "string"
+    }
+  }
+}

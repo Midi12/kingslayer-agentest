@@ -1,0 +1,79 @@
+{
+  "reason": "break reasons are the closed list",
+  "expectedPath": "/reason",
+  "document": {
+    "runId": "run_01J8",
+    "stepId": "s5",
+    "attempt": 1,
+    "reason": "FLAKY",
+    "script": {
+      "title": "Start C12 and handle a jam",
+      "stepIndex": 4,
+      "stepCount": 7,
+      "step": {
+        "id": "s5",
+        "intent": "Check the jam alarm appears and blinks"
+      },
+      "previousIntents": [
+        "Start conveyor C12",
+        "Trigger a jam on C12 through the simulator"
+      ],
+      "nextIntent": "Acknowledge the alarm"
+    },
+    "signals": {
+      "jev": {
+        "expect_0": 0.46,
+        "probe_error_ui": 0.08
+      },
+      "checks": [
+        {
+          "kind": "blink",
+          "outcome": "fail",
+          "detail": "0.0 Hz over 6 s"
+        }
+      ],
+      "actionError": null,
+      "elapsedMs": 15012
+    },
+    "observations": {
+      "before": {
+        "digestHash": "sha256:fe3b313e0a6b65bb99b6764f3cb3db68bc67246a5ba30d7d86ecaef61b52c152"
+      },
+      "after": {
+        "digestHash": "sha256:e873027ddb77711d2d286d2a1ef8bb72d9fa1e8dae035298bb3505a332d22d53"
+      }
+    },
+    "frames": [
+      {
+        "ref": "art://runs/r1/ring/f408.jpg",
+        "tMs": -3000
+      }
+    ],
+    "console": [],
+    "network": [],
+    "allowed": {
+      "decisions": [
+        "RETRY_STEP",
+        "PATCH",
+        "MARK_PASSED",
+        "MARK_FAILED_CONTINUE",
+        "MARK_FAILED_ABORT",
+        "ABORT_ENV"
+      ],
+      "patchActions": [
+        "click",
+        "press",
+        "scroll",
+        "hover",
+        "wait"
+      ],
+      "origins": [
+        "https://hmi.test"
+      ]
+    },
+    "budget": {
+      "escalationsLeft": 4,
+      "patchActionsMax": 3
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "reason": "patch targets are descriptions only",
+  "expectedPath": "/patch/0/target/locator",
+  "document": {
+    "decision": "PATCH",
+    "classification": "TRANSIENT",
+    "certainty": "medium",
+    "rationale": "A maintenance dialog covers the overview; closing it should let the step run.",
+    "evidence": [
+      {
+        "observation": "after",
+        "note": "Dialog title reads Scheduled maintenance"
+      },
+      {
+        "check": 0,
+        "note": "Blink check measured nothing under the dialog"
+      }
+    ],
+    "patch": [
+      {
+        "type": "click",
+        "target": {
+          "description": "Close button of the maintenance dialog",
+          "hints": {
+            "role": "button"
+          },
+          "locator": "#close"
+        }
+      },
+      {
+        "type": "wait"
+      }
+    ]
+  }
+}

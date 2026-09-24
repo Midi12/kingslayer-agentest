@@ -1,0 +1,1117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/expectation.schema.json",
+  "title": "Expectation",
+  "discriminator": {
+    "propertyName": "kind"
+  },
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "statement"
+      ],
+      "properties": {
+        "kind": {
+          "const": "noul",
+          "type": "string"
+        },
+        "statement": {
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "One literal, self-contained claim in English",
+          "type": "string"
+        },
+        "criteria": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "true",
+            "false"
+          ],
+          "properties": {
+            "true": {
+              "minLength": 1,
+              "maxLength": 500,
+              "type": "string"
+            },
+            "false": {
+              "minLength": 1,
+              "maxLength": 500,
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "discriminator": {
+        "propertyName": "op"
+      },
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dom",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "anyOf": [
+                {
+                  "const": "exists",
+                  "type": "string"
+                },
+                {
+                  "const": "absent",
+                  "type": "string"
+                },
+                {
+                  "const": "visible",
+                  "type": "string"
+                },
+                {
+                  "const": "enabled",
+                  "type": "string"
+                },
+                {
+                  "const": "disabled",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dom",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "anyOf": [
+                {
+                  "const": "textEquals",
+                  "type": "string"
+                },
+                {
+                  "const": "textContains",
+                  "type": "string"
+                },
+                {
+                  "const": "valueEquals",
+                  "type": "string"
+                }
+              ]
+            },
+            "value": {
+              "maxLength": 10000,
+              "type": "string"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op",
+            "pattern"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dom",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "const": "textMatches",
+              "type": "string"
+            },
+            "pattern": {
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "ECMAScript regular expression",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op",
+            "cmp",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dom",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "const": "numberCompare",
+              "type": "string"
+            },
+            "cmp": {
+              "anyOf": [
+                {
+                  "const": "eq",
+                  "type": "string"
+                },
+                {
+                  "const": "ne",
+                  "type": "string"
+                },
+                {
+                  "const": "lt",
+                  "type": "string"
+                },
+                {
+                  "const": "le",
+                  "type": "string"
+                },
+                {
+                  "const": "gt",
+                  "type": "string"
+                },
+                {
+                  "const": "ge",
+                  "type": "string"
+                }
+              ]
+            },
+            "value": {
+              "type": "number"
+            },
+            "tolerance": {
+              "minimum": 0,
+              "type": "number"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dom",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "const": "countEquals",
+              "type": "string"
+            },
+            "value": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "op",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "url",
+          "type": "string"
+        },
+        "op": {
+          "anyOf": [
+            {
+              "const": "equals",
+              "type": "string"
+            },
+            {
+              "const": "contains",
+              "type": "string"
+            },
+            {
+              "const": "matches",
+              "type": "string"
+            }
+          ]
+        },
+        "value": {
+          "minLength": 1,
+          "maxLength": 2048,
+          "type": "string"
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "target",
+        "op",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "color",
+          "type": "string"
+        },
+        "target": {
+          "description": "A user-interface element named by what it is, not how to find it",
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "description"
+          ],
+          "properties": {
+            "description": {
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Literal description of the element, used for grounding",
+              "type": "string"
+            },
+            "hints": {
+              "description": "Optional grounding hints; the description stays authoritative",
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "role": {
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "label": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "testId": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "near": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "region": {
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "type": "string"
+                }
+              }
+            },
+            "frame": {
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Name or URL fragment of the frame holding the element",
+              "type": "string"
+            },
+            "locator": {
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Explicit Playwright locator; bypasses AI grounding",
+              "type": "string"
+            }
+          }
+        },
+        "op": {
+          "anyOf": [
+            {
+              "const": "is",
+              "type": "string"
+            },
+            {
+              "const": "isNot",
+              "type": "string"
+            }
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "const": "red",
+              "type": "string"
+            },
+            {
+              "const": "amber",
+              "type": "string"
+            },
+            {
+              "const": "yellow",
+              "type": "string"
+            },
+            {
+              "const": "green",
+              "type": "string"
+            },
+            {
+              "const": "blue",
+              "type": "string"
+            },
+            {
+              "const": "grey",
+              "type": "string"
+            },
+            {
+              "const": "white",
+              "type": "string"
+            },
+            {
+              "const": "black",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "minHz",
+            "maxHz"
+          ],
+          "properties": {
+            "kind": {
+              "const": "blink",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "minHz": {
+              "exclusiveMinimum": 0,
+              "maximum": 12,
+              "type": "number"
+            },
+            "maxHz": {
+              "exclusiveMinimum": 0,
+              "maximum": 12,
+              "type": "number"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "target",
+            "op"
+          ],
+          "properties": {
+            "kind": {
+              "const": "blink",
+              "type": "string"
+            },
+            "target": {
+              "description": "A user-interface element named by what it is, not how to find it",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Literal description of the element, used for grounding",
+                  "type": "string"
+                },
+                "hints": {
+                  "description": "Optional grounding hints; the description stays authoritative",
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "text": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "label": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "testId": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "near": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "region": {
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "type": "string"
+                    }
+                  }
+                },
+                "frame": {
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Name or URL fragment of the frame holding the element",
+                  "type": "string"
+                },
+                "locator": {
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Explicit Playwright locator; bypasses AI grounding",
+                  "type": "string"
+                }
+              }
+            },
+            "op": {
+              "const": "absent",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "baseline",
+        "maxDiffRatio"
+      ],
+      "properties": {
+        "kind": {
+          "const": "visual",
+          "type": "string"
+        },
+        "baseline": {
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$",
+          "type": "string"
+        },
+        "maxDiffRatio": {
+          "minimum": 0,
+          "maximum": 1,
+          "type": "number"
+        },
+        "masks": {
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "description"
+                ],
+                "properties": {
+                  "description": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "rect"
+                ],
+                "properties": {
+                  "rect": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ],
+                    "properties": {
+                      "x": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "y": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "width": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "height": {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "question",
+        "expected"
+      ],
+      "properties": {
+        "kind": {
+          "const": "vision",
+          "type": "string"
+        },
+        "question": {
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "A yes-or-no question about the screenshot",
+          "type": "string"
+        },
+        "expected": {
+          "description": "The answer that makes the expectation pass",
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "console",
+          "type": "string"
+        },
+        "pattern": {
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Only console errors matching this pattern count",
+          "type": "string"
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "network",
+          "type": "string"
+        },
+        "pattern": {
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Only responses whose URL matches this pattern count",
+          "type": "string"
+        }
+      }
+    },
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "ruleset",
+        "impact"
+      ],
+      "properties": {
+        "kind": {
+          "const": "a11y",
+          "type": "string"
+        },
+        "ruleset": {
+          "anyOf": [
+            {
+              "const": "wcag2a",
+              "type": "string"
+            },
+            {
+              "const": "wcag2aa",
+              "type": "string"
+            },
+            {
+              "const": "wcag21a",
+              "type": "string"
+            },
+            {
+              "const": "wcag21aa",
+              "type": "string"
+            },
+            {
+              "const": "wcag22aa",
+              "type": "string"
+            },
+            {
+              "const": "best-practice",
+              "type": "string"
+            }
+          ]
+        },
+        "impact": {
+          "description": "Violations at or above this impact fail",
+          "anyOf": [
+            {
+              "const": "minor",
+              "type": "string"
+            },
+            {
+              "const": "moderate",
+              "type": "string"
+            },
+            {
+              "const": "serious",
+              "type": "string"
+            },
+            {
+              "const": "critical",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

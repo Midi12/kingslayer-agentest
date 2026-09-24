@@ -1,0 +1,6 @@
+{
+  "note": "the colour variant no longer accepts amber",
+  "expectedKinds": [
+    "narrowed-enum"
+  ]
+}

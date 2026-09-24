@@ -1,0 +1,16 @@
+{
+  "reason": "prev is a sha256 hash or null",
+  "expectedPath": "/prev",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 2,
+    "ts": "2026-09-21T10:15:02.000Z",
+    "type": "step.started",
+    "stepId": "s3",
+    "data": {
+      "attempt": 1,
+      "index": 2
+    },
+    "prev": "abc"
+  }
+}

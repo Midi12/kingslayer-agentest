@@ -1,0 +1,6 @@
+{
+  "note": "the whole Clarification schema is now false and rejects every document",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

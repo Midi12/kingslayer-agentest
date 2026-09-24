@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/policy.schema.json",
+  "title": "Policy",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "strict",
+    "onBreak",
+    "failOnConsoleError",
+    "shareScreenshotsWithLlm",
+    "artifacts"
+  ],
+  "properties": {
+    "strict": {
+      "type": "boolean"
+    },
+    "onBreak": {
+      "anyOf": [
+        {
+          "const": "escalate",
+          "type": "string"
+        },
+        {
+          "const": "fail",
+          "type": "string"
+        },
+        {
+          "const": "skip",
+          "type": "string"
+        }
+      ]
+    },
+    "failOnConsoleError": {
+      "type": "boolean"
+    },
+    "shareScreenshotsWithLlm": {
+      "anyOf": [
+        {
+          "const": "never",
+          "type": "string"
+        },
+        {
+          "const": "on-break",
+          "type": "string"
+        },
+        {
+          "const": "always",
+          "type": "string"
+        }
+      ]
+    },
+    "artifacts": {
+      "anyOf": [
+        {
+          "const": "on-failure",
+          "type": "string"
+        },
+        {
+          "const": "full",
+          "type": "string"
+        }
+      ]
+    },
+    "pii": {
+      "anyOf": [
+        {
+          "const": "off",
+          "type": "string"
+        },
+        {
+          "const": "standard",
+          "type": "string"
+        },
+        {
+          "const": "strict",
+          "type": "string"
+        }
+      ]
+    },
+    "degrade": {
+      "anyOf": [
+        {
+          "const": "analyst",
+          "type": "string"
+        },
+        {
+          "const": "fail",
+          "type": "string"
+        }
+      ]
+    },
+    "healApproval": {
+      "anyOf": [
+        {
+          "const": "manual",
+          "type": "string"
+        },
+        {
+          "const": "auto",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

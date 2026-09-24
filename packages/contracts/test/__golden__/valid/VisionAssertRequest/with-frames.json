@@ -1,0 +1,16 @@
+{
+  "runId": "run_01J8",
+  "stepId": "s3",
+  "question": "Does the trend chart show a plotted line?",
+  "expected": true,
+  "image": {
+    "mediaType": "image/png",
+    "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+  },
+  "frames": [
+    {
+      "mediaType": "image/jpeg",
+      "data": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U"
+    }
+  ]
+}

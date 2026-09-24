@@ -1,0 +1,108 @@
+{
+  "packet": {
+    "runId": "run_01J8",
+    "stepId": "s3",
+    "attempt": 2,
+    "reason": "GROUNDING_AMBIGUOUS",
+    "script": {
+      "title": "Start C12 and handle a jam",
+      "stepIndex": 2,
+      "stepCount": 7,
+      "step": {
+        "id": "s3",
+        "intent": "Start conveyor C12",
+        "action": "click",
+        "risk": "write",
+        "target": {
+          "description": "Start button in the row of conveyor C12"
+        }
+      },
+      "previousIntents": [
+        "Open the conveyor overview"
+      ],
+      "nextIntent": null
+    },
+    "signals": {
+      "jev": {
+        "target": 0.52,
+        "target_present": 0.91,
+        "confirm_a": 0.61,
+        "confirm_b": 0.58
+      },
+      "checks": [],
+      "actionError": "Element is not attached to the DOM",
+      "elapsedMs": 2210
+    },
+    "observations": {
+      "before": {
+        "obsId": "obs_01J8",
+        "digestHash": "sha256:fe3b313e0a6b65bb99b6764f3cb3db68bc67246a5ba30d7d86ecaef61b52c152",
+        "url": "https://hmi.test/overview",
+        "title": "Conveyor overview",
+        "page": {
+          "headings": [
+            "Conveyor overview",
+            "Alarms"
+          ],
+          "dialogs": [],
+          "alerts": [
+            "Communication OK"
+          ],
+          "loading": {
+            "inflightRequests": 0,
+            "spinners": 0
+          },
+          "textDigest": "Conveyor overview | C11 Stopped | C12 Stopped | Alarms: none"
+        }
+      },
+      "after": null
+    },
+    "frames": [],
+    "console": [
+      {
+        "level": "warning",
+        "text": "Slow frame"
+      }
+    ],
+    "network": [
+      {
+        "method": "GET",
+        "url": "https://hmi.test/api/conveyors",
+        "status": 200
+      }
+    ],
+    "candidates": [
+      {
+        "cid": "c17",
+        "role": "button",
+        "name": "Start",
+        "row": "C12 | Stopped | 0.0 m/s",
+        "region": "Conveyor table",
+        "probability": 0.52
+      },
+      {
+        "cid": "c16",
+        "role": "button",
+        "name": "Start",
+        "probability": 0.48
+      }
+    ],
+    "allowed": {
+      "decisions": [
+        "RETRY_STEP",
+        "PATCH",
+        "RESOLVE_TARGET",
+        "MARK_FAILED_CONTINUE",
+        "MARK_FAILED_ABORT",
+        "ABORT_ENV"
+      ],
+      "patchActions": [],
+      "origins": []
+    },
+    "budget": {
+      "escalationsLeft": 0,
+      "patchActionsMax": 0
+    }
+  },
+  "frameImages": []
+}

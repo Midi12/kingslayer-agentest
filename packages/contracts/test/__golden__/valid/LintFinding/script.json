@@ -1,0 +1,7 @@
+{
+  "code": "L4",
+  "stepId": null,
+  "path": "/target/baseUrl",
+  "message": "Base URL leaves the origin allow-list.",
+  "severity": "warning"
+}

@@ -1,0 +1,79 @@
+{
+  "obsId": "obs_01J9",
+  "ts": "2026-09-21T10:15:05.500+02:00",
+  "url": "https://hmi.test/synoptic",
+  "title": "Pump synoptic",
+  "page": {
+    "headings": [
+      "Pump synoptic"
+    ],
+    "dialogs": [
+      "Session expires in 2 minutes"
+    ],
+    "alerts": [],
+    "loading": {
+      "inflightRequests": 3,
+      "spinners": 1
+    },
+    "textDigest": "Pump synoptic | P7 running"
+  },
+  "candidates": [
+    {
+      "cid": "c16",
+      "role": "button",
+      "name": "Start",
+      "tag": "button",
+      "state": {
+        "enabled": true,
+        "visible": true
+      },
+      "context": {
+        "row": "C11 | Stopped | 0.0 m/s",
+        "region": "Conveyor table",
+        "labels": [
+          "Conveyor C11"
+        ]
+      },
+      "color": "grey",
+      "source": "dom"
+    },
+    {
+      "cid": "o3",
+      "role": "text",
+      "name": "PUMP P7",
+      "tag": "canvas",
+      "state": {},
+      "context": {
+        "region": "Pump synoptic"
+      },
+      "source": "ocr"
+    }
+  ],
+  "console": [
+    {
+      "level": "error",
+      "text": "TypeError: x is undefined",
+      "ts": "2026-09-21T10:15:03.120Z"
+    }
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "url": "https://hmi.test/api/pumps",
+      "status": 503,
+      "ts": "2026-09-21T10:15:03.120Z"
+    },
+    {
+      "method": "POST",
+      "url": "https://hmi.test/api/log",
+      "status": 0,
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "frames": {
+    "before": "art://runs/r1/s4/before.png",
+    "after": "art://runs/r1/s4/after.png",
+    "ringHead": 13
+  },
+  "digestHash": "sha256:e873027ddb77711d2d286d2a1ef8bb72d9fa1e8dae035298bb3505a332d22d53"
+}

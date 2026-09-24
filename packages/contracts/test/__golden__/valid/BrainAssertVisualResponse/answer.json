@@ -1,0 +1,18 @@
+{
+  "result": {
+    "answer": "yes",
+    "certainty": "medium",
+    "rationale": "A blue line crosses the chart from left to right."
+  },
+  "usage": {
+    "provider": "llm",
+    "model": "analyst-standard",
+    "calls": 1,
+    "inputTokens": 5800,
+    "outputTokens": 2900,
+    "billable": {
+      "operation": "ai_vision",
+      "quantity": 1
+    }
+  }
+}

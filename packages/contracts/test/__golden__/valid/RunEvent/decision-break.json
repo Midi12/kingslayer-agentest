@@ -1,0 +1,13 @@
+{
+  "runId": "run_01J8",
+  "seq": 17,
+  "ts": "2026-09-21T10:15:17.000Z",
+  "type": "decision.made",
+  "stepId": "s6",
+  "data": {
+    "rule": 6,
+    "decision": "BREAK",
+    "reason": "ASSERTION_FAILED"
+  },
+  "prev": "sha256:4ca086f5f4bda04e85f1e730c4e16a44e06bb48ad91a619c835165bf3ea80967"
+}

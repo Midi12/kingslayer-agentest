@@ -1,0 +1,32 @@
+{
+  "reason": "candidate sources are dom, ocr and region",
+  "expectedPath": "/source",
+  "document": {
+    "cid": "c17",
+    "role": "button",
+    "name": "Start",
+    "tag": "button",
+    "state": {
+      "enabled": true
+    },
+    "context": {
+      "row": "C12 | Stopped | 0.0 m/s",
+      "region": "Conveyor table",
+      "labels": [
+        "Conveyor C12"
+      ]
+    },
+    "attrs": {
+      "data-testid": "start-c12"
+    },
+    "bbox": [
+      1412,
+      388,
+      96,
+      32
+    ],
+    "color": "grey",
+    "source": "vision",
+    "fingerprint": "fp_3b9a"
+  }
+}

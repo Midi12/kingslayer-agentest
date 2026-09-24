@@ -1,0 +1,91 @@
+{
+  "reason": "vision expectations expect yes or no",
+  "expectedPath": "/steps/2/expect/0/expected",
+  "document": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "overview-health-checks",
+      "title": "Check overview health and accessibility",
+      "tags": [
+        "health",
+        "a11y"
+      ]
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": true,
+      "onBreak": "fail",
+      "failOnConsoleError": true,
+      "shareScreenshotsWithLlm": "always",
+      "artifacts": "full"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the conveyor overview",
+        "action": {
+          "type": "navigate",
+          "url": "/overview"
+        },
+        "expect": [
+          {
+            "kind": "console"
+          },
+          {
+            "kind": "network"
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "intent": "Check the overview is accessible",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "a11y",
+            "ruleset": "wcag21aa",
+            "impact": "serious"
+          },
+          {
+            "kind": "console",
+            "pattern": "Uncaught|TypeError"
+          },
+          {
+            "kind": "network",
+            "pattern": "/api/"
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Check the trend chart shows data",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "vision",
+            "question": "Does the trend chart in the lower half of the screen show a plotted line?",
+            "expected": "a line"
+          },
+          {
+            "kind": "vision",
+            "question": "Is an error placeholder shown instead of the trend chart?",
+            "expected": false
+          }
+        ]
+      }
+    ]
+  }
+}

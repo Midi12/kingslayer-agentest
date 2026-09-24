@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/visual-ground-result.schema.json",
+  "title": "VisualGroundResult",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "mark",
+    "certainty",
+    "rationale"
+  ],
+  "properties": {
+    "mark": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,3}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certainty": {
+      "anyOf": [
+        {
+          "const": "low",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "high",
+          "type": "string"
+        }
+      ]
+    },
+    "rationale": {
+      "minLength": 1,
+      "maxLength": 2000,
+      "type": "string"
+    }
+  }
+}

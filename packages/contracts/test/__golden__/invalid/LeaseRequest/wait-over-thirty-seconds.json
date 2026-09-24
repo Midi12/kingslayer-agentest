@@ -1,0 +1,12 @@
+{
+  "reason": "the long poll lasts at most 30 s",
+  "expectedPath": "/waitSec",
+  "document": {
+    "runnerId": "rnr_7",
+    "slotsFree": 1,
+    "labels": [
+      "site-lyon"
+    ],
+    "waitSec": 60
+  }
+}

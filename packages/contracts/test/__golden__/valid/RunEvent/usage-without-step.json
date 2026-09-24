@@ -1,0 +1,11 @@
+{
+  "runId": "run_01J8",
+  "seq": 15,
+  "ts": "2026-09-21T10:15:15.000Z",
+  "type": "usage.recorded",
+  "data": {
+    "operation": "runner_minute",
+    "quantity": 2
+  },
+  "prev": "sha256:428ba7d91bd2b38e40ee6baac0d82ec111351ac72553526eca9c0910b37fe182"
+}

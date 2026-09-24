@@ -1,0 +1,46 @@
+{
+  "reason": "defect signatures are sha256 hashes",
+  "expectedPath": "/defects/0/signature",
+  "document": {
+    "runId": "run_01J8",
+    "verdict": "failed",
+    "flags": {
+      "adjudicated": false,
+      "healed": true
+    },
+    "stats": {
+      "steps": 7,
+      "passed": 5,
+      "failed": 1,
+      "broken": 0,
+      "skipped": 1,
+      "durationMs": 74211,
+      "jevCalls": 13,
+      "llmCalls": 2,
+      "credits": 31
+    },
+    "summary": "Six of seven steps ran. Conveyor C12 started and reached Running in 2.1 s. The jam alarm appeared but never blinked.",
+    "defects": [
+      {
+        "id": "def_01",
+        "stepId": "s5",
+        "title": "Unacknowledged jam alarm does not blink",
+        "severity": "major",
+        "classification": "PRODUCT_DEFECT",
+        "signature": "sha256:c41b"
+      }
+    ],
+    "adjudications": [],
+    "heals": [
+      {
+        "stepId": "s3",
+        "status": "pending"
+      }
+    ],
+    "maintenance": [],
+    "generatedBy": {
+      "model": "analyst-standard",
+      "promptVersion": "r-2"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "result": {
+    "summary": "Six of seven steps ran. Conveyor C12 started and reached Running in 2.1 s. The jam alarm appeared but never blinked.",
+    "defects": [
+      {
+        "id": "def_01",
+        "stepId": "s5",
+        "title": "Unacknowledged jam alarm does not blink",
+        "severity": "major",
+        "classification": "PRODUCT_DEFECT",
+        "signature": "sha256:81dfa2c7e55e9841fac5c92e019c3f8771af2df72d5a81dfb9885d003bf9de24"
+      }
+    ],
+    "adjudications": [],
+    "heals": [
+      {
+        "stepId": "s3",
+        "status": "pending"
+      }
+    ],
+    "maintenance": [],
+    "generatedBy": {
+      "model": "analyst-standard",
+      "promptVersion": "r-2"
+    }
+  },
+  "usage": {
+    "provider": "llm",
+    "model": "analyst-standard",
+    "calls": 1,
+    "inputTokens": 5800,
+    "outputTokens": 2900,
+    "billable": {
+      "operation": "report",
+      "quantity": 1
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "reason": "certainty is low, medium or high",
+  "expectedPath": "/result/certainty",
+  "document": {
+    "result": {
+      "mark": "1",
+      "certainty": "sure",
+      "rationale": "Mark 1 surrounds the label PUMP P7."
+    },
+    "usage": {
+      "provider": "llm",
+      "model": "analyst-standard",
+      "calls": 1,
+      "inputTokens": 5800,
+      "outputTokens": 2900,
+      "billable": {
+        "operation": "compile",
+        "quantity": 1
+      }
+    }
+  }
+}

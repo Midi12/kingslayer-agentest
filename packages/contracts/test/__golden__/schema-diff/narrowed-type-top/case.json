@@ -1,0 +1,6 @@
+{
+  "note": "Step.kind went from string to boolean",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

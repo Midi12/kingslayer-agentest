@@ -1,0 +1,41 @@
+{
+  "reason": "run events carry no step id",
+  "expectedPath": "/stepId",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 1,
+    "ts": "2026-09-21T10:15:01.000Z",
+    "type": "run.started",
+    "data": {
+      "runnerId": "rnr_7",
+      "scriptHash": "sha256:21a0270b7f66a1e4c25933f13a1e5a1bbb4757578072930c8189131f9c6aaae1",
+      "environment": {
+        "id": "env_3",
+        "name": "staging",
+        "kind": "staging",
+        "baseUrl": "https://hmi.test"
+      },
+      "policy": {
+        "strict": false,
+        "onBreak": "escalate",
+        "failOnConsoleError": false,
+        "shareScreenshotsWithLlm": "on-break",
+        "artifacts": "on-failure",
+        "pii": "standard",
+        "degrade": "analyst",
+        "healApproval": "manual"
+      },
+      "versions": {
+        "engine": "0.1.0",
+        "questions": "q-1",
+        "thresholds": "jev-1.13.0",
+        "models": {
+          "navigator": "jev-1.13.0",
+          "analyst": "analyst-standard"
+        }
+      }
+    },
+    "prev": null,
+    "stepId": "s1"
+  }
+}

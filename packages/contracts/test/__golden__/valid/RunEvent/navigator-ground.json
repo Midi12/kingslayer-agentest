@@ -1,0 +1,27 @@
+{
+  "runId": "run_01J8",
+  "seq": 4,
+  "ts": "2026-09-21T10:15:04.000Z",
+  "type": "navigator.ground",
+  "stepId": "s3",
+  "data": {
+    "requestHash": "sha256:dbb3b50e59c7326b2ff7d6619430257b9188cf3c0b8d778f7275ffd3bf4998a2",
+    "pick": "c17",
+    "confidence": 0.93,
+    "top": [
+      {
+        "cid": "c17",
+        "p": 0.95
+      },
+      {
+        "cid": "c16",
+        "p": 0.05
+      }
+    ],
+    "targetPresent": 0.97,
+    "source": "jev",
+    "latencyMs": 212,
+    "inputTokens": 1830
+  },
+  "prev": "sha256:1441ba5507f9658d9bea29b0d9567e6900468e0153fa990194e0f0f94699694b"
+}

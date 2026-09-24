@@ -1,0 +1,10 @@
+{
+  "reason": "failOnConsoleError is required",
+  "expectedPath": "/failOnConsoleError",
+  "document": {
+    "strict": false,
+    "onBreak": "escalate",
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  }
+}

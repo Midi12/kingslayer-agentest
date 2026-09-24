@@ -1,0 +1,17 @@
+{
+  "reason": "decision rules are numbered 1 to 11",
+  "expectedPath": "/data/rule",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 8,
+    "ts": "2026-09-21T10:15:08.000Z",
+    "type": "decision.made",
+    "stepId": "s3",
+    "data": {
+      "rule": 12,
+      "decision": "CONTINUE",
+      "reason": null
+    },
+    "prev": "sha256:5976124a116880e33f397dc0a913686e1b2b7e11043a1990077d5f8dadb8f05c"
+  }
+}

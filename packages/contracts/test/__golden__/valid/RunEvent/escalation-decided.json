@@ -1,0 +1,17 @@
+{
+  "runId": "run_01J8",
+  "seq": 12,
+  "ts": "2026-09-21T10:15:12.000Z",
+  "type": "escalation.decided",
+  "stepId": "s5",
+  "data": {
+    "decision": "MARK_FAILED_CONTINUE",
+    "classification": "PRODUCT_DEFECT",
+    "valid": true,
+    "errors": [],
+    "repaired": false,
+    "inputTokens": 17890,
+    "outputTokens": 640
+  },
+  "prev": "sha256:182e682c84d74cdd7ca6552c7bd01a5e09a6c3500a01d112b25769620055df03"
+}

@@ -1,0 +1,10 @@
+{
+  "reason": "states are the engine states",
+  "expectedPath": "/state",
+  "document": {
+    "leaseId": "lse_1",
+    "state": "RUNNING",
+    "stepId": "s3",
+    "lastSeq": 9
+  }
+}

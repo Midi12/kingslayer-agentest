@@ -1,0 +1,7 @@
+{
+  "kind": "blink",
+  "target": {
+    "description": "Alarm row for the jam on conveyor C12"
+  },
+  "op": "absent"
+}

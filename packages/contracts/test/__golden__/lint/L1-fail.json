@@ -1,0 +1,116 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l1-fail",
+      "title": "Lint fixture l1-fail"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "handlers": [
+      {
+        "id": "h-modal",
+        "when": {
+          "kind": "probe",
+          "name": "blocking_modal"
+        },
+        "steps": [
+          {
+            "id": "h-modal-1",
+            "intent": "Close the dialog",
+            "action": {
+              "type": "click",
+              "target": {
+                "description": "Close them all"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Start the conveyor",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Start"
+          }
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Acknowledge the alarm",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Click it now please"
+          }
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Move the tote",
+        "action": {
+          "type": "drag",
+          "source": {
+            "description": "Tote marker on lane 1"
+          },
+          "destination": {
+            "description": "There"
+          }
+        }
+      }
+    ]
+  },
+  "expected": [
+    {
+      "code": "L1",
+      "stepId": "s1"
+    },
+    {
+      "code": "L1",
+      "stepId": "s2"
+    },
+    {
+      "code": "L1",
+      "stepId": "s3"
+    },
+    {
+      "code": "L1",
+      "stepId": "h-modal-1"
+    }
+  ]
+}

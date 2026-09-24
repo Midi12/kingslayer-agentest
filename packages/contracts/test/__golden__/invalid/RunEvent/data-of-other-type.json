@@ -1,0 +1,16 @@
+{
+  "reason": "data follows the schema of the event type",
+  "expectedPath": "/data/handlerId",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 10,
+    "ts": "2026-09-21T10:15:10.000Z",
+    "type": "handler.fired",
+    "stepId": "s4",
+    "data": {
+      "attempt": 1,
+      "index": 0
+    },
+    "prev": "sha256:4beef4f5053f170d7c2bfd69180ea5e3ed6e3ce487a14b6e7e3a6795358b8277"
+  }
+}

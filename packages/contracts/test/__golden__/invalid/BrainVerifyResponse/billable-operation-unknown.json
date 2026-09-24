@@ -1,0 +1,47 @@
+{
+  "reason": "billable operations are rate-card names",
+  "expectedPath": "/usage/billable/operation",
+  "document": {
+    "result": {
+      "answers": {
+        "expect_0": 0.46
+      },
+      "probes": {
+        "error_ui": 0.08,
+        "auth_lost": 0.02,
+        "blocking_modal": 0.05,
+        "loading": 0.11
+      },
+      "handlers": {
+        "h-cookie": 0.03
+      },
+      "screen": {
+        "pick": "expected",
+        "confidence": 0.9,
+        "probabilities": {
+          "expected": 0.92,
+          "same_app_other": 0.05,
+          "error_or_blank": 0.02,
+          "external": 0.01
+        }
+      },
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 6120
+      },
+      "latencyMs": 380,
+      "cacheHit": false
+    },
+    "usage": {
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "calls": 2,
+      "inputTokens": 7040,
+      "outputTokens": 0,
+      "billable": {
+        "operation": "verify",
+        "quantity": 1
+      }
+    }
+  }
+}

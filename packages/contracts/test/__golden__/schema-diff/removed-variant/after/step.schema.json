@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/step.schema.json",
+  "title": "Step",
+  "type": "object",
+  "required": [
+    "id",
+    "kind"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "check": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "num",
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind"
+      }
+    },
+    "kind": {
+      "type": "string"
+    }
+  }
+}

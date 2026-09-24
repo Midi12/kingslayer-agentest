@@ -1,0 +1,19 @@
+{
+  "cid": "o3",
+  "role": "text",
+  "name": "PUMP P7",
+  "tag": "canvas",
+  "state": {},
+  "context": {
+    "region": "Pump synoptic"
+  },
+  "attrs": {},
+  "bbox": [
+    220.5,
+    140,
+    64,
+    18
+  ],
+  "source": "ocr",
+  "fingerprint": "fp_ocr_o3"
+}

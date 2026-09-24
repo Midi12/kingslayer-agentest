@@ -1,0 +1,139 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l2-fail",
+      "title": "Lint fixture l2-fail"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "handlers": [
+      {
+        "id": "h-banner",
+        "when": {
+          "kind": "noul",
+          "statement": "Check that the cookie banner is visible."
+        },
+        "steps": [
+          {
+            "id": "h-banner-1",
+            "intent": "Accept the cookies",
+            "action": {
+              "type": "click",
+              "target": {
+                "description": "Accept button of the cookie banner"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Check the alarm",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "Is the jam alarm visible?"
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "intent": "Check the pump",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "The pump runs and the valve is open."
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Check the alarm count",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "At least 3 alarms are listed."
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "intent": "Check the report date",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "The report is dated 2026-09-21."
+          }
+        ]
+      }
+    ]
+  },
+  "expected": [
+    {
+      "code": "L2",
+      "stepId": "s1"
+    },
+    {
+      "code": "L2",
+      "stepId": "s2"
+    },
+    {
+      "code": "L2",
+      "stepId": "s3"
+    },
+    {
+      "code": "L2",
+      "stepId": "s4"
+    },
+    {
+      "code": "L2",
+      "stepId": "h-banner"
+    }
+  ]
+}

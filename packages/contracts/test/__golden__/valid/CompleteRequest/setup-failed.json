@@ -1,0 +1,18 @@
+{
+  "leaseId": "lse_1",
+  "termination": "setup_failed",
+  "lastSeq": 2,
+  "counters": {
+    "steps": 0,
+    "passed": 0,
+    "failed": 0,
+    "broken": 0,
+    "skipped": 7,
+    "escalations": 0,
+    "handlerFirings": 0,
+    "jevCalls": 0,
+    "llmCalls": 0,
+    "durationMs": 74211
+  },
+  "error": "Chromium failed to start"
+}

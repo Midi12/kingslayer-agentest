@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/problem.schema.json",
+  "title": "Problem",
+  "additionalProperties": true,
+  "type": "object",
+  "required": [
+    "type",
+    "title",
+    "status",
+    "code"
+  ],
+  "properties": {
+    "type": {
+      "pattern": "^https?://[^\\s]+$",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "maxLength": 200,
+      "type": "string"
+    },
+    "status": {
+      "minimum": 400,
+      "maximum": 599,
+      "type": "integer"
+    },
+    "code": {
+      "anyOf": [
+        {
+          "const": "validation_failed",
+          "type": "string"
+        },
+        {
+          "const": "unauthorized",
+          "type": "string"
+        },
+        {
+          "const": "insufficient_credits",
+          "type": "string"
+        },
+        {
+          "const": "forbidden",
+          "type": "string"
+        },
+        {
+          "const": "target_not_verified",
+          "type": "string"
+        },
+        {
+          "const": "not_found",
+          "type": "string"
+        },
+        {
+          "const": "conflict",
+          "type": "string"
+        },
+        {
+          "const": "not_approved",
+          "type": "string"
+        },
+        {
+          "const": "environment_read_only",
+          "type": "string"
+        },
+        {
+          "const": "gap_detected",
+          "type": "string"
+        },
+        {
+          "const": "lint_failed",
+          "type": "string"
+        },
+        {
+          "const": "origin_not_allowed",
+          "type": "string"
+        },
+        {
+          "const": "quota_exceeded",
+          "type": "string"
+        },
+        {
+          "const": "rate_limited",
+          "type": "string"
+        },
+        {
+          "const": "internal",
+          "type": "string"
+        }
+      ]
+    },
+    "detail": {
+      "minLength": 1,
+      "maxLength": 4000,
+      "type": "string"
+    },
+    "instance": {
+      "minLength": 1,
+      "maxLength": 2048,
+      "type": "string"
+    },
+    "errors": {
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "pattern": "^(/[^/]*)*$",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "maxLength": 1000,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "findings": {
+      "maxItems": 1000,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "stepId",
+          "path",
+          "message",
+          "severity"
+        ],
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "const": "L1",
+                "type": "string"
+              },
+              {
+                "const": "L2",
+                "type": "string"
+              },
+              {
+                "const": "L3",
+                "type": "string"
+              },
+              {
+                "const": "L4",
+                "type": "string"
+              },
+              {
+                "const": "L5",
+                "type": "string"
+              },
+              {
+                "const": "L6",
+                "type": "string"
+              },
+              {
+                "const": "L7",
+                "type": "string"
+              },
+              {
+                "const": "L8",
+                "type": "string"
+              }
+            ]
+          },
+          "stepId": {
+            "description": "Step or handler the finding is about; null for the whole script",
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9]([a-z0-9_-]{0,62}[a-z0-9])?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "path": {
+            "pattern": "^(/[^/]*)*$",
+            "description": "JSON Pointer into the script",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "const": "error",
+                "type": "string"
+              },
+              {
+                "const": "warning",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "expectedSeq": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "retryAfterSec": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "requestId": {
+      "minLength": 1,
+      "maxLength": 128,
+      "type": "string"
+    }
+  }
+}

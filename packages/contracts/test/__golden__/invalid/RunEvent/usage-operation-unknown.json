@@ -1,0 +1,16 @@
+{
+  "reason": "usage operations are the rate-card names",
+  "expectedPath": "/data/operation",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 14,
+    "ts": "2026-09-21T10:15:14.000Z",
+    "type": "usage.recorded",
+    "stepId": "s5",
+    "data": {
+      "operation": "jev_call",
+      "quantity": 1
+    },
+    "prev": "sha256:a797c16f8729ea29beaf2a23ea87c858d08649b3e712841a24b7af8e26fdd41f"
+  }
+}

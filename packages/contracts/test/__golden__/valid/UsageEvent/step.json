@@ -1,0 +1,14 @@
+{
+  "id": "use_01",
+  "orgId": "org_1",
+  "projectId": "prj_1",
+  "runId": "run_01J8",
+  "operation": "step",
+  "quantity": 7,
+  "aiMode": "managed",
+  "modelTier": "standard",
+  "runnerKind": "cloud",
+  "rate": 1,
+  "credits": 7,
+  "ts": "2026-09-21T10:15:03.120Z"
+}

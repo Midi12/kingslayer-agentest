@@ -1,0 +1,12 @@
+{
+  "type": "https://argus.dev/problems/validation_failed",
+  "title": "Invalid body",
+  "status": 400,
+  "code": "validation_failed",
+  "errors": [
+    {
+      "path": "/steps/0/id",
+      "message": "Expected string"
+    }
+  ]
+}

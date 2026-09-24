@@ -1,0 +1,21 @@
+Export the alarm history (alarm-history-export)
+Tags: alarms, export
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+
+Steps
+1. [s1] Open the alarm history
+   Action: Go to /alarms/history
+   Expect: Count of "Rows of the alarm history table" equals 25
+2. [s2] Read the total number of alarms
+   Action: Extract the number from "Total counter below the alarm history table" into ${var.alarmTotal}
+   Expect: Number in "Total counter below the alarm history table" is at least 25
+3. [s3] Read the export reference
+   Action: Extract the match of pattern "EXP-([0-9]+)" from "Export reference label in the toolbar" into ${var.exportRef}
+4. [s4] Read the page subtitle
+   Action: Extract the text from "Subtitle of the alarm history page" into ${var.subtitle}
+5. [s5] Upload the alarm filter preset (risk write)
+   Action: Upload "datasets/filters/night-shift.json" to "Preset file input of the filter panel" (label "Preset")
+   Expect: Number in "Average duration cell of the summary row" is below 12.5 within a tolerance of 0.5
+6. [s6] Fetch the export through the API
+   Action: Send GET ${env.API_URL}/exports/${var.exportRef} with headers Accept, expect status 200, store the response in ${var.exportCsv}

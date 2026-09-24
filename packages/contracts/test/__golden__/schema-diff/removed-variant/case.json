@@ -1,0 +1,6 @@
+{
+  "note": "the colour variant of Step.check was removed",
+  "expectedKinds": [
+    "removed-variant"
+  ]
+}

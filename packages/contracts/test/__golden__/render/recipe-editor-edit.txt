@@ -1,0 +1,26 @@
+Edit a mixing recipe (recipe-editor-edit)
+Tags: recipes
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+
+Steps
+1. [open-recipes] Open the recipe list
+   Action: Go to /recipes
+2. [pick-recipe] Open recipe R-204
+   Action: Click "Row of recipe R-204 in the recipe table" (role row, near "R-204")
+3. [clear-name] Clear the recipe name (risk write)
+   Action: Clear "Name field of the recipe form" (label "Name")
+   Expect: "Save button of the recipe form" is disabled
+4. [set-name] Rename the recipe (risk write)
+   Action: Fill "Name field of the recipe form" (label "Name") with "Syrup base v2"
+   Expect: Value of "Name field of the recipe form" equals "Syrup base v2"
+   Expect: "Save button of the recipe form" is enabled
+5. [set-mixer] Choose the second mixer (risk write)
+   Action: Select "Mixer 2" in "Mixer drop-down of the recipe form" (label "Mixer")
+6. [heating-on] Enable preheating (risk write)
+   Action: Check "Preheat checkbox of the recipe form" (role checkbox, label "Preheat")
+7. [agitator-off] Disable the agitator pause (risk write)
+   Action: Uncheck "Agitator pause checkbox of the recipe form" (role checkbox)
+8. [save] Save the recipe with the keyboard shortcut (risk write, within 5s)
+   Action: Press Control+S in "Name field of the recipe form"
+   Expect: Text of "Notification area at the top of the page" (region "Notifications") contains "Recipe saved"

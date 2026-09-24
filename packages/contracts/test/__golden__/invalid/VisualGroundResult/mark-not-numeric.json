@@ -1,0 +1,9 @@
+{
+  "reason": "mark ids are the numbers drawn on the screenshot",
+  "expectedPath": "/mark",
+  "document": {
+    "mark": "A",
+    "certainty": "high",
+    "rationale": "Mark 1 surrounds the label PUMP P7."
+  }
+}
