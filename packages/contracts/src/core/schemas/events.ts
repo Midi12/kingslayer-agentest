@@ -224,15 +224,21 @@ export const RunEvent = discriminatedUnion(
   (Object.keys(RunEventData) as EventType[]).map((type) => eventVariant(type)),
 );
 
+/** The `stepId` member as RUN_EVENT_STEP_SCOPE sets it for an event type. */
+type StepIdOf<K extends EventType> = (typeof RUN_EVENT_STEP_SCOPE)[K] extends 'required'
+  ? { stepId: string }
+  : (typeof RUN_EVENT_STEP_SCOPE)[K] extends 'optional'
+    ? { stepId?: string }
+    : { stepId?: never };
+
 type EventOf<K extends EventType> = {
   runId: string;
   seq: number;
   ts: string;
   type: K;
-  stepId?: string;
   data: Static<EventDataSchemas[K]>;
   prev: string | null;
-};
+} & StepIdOf<K>;
 export type RunEventOf<K extends EventType> = EventOf<K>;
 export type RunEvent = { [K in EventType]: EventOf<K> }[EventType];
 export type RunEventDataOf<K extends EventType> = Static<EventDataSchemas[K]>;

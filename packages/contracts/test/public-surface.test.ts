@@ -5,6 +5,7 @@ import type {
   BlinkExpectation,
   ExpectationOf,
   JobSecret,
+  RunEventOf,
   ScreenAnswer,
 } from '../src/index.js';
 
@@ -64,5 +65,17 @@ describe('public surface', () => {
     expectTypeOf<ExpectationOf<'blink'>>().toEqualTypeOf<BlinkExpectation>();
     expectTypeOf<JobSecret>().toBeObject();
     expectTypeOf<ScreenAnswer>().not.toBeNever();
+  });
+
+  it('types stepId as RUN_EVENT_STEP_SCOPE sets it', () => {
+    expectTypeOf<RunEventOf<'step.started'>['stepId']>().toEqualTypeOf<string>();
+    expectTypeOf<RunEventOf<'artifact.stored'>['stepId']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<RunEventOf<'run.started'>['stepId']>().toEqualTypeOf<undefined>();
+    const head = { runId: 'r1', seq: 1, ts: '2026-09-24T10:00:00Z', prev: null };
+    // @ts-expect-error a step-scoped event needs its stepId
+    const started: RunEventOf<'step.started'> = { ...head, type: 'step.started', data: {} };
+    // @ts-expect-error run.started carries no stepId
+    const run: RunEventOf<'run.started'> = { ...head, type: 'run.started', stepId: 's1', data: {} };
+    expect([started, run]).toHaveLength(2);
   });
 });

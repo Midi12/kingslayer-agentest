@@ -3,7 +3,9 @@
  * "REST API").
  */
 import { PROBLEM_STATUS, PROBLEM_TYPE_BASE, type ProblemCode } from './enums.js';
+import { err, ok, type Result } from './result.js';
 import type { Problem } from './schemas/api.js';
+import { validate, type ValidationError } from './validate.js';
 
 const TITLES: Record<ProblemCode, string> = {
   validation_failed: 'The request does not match its schema',
@@ -41,4 +43,30 @@ export function problem(
     code,
     ...rest,
   };
+}
+
+/**
+ * Validates a problem document and checks that `status` and `type` are the ones its
+ * `code` fixes. The published schema cannot express the pairing: tightening it inside
+ * v1 would reject documents it accepted before (ADR M01-wire-contracts), so consumers
+ * that read problem documents (M12, M14) use this check.
+ */
+export function validateProblem(value: unknown): Result<Problem, ValidationError[]> {
+  const checked = validate('Problem', value);
+  if (!checked.ok) return checked;
+  const doc = checked.value;
+  const errors: ValidationError[] = [];
+  if (doc.status !== PROBLEM_STATUS[doc.code]) {
+    errors.push({
+      path: '/status',
+      message: `Expected status ${PROBLEM_STATUS[doc.code]} for code ${doc.code}`,
+    });
+  }
+  if (doc.type !== problemType(doc.code)) {
+    errors.push({
+      path: '/type',
+      message: `Expected type ${problemType(doc.code)} for code ${doc.code}`,
+    });
+  }
+  return errors.length === 0 ? ok(doc) : err(errors);
 }

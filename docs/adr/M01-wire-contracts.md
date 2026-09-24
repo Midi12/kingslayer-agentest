@@ -43,7 +43,9 @@ and lists the runner and brain routes without their bodies.
 - Problem codes and statuses: the spec's six plus `validation_failed` 400,
   `unauthorized` 401, `forbidden` 403, `target_not_verified` 403, `not_found` 404,
   `conflict` 409, `gap_detected` 409 (with `expectedSeq`), `rate_limited` 429,
-  `internal` 500; `type` is `https://argus.dev/problems/<code>`.
+  `internal` 500; `type` is `https://argus.dev/problems/<code>`. The schema does not tie
+  `status` and `type` to `code` (adding that inside v1 would reject documents v1 already
+  accepts); `problem()` builds the pairing and `validateProblem()` checks it on input.
 - `UsageEvent`: id, org, project and run (null for compiles), rate-card operation,
   quantity, AI mode, model tier, runner kind, applied rate, credits and timestamp.
 

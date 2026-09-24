@@ -233,7 +233,7 @@ export {
   RunnerRegisterResponse,
 } from './core/schemas/api.js';
 export type { Billed } from './core/schemas/api.js';
-export { problem, problemType } from './core/problem.js';
+export { problem, problemType, validateProblem } from './core/problem.js';
 
 // Ports: types only.
 export type {

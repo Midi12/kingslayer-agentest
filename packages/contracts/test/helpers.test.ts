@@ -20,6 +20,7 @@ import {
   templateReferences,
   unwrapOr,
   validate,
+  validateProblem,
   type Action,
   type ActionStep,
   type Observation,
@@ -74,7 +75,24 @@ describe('problem documents', () => {
     });
     for (const code of Object.keys(PROBLEM_STATUS) as (keyof typeof PROBLEM_STATUS)[]) {
       expect(validate('Problem', problem(code)).ok).toBe(true);
+      expect(validateProblem(problem(code)).ok).toBe(true);
     }
+  });
+
+  it('checks that status and type belong to the code', () => {
+    const forged = { code: 'not_found', status: 500, type: 'https://example.com/x', title: 'X' };
+    expect(validate('Problem', forged).ok).toBe(true);
+    expect(validateProblem(forged)).toEqual({
+      ok: false,
+      error: [
+        { path: '/status', message: 'Expected status 404 for code not_found' },
+        {
+          path: '/type',
+          message: 'Expected type https://argus.dev/problems/not_found for code not_found',
+        },
+      ],
+    });
+    expect(validateProblem({ code: 'nope' }).ok).toBe(false);
   });
 });
 

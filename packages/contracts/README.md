@@ -27,7 +27,7 @@ test`, or `pnpm gate M01` for the gates.
 | Area | Exports |
 | --- | --- |
 | Schemas and types | `TestScript`, `Fragment`, `Step`, `Action`, `Target`, `Expectation`, `Policy`, `Observation`, `Candidate`, `NavigatorObservation`, `GroundRequest`/`Result`, `VerifyRequest`/`Result`, `BreakPacket`, `AnalystDecision`, `TriageRequest`, `VisualGroundRequest`/`Result`, `VisionAssertRequest`/`Result`, `ReportInput`, `ReportBody`, `RunReport`, `RunEvent`, `RunEventBatch`, `UsageEvent`, `CompileRequest`/`Result`, `LintFinding`, `Clarification`, `BrainUsage`, runner protocol bodies, brain responses, `Problem` |
-| Registry | `SCHEMAS`, `SCHEMA_NAMES`, `validate(name, value)`, `conforms`, `schemaId`, `BRAIN_ENDPOINTS`, `RUNNER_ENDPOINTS` |
+| Registry | `SCHEMAS`, `SCHEMA_NAMES`, `validate(name, value)`, `validateProblem` (schema plus the code, status and type pairing), `conforms`, `schemaId`, `BRAIN_ENDPOINTS`, `RUNNER_ENDPOINTS` |
 | Vocabularies | `BREAK_REASONS`, `VERDICTS`, `STEP_OUTCOMES`, `RISK_CLASSES`, `ROLES`, `ACTION_TYPES`, `EXPECTATION_KINDS`, `PALETTE`, `USAGE_OPERATIONS`, `PROBLEM_STATUS`, ... as const arrays and unions |
 | Canonical JSON | `canonicalize` (RFC 8785), `contentHash` (`sha256:<hex>`), `hashBytes`, `sha256Hex` |
 | Scripts | `lintScript` (L1 to L8), `renderSteps`, `parseDuration`, `formatDuration`, `resolvePolicy`, `riskForAction`, `effectiveRisk`, `templateReferences`, `stripForNavigator` |
