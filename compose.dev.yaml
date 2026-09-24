@@ -72,6 +72,30 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  # M02: built from deploy/docker/fixture-hmi.Dockerfile; not started by a plain
+  # `up -d --wait` (CLAUDE.md never touches postgres/s3). Bring it up explicitly:
+  #   docker compose -f compose.dev.yaml --profile fixture up -d --build fixture-hmi
+  fixture-hmi:
+    profiles: [fixture]
+    build:
+      context: .
+      dockerfile: deploy/docker/fixture-hmi.Dockerfile
+      args:
+        DOCKERHUB_MIRROR: ${DOCKERHUB_MIRROR:-docker.io}
+    image: argus/fixture-hmi:dev
+    environment:
+      FIXTURE_PORT: '4000'
+      FIXTURE_HOST: '0.0.0.0'
+    ports:
+      - 127.0.0.1:4000:4000
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4000/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
 volumes:
   pgdata:
   s3data:

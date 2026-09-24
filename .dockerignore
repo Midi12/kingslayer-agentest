@@ -1,0 +1,11 @@
+# Shared across every module's Dockerfile (deploy/docker/*.Dockerfile). Docker build
+# contexts never need what pnpm, Turborepo, tests and editors leave on disk.
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+.git
+.gitignore
+**/*.log
+gates/evidence
+docs
