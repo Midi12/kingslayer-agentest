@@ -12,8 +12,12 @@
  * - `narrowed-constraint`: a bound, length, pattern, uniqueness or multiple got stricter;
  * - `removed-variant`: a union variant no longer has an equally permissive counterpart;
  * - `unmodelled-keyword`: a keyword the diff does not model (`allOf`, `not`, `if`,
- *   `format`, `propertyNames`, `$ref`, ...) was added or changed. The check fails closed:
- *   such a change is reported as breaking even when it happens to be harmless.
+ *   `format`, `propertyNames`, `$ref`, ...) was added or changed, or an old literal meets
+ *   one in the new schema so that the diff cannot tell whether it is still accepted. The
+ *   check fails closed: such a change is reported as breaking even when it is harmless.
+ *
+ * Boolean subschemas keep their JSON Schema meaning: `true` accepts every value and
+ * `false` rejects every value, so a subschema that becomes `false` is a narrowing.
  */
 
 export type BreakingKind =
@@ -43,6 +47,11 @@ function asNode(value: unknown): Node {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Node)
     : {};
+}
+
+/** A subschema as JSON Schema reads it: `false` rejects everything, `true` is `{}`. */
+function toSchema(value: unknown): Node | false {
+  return value === false ? false : asNode(value);
 }
 
 function escape(key: string): string {
@@ -80,6 +89,7 @@ function kinds(schema: Node): Set<string> | undefined {
   if (Array.isArray(schema.anyOf)) {
     const union = new Set<string>();
     for (const variant of schema.anyOf) {
+      if (variant === false) continue;
       const inner = kinds(asNode(variant));
       if (inner === undefined) return undefined;
       inner.forEach((kind) => union.add(kind));
@@ -97,19 +107,133 @@ function expand(types: string[]): Set<string> {
   return set;
 }
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-
-/** Whether a non-literal schema accepts a literal, judged on kind, pattern and length. */
-function admitsLiteral(schema: Node, value: unknown): boolean {
-  const admitted = kinds(schema);
-  if (admitted !== undefined && !admitted.has(kindOfValue(value))) return false;
-  if (typeof value === 'string') {
-    if (typeof schema.pattern === 'string' && !new RegExp(schema.pattern, 'u').test(value))
-      return false;
-    if (typeof schema.minLength === 'number' && value.length < schema.minLength) return false;
-    if (typeof schema.maxLength === 'number' && value.length > schema.maxLength) return false;
+/** JSON equality: member order does not matter, array order does. */
+function same(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((item, index) => same(item, b[index]))
+    );
   }
-  return true;
+  const left = a as Node;
+  const right = b as Node;
+  const keys = Object.keys(left);
+  return (
+    keys.length === Object.keys(right).length &&
+    keys.every((key) => Object.hasOwn(right, key) && same(left[key], right[key]))
+  );
+}
+
+/** Whether a schema accepts a value: `unknown` when it uses a keyword the diff does not model. */
+type Verdict = 'yes' | 'no' | 'unknown';
+
+function all(verdicts: Iterable<Verdict>): Verdict {
+  let result: Verdict = 'yes';
+  for (const verdict of verdicts) {
+    if (verdict === 'no') return 'no';
+    if (verdict === 'unknown') result = 'unknown';
+  }
+  return result;
+}
+
+function hasKind(types: unknown, value: unknown): boolean {
+  const list = Array.isArray(types) ? types : [types];
+  const kind = kindOfValue(value);
+  return list.some((type) => type === kind || (type === 'number' && kind === 'integer'));
+}
+
+/**
+ * Evaluates a schema on one value with the keywords `compare` models (JSON Schema
+ * semantics: lengths in code points, boolean subschemas). An unmodelled keyword or a
+ * pattern that does not compile makes the answer `unknown`, never `yes`.
+ */
+function accepts(raw: unknown, value: unknown): Verdict {
+  if (raw === true) return 'yes';
+  if (raw === false) return 'no';
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return 'unknown';
+  const schema = raw as Node;
+  const verdicts: Verdict[] = [];
+  for (const key of Object.keys(schema)) {
+    if (!MODELLED_KEYWORDS.has(key) && !ANNOTATION_KEYWORDS.has(key)) verdicts.push('unknown');
+  }
+  const check = (condition: boolean) => verdicts.push(condition ? 'yes' : 'no');
+  if (schema.type !== undefined) check(hasKind(schema.type, value));
+  if ('const' in schema) check(same(schema.const, value));
+  if (Array.isArray(schema.enum)) check(schema.enum.some((item) => same(item, value)));
+  if (Array.isArray(schema.anyOf)) {
+    const options = schema.anyOf.map((variant) => accepts(variant, value));
+    verdicts.push(options.includes('yes') ? 'yes' : options.includes('unknown') ? 'unknown' : 'no');
+  }
+  if (typeof value === 'number') {
+    const bound = (key: string, test: (limit: number) => boolean) => {
+      const limit = schema[key];
+      if (typeof limit === 'number') check(test(limit));
+    };
+    bound('minimum', (limit) => value >= limit);
+    bound('exclusiveMinimum', (limit) => value > limit);
+    bound('maximum', (limit) => value <= limit);
+    bound('exclusiveMaximum', (limit) => value < limit);
+    bound('multipleOf', (limit) => limit > 0 && Number.isInteger(value / limit));
+  }
+  if (typeof value === 'string') {
+    const length = value.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '_').length; // code points
+    if (typeof schema.minLength === 'number') check(length >= schema.minLength);
+    if (typeof schema.maxLength === 'number') check(length <= schema.maxLength);
+    if (typeof schema.pattern === 'string') {
+      let expression: RegExp | undefined;
+      try {
+        expression = new RegExp(schema.pattern, 'u');
+      } catch {
+        verdicts.push('unknown');
+      }
+      if (expression !== undefined) check(expression.test(value));
+    }
+  }
+  if (Array.isArray(value)) {
+    if (typeof schema.minItems === 'number') check(value.length >= schema.minItems);
+    if (typeof schema.maxItems === 'number') check(value.length <= schema.maxItems);
+    if (schema.uniqueItems === true) {
+      check(value.every((item, index) => value.findIndex((other) => same(other, item)) === index));
+    }
+    if (schema.items !== undefined) {
+      verdicts.push(all(value.map((item) => accepts(schema.items, item))));
+    }
+  }
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const members = value as Node;
+    const names = Object.keys(members);
+    if (typeof schema.minProperties === 'number') check(names.length >= schema.minProperties);
+    if (typeof schema.maxProperties === 'number') check(names.length <= schema.maxProperties);
+    if (Array.isArray(schema.required)) {
+      check(
+        schema.required.every((name) => typeof name === 'string' && Object.hasOwn(members, name)),
+      );
+    }
+    const properties = asNode(schema.properties);
+    const patterns = Object.entries(asNode(schema.patternProperties));
+    for (const name of names) {
+      const governors: unknown[] = [];
+      if (Object.hasOwn(properties, name)) governors.push(properties[name]);
+      for (const [pattern, sub] of patterns) {
+        let applies: boolean | undefined;
+        try {
+          applies = new RegExp(pattern, 'u').test(name);
+        } catch {
+          verdicts.push('unknown');
+        }
+        if (applies === true) governors.push(sub);
+      }
+      if (governors.length === 0 && schema.additionalProperties !== undefined) {
+        governors.push(schema.additionalProperties);
+      }
+      verdicts.push(all(governors.map((governor) => accepts(governor, members[name]))));
+    }
+  }
+  return all(verdicts);
 }
 
 /** Keywords whose changes `compare` understands. */
@@ -159,14 +283,21 @@ const UPPER_BOUNDS = ['maximum', 'exclusiveMaximum', 'maxLength', 'maxItems', 'm
 
 function compare(
   file: string,
-  before: Node,
-  after: Node,
+  rawBefore: unknown,
+  rawAfter: unknown,
   path: string,
   out: BreakingChange[],
 ): void {
   const push = (kind: BreakingKind, detail: string, at = path) => {
     out.push({ file, path: at, kind, detail });
   };
+  const before = toSchema(rawBefore);
+  const after = toSchema(rawAfter);
+  if (before === false) return; // nothing was accepted: nothing can be lost
+  if (after === false) {
+    push('narrowed-type', 'the schema is now false and rejects every value');
+    return;
+  }
 
   // Fail closed on any assertion keyword the diff does not model.
   for (const key of Object.keys(after).sort()) {
@@ -198,20 +329,35 @@ function compare(
     return;
   }
   if (oldLiterals !== undefined) {
-    const rejected = oldLiterals.filter((value) => !admitsLiteral(after, value));
-    if (rejected.length > 0) {
+    // Every old literal is evaluated against the whole new schema: kinds, bounds,
+    // multiples, lengths, patterns, required members, items and nested subschemas.
+    const verdicts = oldLiterals.map((value) => ({ value, verdict: accepts(after, value) }));
+    const list = (verdict: Verdict) =>
+      verdicts
+        .filter((entry) => entry.verdict === verdict)
+        .map((entry) => JSON.stringify(entry.value))
+        .join(', ');
+    const rejected = list('no');
+    if (rejected !== '') push('narrowed-type', `no longer accepts ${rejected}`);
+    const undecided = list('unknown');
+    if (undecided !== '') {
       push(
-        'narrowed-type',
-        `no longer accepts ${rejected.map((v) => JSON.stringify(v)).join(', ')}`,
+        'unmodelled-keyword',
+        `cannot tell whether ${undecided} is still accepted: the new schema uses a keyword the diff does not model or a pattern that does not compile`,
       );
     }
     return;
   }
   if (Array.isArray(before.anyOf) || Array.isArray(after.anyOf)) {
-    const oldVariants = Array.isArray(before.anyOf) ? before.anyOf.map(asNode) : [before];
-    const newVariants = Array.isArray(after.anyOf) ? after.anyOf.map(asNode) : [after];
+    const oldVariants: (Node | false)[] = Array.isArray(before.anyOf)
+      ? before.anyOf.map(toSchema)
+      : [before];
+    const newVariants: (Node | false)[] = Array.isArray(after.anyOf)
+      ? after.anyOf.map(toSchema)
+      : [after];
     const tag = discriminatorOf(before) ?? discriminatorOf(after);
     oldVariants.forEach((variant, index) => {
+      if (variant === false) return; // it accepted nothing
       const at = Array.isArray(before.anyOf) ? `${path}/anyOf/${index}` : path;
       const values = tag === undefined ? [] : discriminatorValues(variant, tag);
       if (tag !== undefined && values.length > 0) {
@@ -308,7 +454,7 @@ function compare(
     const sources = governing(before, name);
     if (sources.includes(false)) continue; // the name was rejected before
     for (const next of governing(after, name)) {
-      if (next !== false) requireImplied(file, sources as Node[], next, at, out);
+      requireImplied(file, sources as Node[], next, at, out);
     }
   }
   const oldRequired = new Set(Array.isArray(before.required) ? (before.required as string[]) : []);
@@ -325,7 +471,7 @@ function compare(
     if (!(pattern in newPatterns)) {
       push('removed-property', `pattern property ${pattern} was removed`, at);
     } else {
-      compare(file, asNode(schema), asNode(newPatterns[pattern]), at, out);
+      compare(file, schema, newPatterns[pattern], at, out);
     }
   }
   const oldAdditional = additional(before.additionalProperties);
@@ -335,10 +481,10 @@ function compare(
     // them, and additionalProperties unless it was false, must admit the new schema.
     const at = `${path}/patternProperties/${escape(pattern)}`;
     const sources = [
-      ...Object.values(oldPatterns).map(asNode),
+      ...Object.values(oldPatterns),
       ...(oldAdditional === false ? [] : [oldAdditional]),
     ];
-    for (const source of sources) compare(file, source, asNode(schema), at, out);
+    for (const source of sources) compare(file, source, schema, at, out);
   }
   const newAdditional = additional(after.additionalProperties);
   if (newAdditional === false) {
@@ -349,18 +495,18 @@ function compare(
   }
 
   // Arrays
-  if (after.items !== undefined) {
+  if (after.items !== undefined && after.items !== true) {
     if (before.items === undefined) {
       push('narrowed-type', 'array items are now constrained', `${path}/items`);
     } else {
-      compare(file, asNode(before.items), asNode(after.items), `${path}/items`, out);
+      compare(file, before.items, after.items, `${path}/items`, out);
     }
   }
 }
 
 /** additionalProperties as a schema: absent or true admit anything, false admits nothing. */
 function additional(value: unknown): Node | false {
-  return value === false ? false : asNode(value);
+  return toSchema(value);
 }
 
 /** Whether a pattern property applies to a name; an unreadable pattern is assumed to. */
@@ -376,9 +522,9 @@ function matches(pattern: string, name: string): boolean {
 function governing(schema: Node, name: string): (Node | false)[] {
   const properties = asNode(schema.properties);
   const result: (Node | false)[] = [];
-  if (Object.hasOwn(properties, name)) result.push(asNode(properties[name]));
+  if (Object.hasOwn(properties, name)) result.push(toSchema(properties[name]));
   for (const [pattern, sub] of Object.entries(asNode(schema.patternProperties))) {
-    if (matches(pattern, name)) result.push(asNode(sub));
+    if (matches(pattern, name)) result.push(toSchema(sub));
   }
   if (result.length === 0) result.push(additional(schema.additionalProperties));
   return result;
@@ -392,7 +538,7 @@ function governing(schema: Node, name: string): (Node | false)[] {
 function requireImplied(
   file: string,
   sources: readonly Node[],
-  next: Node,
+  next: Node | false,
   path: string,
   out: BreakingChange[],
 ): void {
@@ -409,7 +555,7 @@ function requireImplied(
 /** Breaking changes between one old and one new schema document. */
 export function diffSchema(file: string, before: unknown, after: unknown): BreakingChange[] {
   const out: BreakingChange[] = [];
-  compare(file, asNode(before), asNode(after), '', out);
+  compare(file, before, after, '', out);
   return out;
 }
 

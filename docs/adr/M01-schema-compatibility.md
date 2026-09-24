@@ -32,6 +32,14 @@ M01-G4 diffs the schemas against the last release tag, and no release tag exists
   property that may overlap an old one or an open remainder, and `additionalProperties`
   going from `true` or absent to a schema are narrowing; a property added where the old
   object rejected the name is additive.
+  When an old `const`, `enum` or literal union becomes a non-literal schema, every old
+  literal is evaluated against the whole new schema (kinds, bounds, `multipleOf`,
+  lengths in code points, patterns, `required`, member counts, properties and items,
+  nested subschemas); a rejected literal is `narrowed-type`, and one the diff cannot
+  evaluate (an unmodelled keyword, a pattern that does not compile) is
+  `unmodelled-keyword`. Boolean subschemas keep their meaning: `true` accepts
+  everything, `false` nothing, so a root, property, pattern property, items or variant
+  schema that becomes `false` is a narrowing.
   Any other keyword (`allOf`, `not`, `if`/`then`, `dependentRequired`, `propertyNames`,
   `format`, `$ref`, ...) that is added or changed is reported as `unmodelled-keyword`:
   the diff fails closed; annotations (`title`, `description`, `examples`, ...) are
