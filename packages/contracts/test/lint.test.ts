@@ -135,24 +135,111 @@ describe('lintScript', () => {
       ['L4', null],
       ['L4', 's1'],
     ]);
-    const odd = withSteps([
-      {
-        id: 's1',
-        intent: 'Call a malformed URL',
-        action: { type: 'http', request: { method: 'GET', url: 'http://[bad' }, expectStatus: 200 },
-      },
-      {
-        id: 's2',
-        intent: 'Open a protocol-relative URL',
-        action: { type: 'navigate', url: '//hmi.test/x' },
-      },
-    ]);
+    const odd = withSteps(
+      [
+        {
+          id: 's1',
+          intent: 'Call a malformed URL',
+          action: {
+            type: 'http',
+            request: { method: 'GET', url: 'http://[bad' },
+            expectStatus: 200,
+          },
+        },
+        {
+          id: 's2',
+          intent: 'Open a protocol-relative URL',
+          action: { type: 'navigate', url: '//hmi.test/x' },
+        },
+      ],
+      { target: { ...c12.target, baseUrl: 'https://hmi.test' } },
+    );
     expect(lintScript(odd, context).map((finding) => [finding.code, finding.stepId])).toEqual([
       ['L4', 's1'],
     ]);
     expect(
       lintScript(withSteps([], { target: { ...c12.target, baseUrl: 'not a url:x' } }), context),
     ).toHaveLength(1);
+  });
+
+  it('L4 judges URLs by where a browser resolves them', () => {
+    const navigate = (url: string): TestScript =>
+      withSteps([{ id: 's1', intent: 'Open the page', action: { type: 'navigate', url } }]);
+    const escaping = [
+      '\\\\evil.com/x',
+      '/\\evil.com/x',
+      ' //evil.com/x',
+      '\t//evil.com',
+      '\n//evil.com',
+      '\u0000//evil.com',
+      'https:evil.com',
+      'http:evil.com',
+      '//evil.com',
+      'https://relative-a.invalid/x',
+      'http://relative-b.invalid/x',
+    ];
+    for (const url of escaping) {
+      const findings = lintScript(navigate(url), context);
+      expect(
+        findings.map((finding) => [finding.code, finding.path]),
+        url,
+      ).toEqual([['L4', '/steps/0/action/url']]);
+    }
+    for (const url of ['/ok', 'ok/deeper', '?q=1', '#frag', 'https://hmi.test/x', ' /ok ']) {
+      expect(lintScript(navigate(url), context), url).toEqual([]);
+    }
+    for (const url of ['javascript:alert(1)', '/\\${env.HOST}/x', 'https://${var.HOST}/']) {
+      expect(lintScript(navigate(url), context)[0]?.message, url).toMatch(/is rejected/);
+    }
+    expect(lintScript(navigate(' ${env.HMI_URL}/x'), context)).toEqual([]);
+    // With a base URL from the environment the page scheme is unknown: both are checked.
+    const envBase = { target: { ...c12.target, baseUrl: '${env.HMI_URL}' } };
+    const fromEnv = (url: string) =>
+      lintScript(
+        withSteps(
+          [{ id: 's1', intent: 'Open the page', action: { type: 'navigate', url } }],
+          envBase,
+        ),
+        context,
+      );
+    expect(fromEnv('/ok')).toEqual([]);
+    expect(fromEnv('//hmi.test/x')[0]?.message).toMatch(/http:\/\/hmi\.test/);
+    const base = (baseUrl: string) =>
+      lintScript(withSteps([], { target: { ...c12.target, baseUrl } }), context);
+    expect(base('\\\\evil.com')).toHaveLength(1);
+    expect(base(' //evil.com')).toHaveLength(1);
+    expect(base('https://hmi.test')).toEqual([]);
+    const call = (url: string): TestScript =>
+      withSteps([
+        {
+          id: 's1',
+          intent: 'Call the simulator',
+          action: { type: 'http', request: { method: 'GET', url }, expectStatus: 200 },
+        },
+      ]);
+    expect(lintScript(call('https://sim.test:8443/api'), context)).toEqual([]);
+    expect(lintScript(call('/\\sim.test:8443/api'), context)).toEqual([]);
+    expect(lintScript(call('/\\evil.test/api'), context)[0]?.message).toMatch(/evil\.test/);
+    expect(lintScript(call('https:evil.test/api'), context)[0]?.message).toMatch(/evil\.test/);
+  });
+
+  it('L7 rejects a blink range whose minimum exceeds its maximum', () => {
+    const blink = (minHz: number, maxHz: number): ActionStep => ({
+      ...click('s1', 'Acknowledge the jam alarm', 'Acknowledge button of the jam alarm'),
+      expect: [
+        {
+          kind: 'blink',
+          target: { description: 'Jam lamp of conveyor C12' },
+          minHz,
+          maxHz,
+        },
+      ],
+    });
+    expect(lintScript(withSteps([blink(1, 5)]), context)).toEqual([]);
+    expect(lintScript(withSteps([blink(2, 2)]), context)).toEqual([]);
+    expect(
+      lintScript(withSteps([blink(5, 1)]), context).map((finding) => [finding.code, finding.path]),
+    ).toEqual([['L7', '/steps/0/expect/0/minHz']]);
   });
 
   it('L5 knows the inflections of a verb', () => {

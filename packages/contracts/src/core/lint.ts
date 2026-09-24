@@ -412,8 +412,20 @@ function comparePaths(a: string, b: string): number {
 // L4: URLs are relative or inside the allow-lists
 // ---------------------------------------------------------------------------
 
-const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 const ENV_PREFIX = /^\$\{env\.[A-Za-z_][A-Za-z0-9_]*\}/;
+
+/**
+ * Bases a URL is resolved against, one per scheme the page may have. A URL is relative
+ * only when it stays on the base's origin for each of them and does not parse on its
+ * own; every other origin it can reach is checked. So a URL that a browser treats as
+ * protocol-relative (`\\evil.com`, `/\evil.com`, ` //evil.com`, a tab before `//`) or
+ * that changes meaning with the base (`https:evil.com`) is judged by where it can lead.
+ */
+const SENTINEL_BASES: Readonly<Record<'https:' | 'http:', string>> = {
+  'https:': 'https://relative-a.invalid',
+  'http:': 'http://relative-b.invalid',
+};
+const ALL_SENTINELS = Object.values(SENTINEL_BASES);
 
 function normalizeOrigin(origin: string): string {
   try {
@@ -425,32 +437,55 @@ function normalizeOrigin(origin: string): string {
 
 interface ParsedUrl {
   kind: 'relative' | 'environment' | 'absolute' | 'invalid';
-  url?: URL;
+  /** Every absolute URL the text can resolve to (kind `absolute`). */
+  urls?: URL[];
   problem?: string;
 }
 
-function classifyUrl(text: string): ParsedUrl {
-  if (ENV_PREFIX.test(text)) {
+function parseUrl(text: string, base?: string): URL | undefined {
+  try {
+    return base === undefined ? new URL(text) : new URL(text, base);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The WHATWG URL parser's input preprocessing: leading and trailing C0 controls and
+ * spaces are stripped, and tabs and newlines are removed everywhere.
+ */
+function preprocessUrl(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '').replace(/[\t\n\r]/g, '');
+}
+
+function classifyUrl(text: string, bases: readonly string[] = ALL_SENTINELS): ParsedUrl {
+  if (ENV_PREFIX.test(preprocessUrl(text))) {
     return { kind: 'environment' };
   }
-  const absolute = SCHEME.test(text) || text.startsWith('//');
-  if (!absolute) {
+  const urls: URL[] = [];
+  const standalone = parseUrl(text);
+  if (standalone !== undefined) urls.push(standalone);
+  for (const base of bases) {
+    const resolved = parseUrl(text, base);
+    if (resolved === undefined) {
+      return { kind: 'invalid', problem: 'it is not a valid URL' };
+    }
+    if (resolved.origin !== new URL(base).origin) urls.push(resolved);
+  }
+  if (urls.length === 0) {
     return { kind: 'relative' };
   }
-  const authority = /^(?:[a-z][a-z0-9+.-]*:)?\/\/([^/?#]*)/i.exec(text)?.[1] ?? '';
-  if (authority.includes('${')) {
-    return { kind: 'invalid', problem: 'its host comes from a variable' };
+  for (const url of urls) {
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return { kind: 'invalid', problem: `scheme ${url.protocol} is not allowed` };
+    }
+    if (/[${}]|%7b|%7d/i.test(url.host)) {
+      return { kind: 'invalid', problem: 'its host comes from a variable' };
+    }
   }
-  let url: URL;
-  try {
-    url = new URL(text.startsWith('//') ? `https:${text}` : text);
-  } catch {
-    return { kind: 'invalid', problem: 'it is not a valid URL' };
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return { kind: 'invalid', problem: `scheme ${url.protocol} is not allowed` };
-  }
-  return { kind: 'absolute', url };
+  const unique = new Map(urls.map((url) => [url.host, url]));
+  return { kind: 'absolute', urls: [...unique.values()] };
 }
 
 function lintL4(script: TestScript, context: LintContext): LintFinding[] {
@@ -458,8 +493,21 @@ function lintL4(script: TestScript, context: LintContext): LintFinding[] {
   const origins = new Set(context.allowedOrigins.map(normalizeOrigin));
   const hosts = new Set(context.allowedHttpHosts.map((host) => host.toLowerCase()));
 
-  const checkOrigin = (stepId: string | null, path: string, text: string, what: string) => {
-    const parsed = classifyUrl(text);
+  // A navigation resolves against the page, whose scheme is the base URL's when it is known.
+  const baseScheme = parseUrl(script.target.baseUrl)?.protocol;
+  const pageBases =
+    baseScheme === 'https:' || baseScheme === 'http:'
+      ? [SENTINEL_BASES[baseScheme]]
+      : ALL_SENTINELS;
+
+  const checkOrigin = (
+    stepId: string | null,
+    path: string,
+    text: string,
+    what: string,
+    bases: readonly string[],
+  ) => {
+    const parsed = classifyUrl(text, bases);
     if (parsed.kind === 'invalid') {
       findings.push(
         finding(
@@ -469,19 +517,18 @@ function lintL4(script: TestScript, context: LintContext): LintFinding[] {
           `${what} ${JSON.stringify(text)} is rejected: ${parsed.problem ?? ''}.`,
         ),
       );
-    } else if (
-      parsed.kind === 'absolute' &&
-      parsed.url !== undefined &&
-      !origins.has(parsed.url.origin)
-    ) {
-      findings.push(
-        finding(
-          'L4',
-          stepId,
-          path,
-          `${what} ${JSON.stringify(text)} leaves the origin allow-list (${parsed.url.origin}).`,
-        ),
-      );
+    } else if (parsed.kind === 'absolute') {
+      const outside = (parsed.urls ?? []).find((url) => !origins.has(url.origin));
+      if (outside !== undefined) {
+        findings.push(
+          finding(
+            'L4',
+            stepId,
+            path,
+            `${what} ${JSON.stringify(text)} leaves the origin allow-list (${outside.origin}).`,
+          ),
+        );
+      }
     }
   };
 
@@ -496,13 +543,13 @@ function lintL4(script: TestScript, context: LintContext): LintFinding[] {
       ),
     );
   } else {
-    checkOrigin(null, '/target/baseUrl', baseUrl, 'Base URL');
+    checkOrigin(null, '/target/baseUrl', baseUrl, 'Base URL', ALL_SENTINELS);
   }
 
   for (const { step, path } of actionSteps(script)) {
     const action = step.action;
     if (action.type === 'navigate') {
-      checkOrigin(step.id, `${path}/action/url`, action.url, 'Navigation URL');
+      checkOrigin(step.id, `${path}/action/url`, action.url, 'Navigation URL', pageBases);
     } else if (action.type === 'http') {
       const text = action.request.url;
       const urlPath = `${path}/action/request/url`;
@@ -525,13 +572,14 @@ function lintL4(script: TestScript, context: LintContext): LintFinding[] {
             `HTTP URL ${JSON.stringify(text)} is rejected: ${parsed.problem ?? ''}.`,
           ),
         );
-      } else if (parsed.kind === 'absolute' && parsed.url !== undefined) {
-        const { host, hostname, port } = parsed.url;
-        const allowed =
-          hosts.has(host.toLowerCase()) || (port === '' && hosts.has(hostname.toLowerCase()));
-        if (!allowed) {
+      } else if (parsed.kind === 'absolute') {
+        const outside = (parsed.urls ?? []).find(
+          ({ host, hostname, port }) =>
+            !hosts.has(host.toLowerCase()) && !(port === '' && hosts.has(hostname.toLowerCase())),
+        );
+        if (outside !== undefined) {
           findings.push(
-            finding('L4', step.id, urlPath, `HTTP host ${host} is not in the allow-list.`),
+            finding('L4', step.id, urlPath, `HTTP host ${outside.host} is not in the allow-list.`),
           );
         }
       }
@@ -631,7 +679,7 @@ function lintL6(script: TestScript, context: LintContext): LintFinding[] {
 }
 
 // ---------------------------------------------------------------------------
-// L7: unique baselines; every mask has a description or a rectangle
+// L7: unique baselines; every mask has a description or a rectangle; blink ranges not empty
 // ---------------------------------------------------------------------------
 
 function lintL7(script: TestScript): LintFinding[] {
@@ -639,8 +687,21 @@ function lintL7(script: TestScript): LintFinding[] {
   const baselines = new Map<string, string>();
   for (const { step, path } of actionSteps(script)) {
     (step.expect ?? []).forEach((expectation: Expectation, index) => {
-      if (expectation.kind !== 'visual') return;
       const expectPath = `${path}/expect/${index}`;
+      if (expectation.kind === 'blink' && 'minHz' in expectation) {
+        if (expectation.minHz > expectation.maxHz) {
+          findings.push(
+            finding(
+              'L7',
+              step.id,
+              `${expectPath}/minHz`,
+              `Blink range ${expectation.minHz}-${expectation.maxHz} Hz is empty: minHz exceeds maxHz.`,
+            ),
+          );
+        }
+        return;
+      }
+      if (expectation.kind !== 'visual') return;
       const owner = baselines.get(expectation.baseline);
       if (owner !== undefined) {
         findings.push(

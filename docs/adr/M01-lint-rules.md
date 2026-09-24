@@ -33,13 +33,20 @@ all with severity `error`, ordered by rule then position.
   enforced again at run time), or have an origin in `allowedOrigins`; `http` URLs are
   absolute or `${env.NAME}`-based and their host (with its port, or bare for default
   ports) is in `allowedHttpHosts`; a host built from a template, a non-HTTP scheme or an
-  unparsable URL is rejected; `baseUrl` is `${env.NAME}` or an allowed origin.
+  unparsable URL is rejected; `baseUrl` is `${env.NAME}` or an allowed origin. URLs are
+  judged as the WHATWG parser (browsers, Playwright) reads them: after its whitespace
+  preprocessing, and resolved both on their own and against a sentinel base per page
+  scheme (the base URL's scheme when it is literal, else `https` and `http`). A URL is
+  relative only when every resolution stays on the sentinel; otherwise every origin it
+  reaches must be allowed. So `\\evil.com`, `/\evil.com`, ` //evil.com`, a tab before
+  `//` and `https:evil.com` are findings, not relative paths.
 - L5: an acting step whose intent contains a critical verb or its inflection (stops,
   stopped, stopping, purging, ...) has `risk: critical`.
 - L6: `within` is at most 120 s; the sum of the main steps' windows (declared or the
   10 s default) must not exceed `runTimeoutMs`; the finding names the first step past it.
 - L7: baseline names are unique in the script; a mask description is not blank and a
-  mask rectangle has a positive width and height.
+  mask rectangle has a positive width and height. L7 also covers the other expectation
+  parameter the schema cannot relate: a `blink` range needs `minHz <= maxHz`.
 - L8: step ids, handler ids and handler step ids are unique together; with `previous`,
   a step whose normalised intent (NFKC, case, spacing, final punctuation) is unchanged
   keeps its previous id, matched occurrence by occurrence; a fragment reference without
