@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M03",
   "title": "AI fakes and cassettes",
-  "commit": "3a3c721",
+  "commit": "8a8afc6",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T23:20:18.815Z",
-  "finishedAt": "2026-09-24T23:22:09.384Z",
+  "startedAt": "2026-09-24T23:41:51.678Z",
+  "finishedAt": "2026-09-24T23:43:38.422Z",
   "gates": [
     {
       "id": "M03-G0",
@@ -20,14 +20,14 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 47792,
+      "durationMs": 49739,
       "metrics": {
         "packages": 2,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 186,
+        "tests": 197,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
@@ -42,10 +42,10 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 171,
+            "tests": 182,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 98.99,
+            "coverageLines": 99,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
@@ -82,7 +82,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2735,
+      "durationMs": 2720,
       "metrics": {
         "modes": 3,
         "choiceAnswers": 3,
@@ -112,7 +112,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6507,
+      "durationMs": 6426,
       "metrics": {
         "requests": 1000,
         "choiceSumViolations": 0,
@@ -140,7 +140,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 3155,
+      "durationMs": 2936,
       "metrics": {
         "missCases": 3,
         "missesDetected": 3,
@@ -169,7 +169,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4402,
+      "durationMs": 4260,
       "metrics": {
         "attempts": 3,
         "statuses": "429,529,200",
@@ -193,7 +193,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 3788,
+      "durationMs": 3924,
       "metrics": {
         "faultModes": 7,
         "shapes": 2,
@@ -218,11 +218,11 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 42007,
+      "durationMs": 36605,
       "metrics": {
         "imageBuilt": true,
         "services": 2,
-        "healthyWithinMs": 1075,
+        "healthyWithinMs": 969,
         "uid": 10001,
         "readOnlyRootFs": true,
         "dockerHealthy": true,
@@ -248,5 +248,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:86f998869b0aa00758b965e28503c6d64b379cfd5240868a642be1ee60a304ce"
+  "evidenceHash": "sha256:92387cd8aa240e37d86c59ce98205b85b82adc6d7b49d48702027da61d4044ff"
 }
