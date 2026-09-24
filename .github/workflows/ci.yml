@@ -71,8 +71,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Tier A without egress
         # The gates run as a dedicated user whose outbound traffic is limited to loopback
-        # and the Docker bridge networks (spec M00, ADR-0008). Docker builds and the
-        # clean-clone container of M00-G1 run in the daemon, which keeps registry access.
+        # and the Docker bridge networks, over IPv4 and IPv6 (spec M00, ADR-0008). Docker
+        # builds and the install container of M00-G1 run in the daemon as root and keep
+        # registry access; M00-G1 runs build and test in a host-network container as this
+        # user's uid, so the same rule applies to them.
         # --strict: a Tier A gate that cannot run (daemon unreachable, tool missing) fails
         # the job instead of passing silently as not_run.
         run: |
@@ -81,6 +83,8 @@ jobs:
           sudo iptables -A OUTPUT -m owner --uid-owner tiera -o lo -j ACCEPT
           sudo iptables -A OUTPUT -m owner --uid-owner tiera -d 172.16.0.0/12 -j ACCEPT
           sudo iptables -A OUTPUT -m owner --uid-owner tiera -j REJECT
+          sudo ip6tables -A OUTPUT -m owner --uid-owner tiera -o lo -j ACCEPT
+          sudo ip6tables -A OUTPUT -m owner --uid-owner tiera -j REJECT
           sudo chmod -R a+rwX "$GITHUB_WORKSPACE"
           sudo -u tiera -H env "PATH=$PATH" "COREPACK_HOME=$COREPACK_HOME" CI=true TURBO_TELEMETRY_DISABLED=1 \
             bash -c 'cd "$0" && git config --global --add safe.directory "$0" && pnpm gate all --tier A --strict' "$GITHUB_WORKSPACE"

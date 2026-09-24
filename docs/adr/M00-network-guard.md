@@ -34,10 +34,26 @@ reach the internet through an allowed loopback connection.
   process, so neither the test nor its child processes relay through a loopback proxy.
 - It is idempotent, permanent for the process, installed by the Vitest preset's setup
   file, and reports each installation to `$ARGUS_NETWORK_GUARD_REPORT` for G0.
+- The setup file then calls `propagateNetworkGuard(<preload>)`, so Node children and
+  worker threads are guarded as well: `NODE_OPTIONS` gains `--import=<preload URL>`, also
+  inside an explicit `env` given to `spawn`, `exec`, `execFile`, `fork` and their sync and
+  promisified forms; `worker_threads.Worker` adds the flag to a file worker's `execArgv`
+  and prefixes eval code with a `require` of the preload. The preload,
+  `network-guard.preload.ts`, installs the guard and propagates it again (grandchildren).
+- Node loads the source preload natively (type stripping, Node 22.18 or later), so it
+  imports `./network-guard.ts` with its extension; testkit enables
+  `rewriteRelativeImportExtensions` so the build emits `.js`. `propagateNetworkGuard`
+  throws when the preload is TypeScript under `node_modules` or Node cannot strip types,
+  rather than leaving children unguarded.
 
 ## Consequences
 
-The guard covers the test process. Worker threads and child processes start without it;
-a test that configures a loopback proxy explicitly is not caught. The CI `tier-a` job
+The guard covers the test process and the Node processes and threads it starts with an
+inherited or explicit environment. Not covered: non-Node programs (Chromium in M04, Go or
+native binaries), a Node child started through a wrapper that clears the environment
+(`env -i`), and a test that configures a loopback proxy explicitly. The CI `tier-a` job
 therefore also runs the gates as a user whose egress is limited to loopback and the Docker
-bridge networks (ADR M00-ci).
+bridge networks, for IPv4 and IPv6, and M00-G1 runs its build and test steps as that user
+(ADR M00-ci). Testkit sources that the preload imports must use erasable TypeScript
+syntax only (no enums, namespaces or parameter properties); G4 fails otherwise, because
+its child-process cases load the preload natively.

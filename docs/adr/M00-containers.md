@@ -32,10 +32,14 @@ the blocked Debian mirrors and the TLS-re-terminating network of this host const
 - A network that re-terminates TLS passes its CA as the optional build secret
   `extra-ca`; it is not stored in the image. M00-G1 passes `$NODE_EXTRA_CA_CERTS` that
   way and mounts it read-only into the clean-clone container.
-- M00-G1 builds the image (not counted in the 10 minutes), streams `git archive HEAD`
-  into a new container (`--network host` for the registry, `/opt/pw-browsers` read-only),
-  and times `pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test` there. The
-  container wall time must stay under 600 s.
+- M00-G1 builds the image (not counted in the 10 minutes), creates a fresh volume and
+  streams `git archive HEAD` into a first container, as root, that runs `pnpm install
+  --frozen-lockfile` (registry access) and hands the tree to the invoking uid. A second
+  container on the same volume runs `pnpm build` and `pnpm test` as that uid
+  (`--user $(id -u):$(id -g)`, `HOME=/tmp`). Both use `--network host` (Tier A tests of
+  later modules reach the shared services on 127.0.0.1) and mount `/opt/pw-browsers`
+  read-only. The summed container wall time must stay under 600 s, and the metrics
+  record the uid the second container saw.
 
 ## Consequences
 

@@ -4,6 +4,13 @@
  * and `pnpm test` (behind the Tier A network guard of the Vitest preset) must exit 0 in
  * under 10 minutes.
  *
+ * Two containers share a fresh volume. The first, as root, unpacks the archive and runs
+ * the install, which needs the registry. The second runs build and test as the user
+ * that runs this gate (`--user $(id -u):$(id -g)`). Both use the host network, because
+ * Tier A tests reach the shared services on 127.0.0.1; with the host network the second
+ * container's sockets belong to that user, so the CI egress rule for the tier-a user
+ * (ADR M00-ci) applies to build and test as it does to the gates run on the runner.
+ *
  * Run by `pnpm --filter @argus/gate-tool test:gate-g1`; needs Docker. The image is built
  * first (cached layers make this quick); its build time is not part of the 10 minutes.
  *
@@ -12,6 +19,7 @@
  *   NODE_EXTRA_CA_CERTS     a CA bundle for networks that re-terminate TLS; passed to the
  *                           image build as a secret and mounted read-only into the container
  *   ARGUS_TOOLCHAIN_IMAGE   image tag (default argus/toolchain:dev)
+ *   ARGUS_G1_TEST_USER      uid:gid for build and test (default: this process's ids)
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -34,17 +42,7 @@ const mirror =
 const extraCa = process.env.NODE_EXTRA_CA_CERTS;
 const hasExtraCa = extraCa !== undefined && extraCa !== '' && existsSync(extraCa);
 
-/** Runs inside the container; prints one G1_STEP line per step and stops at the first failure. */
-const containerScript = String.raw`
-set -u
-mkdir -p /work/repo && cd /work/repo
-tar -x -f -
-fresh=true
-for path in node_modules .turbo packages/testkit/node_modules tools/gate/dist; do
-  if [ -e "$path" ]; then fresh=false; fi
-done
-echo "G1_FRESH $fresh"
-if [ -f pnpm-lock.yaml ]; then echo "G1_LOCKFILE true"; else echo "G1_LOCKFILE false"; exit 1; fi
+const STEP_FUNCTIONS = String.raw`
 now() { date +%s%3N; }
 step() {
   name=$1; shift
@@ -55,7 +53,30 @@ step() {
   echo "G1_STEP $name $code $(( $(now) - start ))"
   return $code
 }
-step install pnpm install --frozen-lockfile &&
+`;
+
+/** First container, as root: unpack, check freshness, install, hand the tree to the test user. */
+const installScript = String.raw`
+set -u
+mkdir -p /work/repo && cd /work/repo
+tar -x -f -
+fresh=true
+for path in node_modules .turbo packages/testkit/node_modules tools/gate/dist; do
+  if [ -e "$path" ]; then fresh=false; fi
+done
+echo "G1_FRESH $fresh"
+if [ -f pnpm-lock.yaml ]; then echo "G1_LOCKFILE true"; else echo "G1_LOCKFILE false"; exit 1; fi
+${STEP_FUNCTIONS}
+step install pnpm install --frozen-lockfile || exit 1
+chown -R "$G1_TEST_USER" /work
+`;
+
+/** Second container, as the test user: build and test the installed tree. */
+const buildTestScript = String.raw`
+set -u
+cd /work/repo
+echo "G1_USER $(id -u):$(id -g)"
+${STEP_FUNCTIONS}
 step build pnpm build &&
 step test pnpm test
 `;
@@ -89,22 +110,41 @@ function headCommit(): string {
   return rev.status === 0 ? rev.stdout.trim() : 'unknown';
 }
 
-async function runContainer(): Promise<{
+function testUser(): string {
+  const override = process.env.ARGUS_G1_TEST_USER;
+  if (override !== undefined && /^\d+:\d+$/.test(override)) {
+    return override;
+  }
+  const uid = process.getuid?.() ?? 0;
+  const gid = process.getgid?.() ?? 0;
+  return `${String(uid)}:${String(gid)}`;
+}
+
+interface ContainerRun {
   exit: number;
   ms: number;
-  steps: Map<string, StepResult>;
-  fresh: boolean;
-  lockfile: boolean;
-}> {
+  lines: string[];
+}
+
+/** Runs one container with the host network and the shared volume; stdin is piped from `input`. */
+async function runContainer(
+  volume: string,
+  extraArgs: readonly string[],
+  script: string,
+  timeoutMs: number,
+  input?: () => NodeJS.ReadableStream,
+): Promise<ContainerRun> {
   const name = `argus-g1-${randomBytes(4).toString('hex')}`;
   const args = [
     'run',
     '--rm',
-    '-i',
+    ...(input === undefined ? [] : ['-i']),
     '--name',
     name,
     '--network',
     'host',
+    '-v',
+    `${volume}:/work`,
     '-e',
     'CI=true',
     '-e',
@@ -113,57 +153,119 @@ async function runContainer(): Promise<{
     ...(hasExtraCa
       ? ['-v', `${extraCa}:${CONTAINER_CA}:ro`, '-e', `NODE_EXTRA_CA_CERTS=${CONTAINER_CA}`]
       : []),
+    ...extraArgs,
     image,
     'bash',
     '-c',
-    containerScript,
+    script,
   ];
-  const steps = new Map<string, StepResult>();
-  let fresh = false;
-  let lockfile = false;
+  const lines: string[] = [];
   const started = performance.now();
-  const container = spawn('docker', args, { cwd: root, stdio: ['pipe', 'pipe', 'inherit'] });
-  const archive = spawn('git', ['archive', '--format=tar', 'HEAD'], {
+  const container = spawn('docker', args, {
     cwd: root,
-    stdio: ['ignore', 'pipe', 'inherit'],
+    stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'inherit'],
   });
-  archive.stdout.pipe(container.stdin);
+  const source = input?.();
+  if (source !== undefined && container.stdin !== null) {
+    source.pipe(container.stdin);
+  }
   let pending = '';
-  container.stdout.on('data', (chunk: Buffer) => {
+  container.stdout?.on('data', (chunk: Buffer) => {
     process.stdout.write(chunk);
-    const lines = (pending + chunk.toString('utf8')).split('\n');
-    pending = lines.pop() ?? '';
-    for (const line of lines) {
-      const step = /^G1_STEP (\w+) (\d+) (\d+)$/.exec(line);
-      if (step !== null) {
-        steps.set(step[1] ?? '', { exit: Number(step[2]), ms: Number(step[3]) });
-      }
-      if (line === 'G1_FRESH true') {
-        fresh = true;
-      }
-      if (line === 'G1_LOCKFILE true') {
-        lockfile = true;
-      }
-    }
+    const parts = (pending + chunk.toString('utf8')).split('\n');
+    pending = parts.pop() ?? '';
+    lines.push(...parts);
   });
-  const timer = setTimeout(() => {
-    console.error(`G1: container exceeded ${String(HARD_TIMEOUT_MS / 1000)} s, removing it`);
-    spawnSync('docker', ['rm', '-f', name], { stdio: 'inherit' });
-  }, HARD_TIMEOUT_MS);
-  const [exit] = await Promise.all([
-    new Promise<number>((done) =>
-      container.on('close', (code) => {
-        done(code ?? 1);
-      }),
-    ),
-    new Promise<void>((done) =>
-      archive.on('close', () => {
-        done();
-      }),
-    ),
-  ]);
+  const timer = setTimeout(
+    () => {
+      console.error(
+        `G1: container exceeded ${String(Math.round(timeoutMs / 1000))} s, removing it`,
+      );
+      spawnSync('docker', ['rm', '-f', name], { stdio: 'inherit' });
+    },
+    Math.max(timeoutMs, 1),
+  );
+  const exit = await new Promise<number>((done) =>
+    container.on('close', (code) => {
+      done(code ?? 1);
+    }),
+  );
   clearTimeout(timer);
-  return { exit, ms: Math.round(performance.now() - started), steps, fresh, lockfile };
+  if (pending !== '') {
+    lines.push(pending);
+  }
+  return { exit, ms: Math.round(performance.now() - started), lines };
+}
+
+function parseSteps(lines: readonly string[], steps: Map<string, StepResult>): void {
+  for (const line of lines) {
+    const step = /^G1_STEP (\w+) (\d+) (\d+)$/.exec(line);
+    if (step !== null) {
+      steps.set(step[1] ?? '', { exit: Number(step[2]), ms: Number(step[3]) });
+    }
+  }
+}
+
+async function runClone(): Promise<{
+  exit: number;
+  ms: number;
+  installContainerMs: number;
+  buildTestContainerMs: number;
+  steps: Map<string, StepResult>;
+  fresh: boolean;
+  lockfile: boolean;
+  user: string;
+  userSeen: string | null;
+}> {
+  const volume = `argus-g1-${randomBytes(4).toString('hex')}`;
+  const user = testUser();
+  const steps = new Map<string, StepResult>();
+  const created = spawnSync('docker', ['volume', 'create', volume], { stdio: 'ignore' });
+  if (created.status !== 0) {
+    throw new Error(`G1: docker volume create ${volume} failed`);
+  }
+  try {
+    const install = await runContainer(
+      volume,
+      ['-e', `G1_TEST_USER=${user}`],
+      installScript,
+      HARD_TIMEOUT_MS,
+      () => {
+        const archive = spawn('git', ['archive', '--format=tar', 'HEAD'], {
+          cwd: root,
+          stdio: ['ignore', 'pipe', 'inherit'],
+        });
+        return archive.stdout;
+      },
+    );
+    parseSteps(install.lines, steps);
+    const fresh = install.lines.includes('G1_FRESH true');
+    const lockfile = install.lines.includes('G1_LOCKFILE true');
+    let buildTest: ContainerRun = { exit: -1, ms: 0, lines: [] };
+    if (install.exit === 0) {
+      buildTest = await runContainer(
+        volume,
+        ['--user', user, '-e', 'HOME=/tmp'],
+        buildTestScript,
+        HARD_TIMEOUT_MS - install.ms,
+      );
+      parseSteps(buildTest.lines, steps);
+    }
+    const seen = buildTest.lines.find((line) => line.startsWith('G1_USER '));
+    return {
+      exit: install.exit === 0 ? buildTest.exit : install.exit,
+      ms: install.ms + buildTest.ms,
+      installContainerMs: install.ms,
+      buildTestContainerMs: buildTest.ms,
+      steps,
+      fresh,
+      lockfile,
+      user,
+      userSeen: seen === undefined ? null : seen.slice('G1_USER '.length),
+    };
+  } finally {
+    spawnSync('docker', ['volume', 'rm', '-f', volume], { stdio: 'ignore' });
+  }
 }
 
 async function main(): Promise<number> {
@@ -174,7 +276,7 @@ async function main(): Promise<number> {
     console.error('G1: the toolchain image did not build');
     return 1;
   }
-  const run = await runContainer();
+  const run = await runClone();
   const step = (name: string): StepResult => run.steps.get(name) ?? { exit: -1, ms: 0 };
   const metrics = {
     commit,
@@ -190,6 +292,10 @@ async function main(): Promise<number> {
     testMs: step('test').ms,
     containerExit: run.exit,
     containerMs: run.ms,
+    installContainerMs: run.installContainerMs,
+    buildTestContainerMs: run.buildTestContainerMs,
+    buildTestUser: run.user,
+    buildTestUserSeen: run.userSeen,
     limitMs: LIMIT_MS,
   };
   recordGateMetrics(metrics);
@@ -199,6 +305,7 @@ async function main(): Promise<number> {
     metrics.installExit === 0 &&
     metrics.buildExit === 0 &&
     metrics.testExit === 0 &&
+    run.userSeen === run.user &&
     run.ms < LIMIT_MS;
   return passed ? 0 : 1;
 }
