@@ -1,7 +1,8 @@
 /**
  * The one clock adapter behind the `Clock` port (`@argus/contracts`). Real mode reads
- * the wall clock; frozen mode returns a fixed value until `/sim/clock` moves it. This is
- * the only place in the package that calls `Date.now()`.
+ * the wall clock; frozen mode returns a fixed value until `/sim/clock` moves it. Also
+ * `src/index.ts`'s `createFixtureServer` calls `Date.now()` once, to pick the instant a
+ * freshly constructed clock starts at.
  */
 import type { Clock } from '@argus/contracts';
 
@@ -42,11 +43,19 @@ export class SimClock implements Clock {
     return this.mode === 'frozen';
   }
 
-  /** `/sim/clock`: switch mode and, for `frozen`, optionally set the value. */
+  /**
+   * `/sim/clock`: switch mode and, for `frozen`, optionally set the value. Freezing
+   * without an explicit `atMs` anchors at whatever instant `now()` reads a moment before
+   * the switch (the live wall clock in `real` mode, the existing frozen value in `frozen`
+   * mode), not the value frozen at construction time, so a live fixture never sees time
+   * jump backwards — and a conveyor's resolved state with it — when a caller freezes it
+   * to take a snapshot.
+   */
   setMode(mode: ClockMode, atMs?: number): void {
+    const before = this.now();
     this.mode = mode;
     if (mode === 'frozen') {
-      this.frozenAtMs = atMs ?? this.frozenAtMs;
+      this.frozenAtMs = atMs ?? before;
     }
   }
 
