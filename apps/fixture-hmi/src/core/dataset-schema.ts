@@ -4,6 +4,7 @@
  * file does not duplicate the script contract.
  */
 import { Type, type Static } from '@sinclair/typebox';
+import { BREAK_REASONS } from '@argus/contracts';
 import { FAULT_NAMES } from './types.js';
 
 export const PAGES = [
@@ -41,35 +42,20 @@ export const GroundingTask = Type.Object(
     target: GroundingTarget,
     action: Type.Union(GROUNDING_ACTIONS.map((action) => Type.Literal(action))),
     answer: Type.String({ minLength: 1, maxLength: 200 }),
+    /**
+     * Required when, and only meaningful when, `answer` is `"none"`: a `data-testid` a
+     * wrong pick would plausibly match, that M02-G3 asserts resolves to zero elements on
+     * that task's page (under its faults). Without this, "the answer is none" was never
+     * actually checked against the live fixture, only counted.
+     */
+    probe: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
   },
   { additionalProperties: false },
 );
 export type GroundingTask = Static<typeof GroundingTask>;
 
-export const BREAK_EXPECTATIONS = [
-  'continue',
-  'TARGET_NOT_FOUND',
-  'GROUNDING_AMBIGUOUS',
-  'AUTH_LOST',
-  'BLOCKING_MODAL',
-  'UNEXPECTED_ERROR_UI',
-  'ASSERTION_FAILED',
-  'VISUAL_DIFF',
-  'EXPECTATION_FAILED',
-  'EXPECTATION_UNCERTAIN',
-  'NO_EFFECT',
-  'CONSOLE_OR_NETWORK_ERROR',
-  'ACTION_ERROR',
-  'TIMEOUT',
-  'OFF_PATH',
-  'OBSERVE_FAILED',
-  'SETUP_FAILED',
-  'BUDGET_EXHAUSTED',
-  'RUNNER_LOST',
-  'ANALYST_UNAVAILABLE',
-  'ANALYST_INVALID',
-  'NAVIGATOR_UNAVAILABLE',
-] as const;
+/** `'continue'` plus every `@argus/contracts` break reason, kept in lockstep so the two never drift. */
+export const BREAK_EXPECTATIONS = ['continue', ...BREAK_REASONS] as const;
 export type BreakExpectation = (typeof BREAK_EXPECTATIONS)[number];
 
 export const BreakTask = Type.Object(

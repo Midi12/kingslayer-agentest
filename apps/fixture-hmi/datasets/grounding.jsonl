@@ -107,28 +107,28 @@
 {"id":"g-login-username","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The User text field of the login form"},"action":"type","answer":"login-username"}
 {"id":"g-login-password","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The Password field of the login form"},"action":"type","answer":"login-password"}
 {"id":"g-login-submit","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The Log in button"},"action":"click","answer":"login-submit"}
-{"id":"g-login-none-remember","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"A \"remember me\" checkbox on the login form"},"action":"click","answer":"none"}
+{"id":"g-login-none-remember","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"A \"remember me\" checkbox on the login form"},"action":"click","answer":"none","probe":"login-remember"}
 {"id":"g-modal-open","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"The button that opens the modal dialog"},"action":"click","answer":"open-modal"}
 {"id":"g-modal-close","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"The Close button inside the modal dialog"},"action":"click","answer":"modal-close"}
 {"id":"g-modal-confirm","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"The Confirm button inside the modal dialog"},"action":"click","answer":"modal-confirm"}
-{"id":"g-modal-none-forgot","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"A \"forgot password\" link on the modal page"},"action":"click","answer":"none"}
+{"id":"g-modal-none-forgot","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"A \"forgot password\" link on the modal page"},"action":"click","answer":"none","probe":"modal-forgot-password"}
 {"id":"g-canvas-element","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The canvas that draws the synoptic"},"action":"read","answer":"synoptic-canvas"}
 {"id":"g-canvas-brand","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The application brand text in the header"},"action":"read","answer":"brand"}
 {"id":"g-nav-alarms","page":"/conveyors","faults":[],"seed":1,"locale":"en","target":{"description":"The Alarms navigation link"},"action":"click","answer":"nav-alarms"}
 {"id":"g-nav-settings","page":"/conveyors","faults":[],"seed":1,"locale":"en","target":{"description":"The Settings navigation link"},"action":"click","answer":"nav-settings"}
-{"id":"g-none-ack-alarm3","page":"/alarms","faults":[],"seed":1,"locale":"en","target":{"description":"An Acknowledge button for a third, non-existent alarm"},"action":"click","answer":"none"}
-{"id":"g-none-delete-c05","page":"/conveyors","faults":[],"seed":1,"locale":"en","target":{"description":"A Delete button for conveyor C05"},"action":"click","answer":"none"}
-{"id":"g-none-export-trends","page":"/trends","faults":[],"seed":1,"locale":"en","target":{"description":"An Export CSV button on the trends page"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c01","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c02","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C02 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c03","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C03 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c04","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C04 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c05","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C05 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c06","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C06 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c07","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C07 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c08","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C08 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c09","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C09 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-canvas-none-c10","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C10 on the canvas synoptic"},"action":"click","answer":"none"}
-{"id":"g-login-error-none","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The login error message before any attempt"},"action":"read","answer":"none"}
+{"id":"g-none-ack-alarm3","page":"/alarms","faults":[],"seed":1,"locale":"en","target":{"description":"An Acknowledge button for a third, non-existent alarm"},"action":"click","answer":"none","probe":"ack-alarm-3"}
+{"id":"g-none-delete-c05","page":"/conveyors","faults":[],"seed":1,"locale":"en","target":{"description":"A Delete button for conveyor C05"},"action":"click","answer":"none","probe":"delete-c05"}
+{"id":"g-none-export-trends","page":"/trends","faults":[],"seed":1,"locale":"en","target":{"description":"An Export CSV button on the trends page"},"action":"click","answer":"none","probe":"export-trends"}
+{"id":"g-canvas-none-c01","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c01"}
+{"id":"g-canvas-none-c02","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C02 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c02"}
+{"id":"g-canvas-none-c03","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C03 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c03"}
+{"id":"g-canvas-none-c04","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C04 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c04"}
+{"id":"g-canvas-none-c05","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C05 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c05"}
+{"id":"g-canvas-none-c06","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C06 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c06"}
+{"id":"g-canvas-none-c07","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C07 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c07"}
+{"id":"g-canvas-none-c08","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C08 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c08"}
+{"id":"g-canvas-none-c09","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C09 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c09"}
+{"id":"g-canvas-none-c10","page":"/synoptic/canvas","faults":[],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C10 on the canvas synoptic"},"action":"click","answer":"none","probe":"start-c10"}
+{"id":"g-login-error-none","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The login error message before any attempt"},"action":"read","answer":"none","probe":"login-error"}
 {"id":"g-nav-trends","page":"/alarms","faults":[],"seed":1,"locale":"en","target":{"description":"The Trends navigation link"},"action":"click","answer":"nav-trends"}
 {"id":"g-nav-logout","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Log out link"},"action":"click","answer":"nav-logout"}

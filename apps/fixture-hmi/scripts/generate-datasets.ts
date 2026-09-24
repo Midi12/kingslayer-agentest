@@ -31,6 +31,8 @@ interface RawGrounding {
   target: { description: string; hints?: string };
   action: 'click' | 'read' | 'type' | 'hover' | 'check';
   answer: string;
+  /** Required for `answer: 'none'` tasks: a testid a wrong pick would match, checked to resolve to 0. */
+  probe?: string;
 }
 
 const grounding: RawGrounding[] = [];
@@ -281,6 +283,7 @@ grounding.push(
     target: { description: 'A "remember me" checkbox on the login form' },
     action: 'click',
     answer: 'none',
+    probe: 'login-remember',
   },
   {
     id: 'g-modal-open',
@@ -321,6 +324,7 @@ grounding.push(
     target: { description: 'A "forgot password" link on the modal page' },
     action: 'click',
     answer: 'none',
+    probe: 'modal-forgot-password',
   },
   {
     id: 'g-canvas-element',
@@ -371,6 +375,7 @@ grounding.push(
     target: { description: 'An Acknowledge button for a third, non-existent alarm' },
     action: 'click',
     answer: 'none',
+    probe: 'ack-alarm-3',
   },
   {
     id: 'g-none-delete-c05',
@@ -381,6 +386,7 @@ grounding.push(
     target: { description: 'A Delete button for conveyor C05' },
     action: 'click',
     answer: 'none',
+    probe: 'delete-c05',
   },
   {
     id: 'g-none-export-trends',
@@ -391,13 +397,15 @@ grounding.push(
     target: { description: 'An Export CSV button on the trends page' },
     action: 'click',
     answer: 'none',
+    probe: 'export-trends',
   },
 );
 
 // Ten canvas conveyors have no per-conveyor DOM at all: every such task answers `none`.
 for (const id of CONVEYOR_IDS.slice(0, 10)) {
+  const low = lower(id);
   grounding.push({
-    id: `g-canvas-none-${lower(id)}`,
+    id: `g-canvas-none-${low}`,
     page: '/synoptic/canvas',
     faults: [],
     seed: 1,
@@ -405,6 +413,7 @@ for (const id of CONVEYOR_IDS.slice(0, 10)) {
     target: { description: `The Start button for conveyor ${id} on the canvas synoptic` },
     action: 'click',
     answer: 'none',
+    probe: `start-${low}`,
   });
 }
 
@@ -419,6 +428,7 @@ grounding.push(
     target: { description: 'The login error message before any attempt' },
     action: 'read',
     answer: 'none',
+    probe: 'login-error',
   },
   {
     id: 'g-nav-trends',
@@ -788,6 +798,9 @@ for (const task of grounding) {
   groundingIds.add(task.id);
   if (!Value.Check(GroundingTask, task)) {
     fail(`grounding task ${task.id} failed schema validation`);
+  }
+  if (task.answer === 'none' && (task.probe === undefined || task.probe.trim() === '')) {
+    fail(`grounding task ${task.id} answers "none" but has no probe for M02-G3 to check`);
   }
 }
 

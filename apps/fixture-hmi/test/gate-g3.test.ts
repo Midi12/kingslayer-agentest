@@ -26,6 +26,7 @@ interface RawGrounding {
   target: { description: string; hints?: string };
   action: string;
   answer: string;
+  probe?: string;
 }
 
 interface RawBreak {
@@ -174,7 +175,20 @@ describe('grounding answers resolve live against the fixture', () => {
         await page.goto(`${handle.url}${taskPage}`);
         for (const task of tasks) {
           if (task.answer === 'none') {
-            noneTasks += 1;
+            // The pass condition is "resolves to exactly one element, or to none when
+            // labelled none" — the none half is only proved by actually checking the
+            // described target is absent, via a negative probe (a testid a wrong pick
+            // would match) asserted to resolve to zero elements on this page and faults.
+            if (task.probe === undefined || task.probe.trim() === '') {
+              resolutionFailures.push(`${task.id} (none): missing probe`);
+              continue;
+            }
+            const probeCount = await countTestId(page, task.probe);
+            if (probeCount === 0) {
+              noneTasks += 1;
+            } else {
+              resolutionFailures.push(`${task.id} (none, probe ${task.probe}): found ${String(probeCount)}`);
+            }
             continue;
           }
           const count = await countTestId(page, task.answer);

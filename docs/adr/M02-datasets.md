@@ -40,8 +40,15 @@ resolves to exactly one element" is checked mechanically.
   with Playwright: tasks sharing a `(page, faults)` pair are batched onto one page load,
   faults toggled through `/sim/faults`, and each non-`none` answer is located with
   Playwright's locator (which pierces open shadow roots on its own) summed across every
-  frame (`page.frames()`), so `shadow-dom` and `iframe` tasks are checked the same way as
-  plain ones.
+  frame (`page.frames()`), so a `shadow-dom` or `iframe` task, if one existed, would be
+  checked the same way as a plain one. Every current `grounding.jsonl` row uses
+  `faults: []` or `["locale-fr"]` only and `seed: 1`, so this path is exercised by the
+  code but not yet by data; a `shadow-dom`/`iframe` task, and tasks at seeds other than 1,
+  are left for a later addition to `scripts/generate-datasets.ts`.
+- Independent review round 1 also found `answer: "none"` was only ever counted, never
+  checked: the live-resolution loop above now requires each such task to carry a `probe`
+  — a testid a wrong pick would match — and asserts it resolves to zero elements, so a
+  `none` task that actually describes something present now fails the gate.
 
 ## Consequences
 
