@@ -4,7 +4,8 @@
  * loopback connections succeed.
  */
 import dgram from 'node:dgram';
-import dns from 'node:dns';
+import dns, { lookup as namedLookup } from 'node:dns';
+import { resolve4 as namedPromisesResolve4 } from 'node:dns/promises';
 import { once } from 'node:events';
 import { mkdtempSync, rmSync } from 'node:fs';
 import http from 'node:http';
@@ -102,6 +103,10 @@ describe('M00-G4 the Tier A network guard', () => {
     });
     await expectRejectedDenied(() => dns.promises.lookup('example.com'));
     await expectRejectedDenied(() => dns.promises.resolve4('example.com'));
+    expectDenied(() => {
+      namedLookup('example.com', () => undefined);
+    });
+    await expectRejectedDenied(() => namedPromisesResolve4('example.com'));
   });
 
   it('denies UDP datagrams to a non-loopback address', () => {

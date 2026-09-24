@@ -1,5 +1,10 @@
 import dgram from 'node:dgram';
-import dns from 'node:dns';
+import dns, { lookup as namedLookup, resolve4 as namedResolve4 } from 'node:dns';
+import {
+  lookup as namedPromisesLookup,
+  resolve4 as namedPromisesResolve4,
+} from 'node:dns/promises';
+import http from 'node:http';
 import { once } from 'node:events';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import net from 'node:net';
@@ -15,10 +20,13 @@ import {
   datagramAddress,
   deniedAttempts,
   fetchUrl,
+  guardLookupFunction,
+  guardLookupOption,
   httpRequestHosts,
   installNetworkGuard,
   isLoopbackHost,
   isNetworkGuardInstalled,
+  lookupAddresses,
   stripProxyEnvironment,
 } from '../src/index.js';
 
@@ -277,5 +285,128 @@ describe('installNetworkGuard', () => {
       raw.destroy();
       server.close();
     }
+  });
+
+  it('guards the ESM named exports of node:dns and node:dns/promises', async () => {
+    expect(
+      codeOf(() => {
+        namedLookup('example.com', () => undefined);
+      }),
+    ).toBe(NETWORK_DENIED);
+    expect(
+      codeOf(() => {
+        namedResolve4('example.com', () => undefined);
+      }),
+    ).toBe(NETWORK_DENIED);
+    await expect(namedPromisesLookup('example.com')).rejects.toMatchObject({
+      code: NETWORK_DENIED,
+    });
+    await expect(namedPromisesResolve4('example.com')).rejects.toMatchObject({
+      code: NETWORK_DENIED,
+    });
+  });
+});
+
+type LookupCallback = (error: Error | null, address?: unknown, family?: number) => void;
+
+/** A `lookup` option that answers every name with `address`, honouring `all: true`. */
+function fixedLookup(address: string): net.LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options.all === true) {
+      callback(null, [{ address, family: net.isIPv6(address) ? 6 : 4 }]);
+    } else {
+      callback(null, address, net.isIPv6(address) ? 6 : 4);
+    }
+  };
+}
+
+async function connectOutcome(socket: net.Socket): Promise<unknown> {
+  return new Promise((resolve) => {
+    socket.once('connect', () => {
+      resolve('connected');
+      socket.destroy();
+    });
+    socket.once('error', (error: Error & { code?: unknown }) => {
+      resolve(error.code);
+    });
+  });
+}
+
+describe('custom lookup options', () => {
+  it('lists the addresses a lookup callback reports', () => {
+    expect(lookupAddresses('127.0.0.1')).toEqual(['127.0.0.1']);
+    expect(lookupAddresses([{ address: '::1', family: 6 }, '10.0.0.1', { family: 4 }])).toEqual([
+      '::1',
+      '10.0.0.1',
+      '',
+    ]);
+    expect(lookupAddresses(undefined)).toEqual([]);
+  });
+
+  it('refuses a loopback name that a custom lookup maps to a non-loopback address', async () => {
+    const socket = net.connect({ host: 'localhost', port: 9, lookup: fixedLookup('172.17.0.1') });
+    expect(await connectOutcome(socket)).toBe(NETWORK_DENIED);
+    const multi = net.connect({
+      host: 'localhost',
+      port: 9,
+      autoSelectFamily: false,
+      lookup: fixedLookup('10.1.2.3'),
+    });
+    expect(await connectOutcome(multi)).toBe(NETWORK_DENIED);
+  });
+
+  it('refuses the same through an HTTP request with a lookup option', async () => {
+    const request = http.get({
+      host: 'localhost',
+      port: 9,
+      path: '/',
+      lookup: fixedLookup('192.0.2.10'),
+    });
+    const code = await new Promise((resolve) => {
+      request.once('error', (error: Error & { code?: unknown }) => {
+        resolve(error.code);
+      });
+    });
+    expect(code).toBe(NETWORK_DENIED);
+  });
+
+  it('keeps a custom lookup that answers with loopback working', async () => {
+    const server = net.createServer((socket) => socket.end());
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const { port } = server.address() as net.AddressInfo;
+      const socket = net.connect({ host: 'localhost', port, lookup: fixedLookup('127.0.0.1') });
+      expect(await connectOutcome(socket)).toBe('connected');
+    } finally {
+      server.close();
+    }
+  });
+
+  it('passes errors and non-callback calls through and keeps the caller options unchanged', () => {
+    const failing = guardLookupFunction((...args: unknown[]) => {
+      (args[args.length - 1] as LookupCallback)(new Error('ENOTFOUND'));
+    }, 'test');
+    let received: unknown;
+    failing('localhost', {}, (error: unknown) => {
+      received = error;
+    });
+    expect(received).toBeInstanceOf(Error);
+    expect(guardLookupFunction(() => 'sync', 'test')('localhost')).toBe('sync');
+
+    const lookup = fixedLookup('127.0.0.1');
+    const options = { host: 'localhost', port: 1, lookup };
+    const [copy] = guardLookupOption([options], 'test') as [typeof options];
+    expect(copy).not.toBe(options);
+    expect(copy.lookup).not.toBe(lookup);
+    expect(options.lookup).toBe(lookup);
+
+    const normalized: unknown[] = [{ host: 'localhost', port: 1, lookup }, null];
+    const [same] = guardLookupOption([normalized], 'test');
+    expect(same).toBe(normalized);
+    expect((normalized[0] as typeof options).lookup).not.toBe(lookup);
+
+    const plain = [{ host: 'localhost', port: 1 }];
+    expect(guardLookupOption(plain, 'test')).toEqual(plain);
   });
 });

@@ -20,6 +20,12 @@ reach the internet through an allowed loopback connection.
   `dns.lookup` of names other than `localhost` (IP literals answer locally and pass;
   sockets bind to 0.0.0.0 through it), reverse lookups of non-loopback addresses, and
   every DNS resolver query (they go to a DNS server).
+- A caller-supplied `lookup` connect option (also reachable through `http.request` and
+  agents) is wrapped: every address it returns must be loopback, otherwise the socket
+  fails with `NETWORK_DENIED`, so `localhost` cannot be mapped to another host.
+- After patching, `module.syncBuiltinESMExports()` updates the ESM named exports of the
+  built-ins, so `import { lookup } from 'node:dns'` and `node:dns/promises` are guarded
+  like `dns.lookup`.
 - A refused call throws synchronously, or rejects for promise APIs, with
   `NetworkDeniedError` (`code: 'NETWORK_DENIED'`, `target`, `via`). Only `localhost`,
   127.0.0.0/8, ::1 and IPv4-mapped loopback pass; 0.0.0.0 and :: as destinations do not.

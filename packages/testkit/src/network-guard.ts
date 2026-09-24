@@ -9,14 +9,19 @@
  * TLS client goes through, including the undici client behind global `fetch`),
  * `net.connect`/`net.createConnection`, `tls.connect`, `http`/`https` `request` and `get`
  * (including CONNECT and absolute-URL proxy requests), global `fetch`, UDP sockets from
- * `dgram`, and the `dns` lookup and resolver functions. Proxy variables are removed from
- * the environment so that no library relays traffic through a loopback proxy.
+ * `dgram`, and the `dns` lookup and resolver functions. A caller-supplied `lookup` option
+ * is wrapped so that a loopback name cannot resolve to a non-loopback address. The ESM
+ * named exports of the built-in modules are synchronised after patching, so
+ * `import { lookup } from 'node:dns'` is guarded as well as `dns.lookup`. Proxy variables
+ * are removed from the environment so that no library relays traffic through a loopback
+ * proxy.
  */
 import dgram from 'node:dgram';
 import dns from 'node:dns';
 import { appendFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
+import { syncBuiltinESMExports } from 'node:module';
 import net from 'node:net';
 import tls from 'node:tls';
 
@@ -283,6 +288,90 @@ function checkSocketConnect(via: string): (args: readonly unknown[]) => void {
   };
 }
 
+/** Addresses a `lookup` callback reported: a single address or the `all: true` list. */
+export function lookupAddresses(address: unknown): string[] {
+  if (typeof address === 'string') {
+    return [address];
+  }
+  if (Array.isArray(address)) {
+    return address.map((entry: unknown) => {
+      if (typeof entry === 'string') {
+        return entry;
+      }
+      return isRecord(entry) && typeof entry.address === 'string' ? entry.address : '';
+    });
+  }
+  return [];
+}
+
+/**
+ * Wraps a caller-supplied `lookup` function (the `lookup` connect option) so that every
+ * address it resolves to is checked: a loopback name that resolves to a non-loopback
+ * address fails the connection with `NETWORK_DENIED` instead of connecting.
+ */
+export function guardLookupFunction(lookup: AnyFunction, via: string): AnyFunction {
+  const guarded = function (this: unknown, ...args: unknown[]): unknown {
+    const callbackIndex = args.length - 1;
+    const callback = args[callbackIndex];
+    if (typeof callback !== 'function') {
+      return Reflect.apply(lookup, this, args);
+    }
+    const hostname = typeof args[0] === 'string' ? args[0] : '(unknown)';
+    const checked = (error: unknown, address: unknown, ...rest: unknown[]): void => {
+      if (error === null || error === undefined) {
+        const refused = lookupAddresses(address).find((entry) => !isLoopbackHost(entry));
+        if (refused !== undefined) {
+          Reflect.apply(callback as AnyFunction, undefined, [
+            deny(`${hostname} (resolved to ${refused === '' ? '(unknown)' : refused})`, via),
+          ]);
+          return;
+        }
+      }
+      Reflect.apply(callback as AnyFunction, undefined, [error, address, ...rest]);
+    };
+    const nextArgs = [...args];
+    nextArgs[callbackIndex] = checked;
+    return Reflect.apply(lookup, this, nextArgs);
+  };
+  Object.defineProperty(guarded, 'name', { value: lookup.name });
+  return guarded;
+}
+
+/**
+ * Returns the connect arguments with a custom `lookup` option replaced by a guarded one.
+ * The caller's options object is copied, not changed; Node's internal pre-normalised
+ * array keeps its identity (it carries a private marker) and gets the copy in place.
+ */
+export function guardLookupOption(args: readonly unknown[], via: string): unknown[] {
+  const normalized = Array.isArray(args[0]) ? (args[0] as unknown[]) : undefined;
+  const options = normalized === undefined ? args[0] : normalized[0];
+  if (!isRecord(options) || typeof options.lookup !== 'function') {
+    return [...args];
+  }
+  const copy = { ...options, lookup: guardLookupFunction(options.lookup as AnyFunction, via) };
+  if (normalized !== undefined) {
+    normalized[0] = copy;
+    return [...args];
+  }
+  return [copy, ...args.slice(1)];
+}
+
+function wrapSocketConnect(): void {
+  const prototype = net.Socket.prototype as unknown as Record<string, unknown>;
+  const original = prototype.connect;
+  if (typeof original !== 'function') {
+    return;
+  }
+  const originalFunction = original as AnyFunction;
+  const check = checkSocketConnect('net.Socket.connect');
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    check(args);
+    return Reflect.apply(originalFunction, this, guardLookupOption(args, 'net.Socket.connect'));
+  };
+  Object.defineProperty(wrapped, 'name', { value: originalFunction.name });
+  prototype.connect = wrapped;
+}
+
 function checkTlsConnect(args: readonly unknown[]): void {
   const options = args.find(isRecord);
   if (options !== undefined && options.socket !== undefined) {
@@ -373,7 +462,7 @@ function patchProcess(): void {
 
   stripProxyEnvironment();
 
-  wrap(net.Socket.prototype, 'connect', checkSocketConnect('net.Socket.connect'));
+  wrapSocketConnect();
   wrap(net, 'connect', checkSocketConnect('net.connect'));
   wrap(net, 'createConnection', checkSocketConnect('net.createConnection'));
   wrap(tls, 'connect', checkTlsConnect);
@@ -419,4 +508,9 @@ function patchProcess(): void {
     return originalFetch(input, init);
   };
   globalThis.fetch = guardedFetch;
+
+  // `import { lookup } from 'node:dns'` binds the ESM named exports, which Node built
+  // before this patch (this module imports the built-ins itself). Without this call they
+  // would keep pointing at the original, unguarded functions.
+  syncBuiltinESMExports();
 }

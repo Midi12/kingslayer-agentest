@@ -6,10 +6,13 @@ export {
   datagramAddress,
   deniedAttempts,
   fetchUrl,
+  guardLookupFunction,
+  guardLookupOption,
   httpRequestHosts,
   installNetworkGuard,
   isLoopbackHost,
   isNetworkGuardInstalled,
+  lookupAddresses,
   stripProxyEnvironment,
 } from './network-guard.js';
 export type { ConnectTarget, NetworkGuardOptions } from './network-guard.js';
