@@ -23,7 +23,8 @@ added the core allow-list, the testkit rule and no cycles.
   `src/adapters/**`, `apps/*/src/main.ts`, `apps/*/src/wiring/**`) and
   `adapters-not-across-packages`;
 - `no-testkit-in-production` (any `src/**` of packages and apps, except the testkit
-  itself and `apps/fixture-hmi`; tools and tests may import it);
+  itself, `apps/fixture-hmi` and `apps/fakes` (ADR M03-packaging); tools and tests may
+  import it);
 - `no-circular` and `not-to-unresolvable`.
 
 Paths match with an optional prefix, so the fixture trees under
