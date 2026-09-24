@@ -1,0 +1,4 @@
+# gates-first commit: gate file, gate tests and goldens
+gates/M06.yaml
+packages/navigator/test/gate-g3.test.ts
+packages/navigator/test/__golden__/decide.json

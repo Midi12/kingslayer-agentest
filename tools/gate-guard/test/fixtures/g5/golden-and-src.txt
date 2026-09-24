@@ -1,0 +1,2 @@
+packages/contracts/test/__golden__/c12.json
+packages/contracts/src/index.ts

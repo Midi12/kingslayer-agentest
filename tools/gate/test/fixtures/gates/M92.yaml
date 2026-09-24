@@ -1,0 +1,11 @@
+# M00-G2 sample: the metrics are fine but the command exits 3, so the gate fails.
+module: M92
+title: Sample with a failing exit code
+gates:
+  - id: M92-G1
+    tier: A
+    title: Failing exit code
+    command: >-
+      printf '{"tests": 3, "coverage": 91.5}' > "$GATE_METRICS"; exit 3
+    timeoutSec: 30
+    pass: exitCode == 0 && metrics.tests == 3 && metrics.coverage >= 90

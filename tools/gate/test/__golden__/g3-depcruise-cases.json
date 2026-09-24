@@ -1,0 +1,44 @@
+[
+  {
+    "fixture": "core-to-adapter",
+    "why": "core imports an adapter of its own package",
+    "rules": [
+      "adapters-only-from-composition-roots",
+      "core-not-to-adapters",
+      "core-only-core-and-ports"
+    ]
+  },
+  { "fixture": "core-io", "why": "core imports node:fs", "rules": ["core-not-to-io-builtins"] },
+  {
+    "fixture": "core-npm",
+    "why": "core imports yaml, which is not on the allow-list; @sinclair/typebox is",
+    "rules": ["core-npm-allow-list"]
+  },
+  {
+    "fixture": "core-cross-package",
+    "why": "core imports another workspace package; @argus/contracts is allowed",
+    "rules": ["core-not-to-other-workspace-packages"]
+  },
+  {
+    "fixture": "adapter-outside-root",
+    "why": "a service imports an adapter; index, adapters, apps main.ts and wiring may",
+    "rules": ["adapters-only-from-composition-roots"]
+  },
+  {
+    "fixture": "adapter-across-packages",
+    "why": "an adapter imports another package's adapter directly",
+    "rules": ["adapters-not-across-packages"]
+  },
+  {
+    "fixture": "testkit-in-src",
+    "why": "production source imports the testkit; tests, apps/fixture-hmi and tools may",
+    "rules": ["no-testkit-in-production"]
+  },
+  { "fixture": "cycle", "why": "two modules import each other", "rules": ["no-circular"] },
+  {
+    "fixture": "unresolvable",
+    "why": "an import does not resolve",
+    "rules": ["not-to-unresolvable"]
+  },
+  { "fixture": "clean", "why": "a tree that follows every rule", "rules": [] }
+]

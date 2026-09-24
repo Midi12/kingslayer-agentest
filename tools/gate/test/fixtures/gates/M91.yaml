@@ -1,0 +1,11 @@
+# M00-G2 sample: exit code 0 and every metric meets its bound, so the gate passes.
+module: M91
+title: Sample that passes
+gates:
+  - id: M91-G1
+    tier: A
+    title: Passing command with passing metrics
+    command: >-
+      printf '{"tests": 3, "coverage": 91.5}' > "$GATE_METRICS"
+    timeoutSec: 30
+    pass: exitCode == 0 && metrics.tests == 3 && metrics.coverage >= 90
