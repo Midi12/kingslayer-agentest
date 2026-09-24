@@ -97,3 +97,6 @@ export const CompileResult = closedObject({
   usage: BrainUsage,
 });
 export type CompileResult = Static<typeof CompileResult>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type CompileEnvironment = Static<typeof CompileEnvironment>;

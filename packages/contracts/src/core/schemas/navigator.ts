@@ -113,3 +113,8 @@ export const VerifyResult = closedObject({
   cacheHit: Type.Boolean(),
 });
 export type VerifyResult = Static<typeof VerifyResult>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type VerifyExpectation = Static<typeof VerifyExpectation>;
+export type VerifyHandlerCondition = Static<typeof VerifyHandlerCondition>;
+export type ScreenAnswer = Static<typeof ScreenAnswer>;

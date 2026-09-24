@@ -290,3 +290,14 @@ export const Problem = Type.Object(
   { additionalProperties: true },
 );
 export type Problem = Static<typeof Problem>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type JobSecret = Static<typeof JobSecret>;
+export type ProblemFieldError = Static<typeof ProblemFieldError>;
+export type BrainCompileResponse = Static<typeof BrainCompileResponse>;
+export type BrainGroundResponse = Static<typeof BrainGroundResponse>;
+export type BrainVerifyResponse = Static<typeof BrainVerifyResponse>;
+export type BrainTriageResponse = Static<typeof BrainTriageResponse>;
+export type BrainGroundVisualResponse = Static<typeof BrainGroundVisualResponse>;
+export type BrainAssertVisualResponse = Static<typeof BrainAssertVisualResponse>;
+export type BrainReportResponse = Static<typeof BrainReportResponse>;

@@ -160,3 +160,9 @@ export const ObservationSummary = closedObject({
   page: Type.Optional(PageSummary),
 });
 export type ObservationSummary = Static<typeof ObservationSummary>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type CandidateState = Static<typeof CandidateState>;
+export type CandidateContext = Static<typeof CandidateContext>;
+export type BoundingBox = Static<typeof BoundingBox>;
+export type ObservationFrames = Static<typeof ObservationFrames>;

@@ -287,3 +287,12 @@ export const TriageRequest = closedObject({
   }),
 });
 export type TriageRequest = Static<typeof TriageRequest>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type BreakCheck = Static<typeof BreakCheck>;
+export type BreakFrame = Static<typeof BreakFrame>;
+export type BreakCandidate = Static<typeof BreakCandidate>;
+export type ReportAdjudication = Static<typeof ReportAdjudication>;
+export type ReportHeal = Static<typeof ReportHeal>;
+export type ReportMaintenance = Static<typeof ReportMaintenance>;
+export type GeneratedBy = Static<typeof GeneratedBy>;

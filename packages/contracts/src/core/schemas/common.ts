@@ -149,3 +149,20 @@ export const TokenUsage = closedObject({
   outputTokens: Type.Optional(NonNegativeInteger),
 });
 export type TokenUsage = Static<typeof TokenUsage>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type IsoTimestamp = Static<typeof IsoTimestamp>;
+export type Sha256 = Static<typeof Sha256>;
+export type ArtifactRef = Static<typeof ArtifactRef>;
+export type Slug = Static<typeof Slug>;
+export type StepId = Static<typeof StepId>;
+export type CandidateId = Static<typeof CandidateId>;
+export type VariableName = Static<typeof VariableName>;
+export type SecretName = Static<typeof SecretName>;
+export type Duration = Static<typeof Duration>;
+export type Probability = Static<typeof Probability>;
+export type NonNegativeInteger = Static<typeof NonNegativeInteger>;
+export type PositiveInteger = Static<typeof PositiveInteger>;
+export type Identifier = Static<typeof Identifier>;
+export type Version = Static<typeof Version>;
+export type ProbabilityMap = Static<typeof ProbabilityMap>;

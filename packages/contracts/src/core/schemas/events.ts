@@ -255,3 +255,7 @@ export const UsageEvent = closedObject({
   ts: IsoTimestamp,
 });
 export type UsageEvent = Static<typeof UsageEvent>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type RunEnvironmentInfo = Static<typeof RunEnvironmentInfo>;
+export type RunEventBatch = Static<typeof RunEventBatch>;

@@ -439,3 +439,24 @@ export const Fragment = closedObject({
   steps: Type.Array(Step, { minItems: 1, maxItems: 100 }),
 });
 export type Fragment = Static<typeof Fragment>;
+
+// Static types of the building blocks above, for consumers that build or read them.
+export type NoulExpectation = Static<typeof NoulExpectation>;
+export type DomExpectation = Static<typeof DomExpectation>;
+export type UrlExpectation = Static<typeof UrlExpectation>;
+export type ColorExpectation = Static<typeof ColorExpectation>;
+export type BlinkExpectation = Static<typeof BlinkExpectation>;
+export type MaskRect = Static<typeof MaskRect>;
+export type VisualExpectation = Static<typeof VisualExpectation>;
+export type VisionExpectation = Static<typeof VisionExpectation>;
+export type ConsoleExpectation = Static<typeof ConsoleExpectation>;
+export type NetworkExpectation = Static<typeof NetworkExpectation>;
+export type A11yExpectation = Static<typeof A11yExpectation>;
+export type CompilerInfo = Static<typeof CompilerInfo>;
+export type ScriptMetadata = Static<typeof ScriptMetadata>;
+export type Variables = Static<typeof Variables>;
+
+/** The action of one type, e.g. `ActionOf<'fill'>`. */
+export type ActionOf<T extends Action['type']> = Extract<Action, { type: T }>;
+/** The expectation of one kind, e.g. `ExpectationOf<'dom'>`. */
+export type ExpectationOf<K extends Expectation['kind']> = Extract<Expectation, { kind: K }>;
