@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M01",
   "title": "Contracts",
-  "commit": "d584edf",
+  "commit": "456da20",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T21:34:08.683Z",
-  "finishedAt": "2026-09-24T21:35:02.573Z",
+  "startedAt": "2026-09-24T22:00:49.271Z",
+  "finishedAt": "2026-09-24T22:01:44.257Z",
   "gates": [
     {
       "id": "M01-G0",
@@ -20,14 +20,14 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 32482,
+      "durationMs": 31349,
       "metrics": {
         "packages": 1,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 486,
+        "tests": 485,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
@@ -42,7 +42,7 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 486,
+            "tests": 485,
             "testsFailed": 0,
             "testsSkipped": 0,
             "coverageLines": 99.05,
@@ -69,7 +69,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6956,
+      "durationMs": 7075,
       "metrics": {
         "schemas": 51,
         "validDocuments": 96,
@@ -97,7 +97,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 7090,
+      "durationMs": 7140,
       "metrics": {
         "runs": 1000,
         "roundTripFailures": 0,
@@ -122,7 +122,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2200,
+      "durationMs": 2292,
       "metrics": {
         "rules": 8,
         "fixtures": 16,
@@ -149,18 +149,21 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2892,
+      "durationMs": 4747,
       "metrics": {
-        "baseline": "schemas/baseline",
-        "gitRepository": true,
-        "schemasCompared": 51,
-        "breakingChanges": 0,
-        "breakingList": [],
+        "snapshotSchemasCompared": 51,
+        "snapshotBreakingChanges": 0,
+        "snapshotBreakingList": [],
         "fixtureCases": 22,
         "fixtureCasesDetected": 22,
         "additiveCasesClean": true,
         "requiredKindsMissing": 0,
         "committedSchemasFresh": true,
+        "gitRepository": true,
+        "baseline": "schemas/baseline",
+        "schemasCompared": 51,
+        "breakingChanges": 0,
+        "breakingList": [],
         "baselineRevisions": 1,
         "historyBreakingChanges": 0,
         "historyBreakingList": []
@@ -181,7 +184,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 2224,
+      "durationMs": 2341,
       "metrics": {
         "scripts": 10,
         "mismatches": 0,
@@ -205,5 +208,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:6b57f6e71103b41208f37ade01d72f0349ebbaa49fecdef4e86bfc1c82518162"
+  "evidenceHash": "sha256:21507c4d851a69bff5eedf0e4e5276065624d90d6e6e42ba54d3ce2ce19bdf96"
 }
