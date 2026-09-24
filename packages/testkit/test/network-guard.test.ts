@@ -1,3 +1,4 @@
+import { exec as execCallback } from 'node:child_process';
 import dgram from 'node:dgram';
 import dns, { lookup as namedLookup, resolve4 as namedResolve4 } from 'node:dns';
 import {
@@ -11,6 +12,8 @@ import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import tls from 'node:tls';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import {
   NETWORK_DENIED,
@@ -20,14 +23,21 @@ import {
   datagramAddress,
   deniedAttempts,
   fetchUrl,
+  guardChildProcessArguments,
+  guardImportFlag,
   guardLookupFunction,
   guardLookupOption,
+  guardWorkerArguments,
   httpRequestHosts,
   installNetworkGuard,
   isLoopbackHost,
   isNetworkGuardInstalled,
   lookupAddresses,
+  networkGuardPreloadUrl,
+  preloadProblem,
+  propagateNetworkGuard,
   stripProxyEnvironment,
+  withGuardNodeOptions,
 } from '../src/index.js';
 
 function codeOf(action: () => unknown): unknown {
@@ -408,5 +418,99 @@ describe('custom lookup options', () => {
 
     const plain = [{ host: 'localhost', port: 1 }];
     expect(guardLookupOption(plain, 'test')).toEqual(plain);
+  });
+});
+
+describe('guard propagation to child processes and worker threads', () => {
+  const preload = 'file:///repo/packages/testkit/src/network-guard.preload.ts';
+  const flag = `--import=${preload}`;
+
+  it('derives the preload beside a source or built module', () => {
+    expect(networkGuardPreloadUrl('file:///r/src/network-guard.setup.ts')).toBe(
+      'file:///r/src/network-guard.preload.ts',
+    );
+    expect(networkGuardPreloadUrl('file:///r/dist/network-guard.setup.js')).toBe(
+      'file:///r/dist/network-guard.preload.js',
+    );
+    expect(guardImportFlag(preload)).toBe(flag);
+  });
+
+  it('adds the import flag to NODE_OPTIONS once', () => {
+    expect(withGuardNodeOptions(undefined, preload)).toBe(flag);
+    expect(withGuardNodeOptions('  ', preload)).toBe(flag);
+    expect(withGuardNodeOptions('--max-old-space-size=512', preload)).toBe(
+      `--max-old-space-size=512 ${flag}`,
+    );
+    expect(withGuardNodeOptions(`--enable-source-maps ${flag}`, preload)).toBe(
+      `--enable-source-maps ${flag}`,
+    );
+  });
+
+  it('adds NODE_OPTIONS to an explicit child environment and copies the options', () => {
+    const options = { cwd: '/x', env: { PATH: '/bin', NODE_OPTIONS: '--trace-warnings' } };
+    const args = guardChildProcessArguments(['node', ['-v'], options], preload);
+    expect(args[2]).toEqual({
+      cwd: '/x',
+      env: { PATH: '/bin', NODE_OPTIONS: `--trace-warnings ${flag}` },
+    });
+    expect(options.env.NODE_OPTIONS).toBe('--trace-warnings');
+    const execArgs = guardChildProcessArguments(['node -v', { env: {} }, () => undefined], preload);
+    expect(execArgs[1]).toEqual({ env: { NODE_OPTIONS: flag } });
+    expect(guardChildProcessArguments(['node', ['-v'], { cwd: '/x' }], preload)).toEqual([
+      'node',
+      ['-v'],
+      { cwd: '/x' },
+    ]);
+    expect(guardChildProcessArguments(['node'], preload)).toEqual(['node']);
+  });
+
+  it('makes a file worker import the preload and an eval worker load it first', () => {
+    const [file, fileOptions] = guardWorkerArguments('/w.js', undefined, preload, ['--inspect=0']);
+    expect(file).toBe('/w.js');
+    expect(fileOptions.execArgv).toEqual(['--inspect=0', flag]);
+    const [, given] = guardWorkerArguments('/w.js', { execArgv: ['--x', 1], name: 'w' }, preload);
+    expect(given).toEqual({ execArgv: ['--x', flag], name: 'w' });
+    const [, again] = guardWorkerArguments('/w.js', { execArgv: [flag] }, preload);
+    expect(again.execArgv).toEqual([flag]);
+    const [code, evalOptions] = guardWorkerArguments('console.log(1)', { eval: true }, preload);
+    expect(code).toBe(
+      `process.getBuiltinModule('node:module').createRequire(${JSON.stringify(preload)})` +
+        `(${JSON.stringify(fileURLToPath(preload))});\nconsole.log(1)`,
+    );
+    expect(evalOptions).toEqual({ eval: true });
+  });
+
+  it('refuses preloads a child process could not load', () => {
+    expect(preloadProblem('https://example.com/preload.js')).toMatch(/file URL/);
+    expect(preloadProblem('file:///r/node_modules/@argus/testkit/src/p.ts')).toMatch(
+      /node_modules/,
+    );
+    expect(preloadProblem('file:///r/node_modules/@argus/testkit/dist/p.js')).toBeUndefined();
+    expect(preloadProblem(preload)).toBeUndefined();
+    expect(() => {
+      propagateNetworkGuard('file:///r/node_modules/x/p.ts', {});
+    }).toThrow(/node_modules/);
+  });
+
+  it('is active in this test process, idempotently', () => {
+    const own = networkGuardPreloadUrl(
+      pathToFileURL(join(import.meta.dirname, '../src/network-guard.setup.ts')).href,
+    );
+    expect(process.env.NODE_OPTIONS?.split(' ')).toContain(guardImportFlag(own));
+    const env: NodeJS.ProcessEnv = { NODE_OPTIONS: '--trace-warnings' };
+    propagateNetworkGuard(own, env);
+    propagateNetworkGuard(own, env);
+    expect(env.NODE_OPTIONS).toBe(`--trace-warnings ${guardImportFlag(own)}`);
+  });
+
+  it('keeps util.promisify(exec) working and guarded with an explicit environment', async () => {
+    const exec = promisify(execCallback);
+    const script =
+      "try { require('node:net').connect(443, 'example.com') } catch (e) { console.log(e.code) }";
+    const { stdout, stderr } = await exec(`"${process.execPath}" -e "${script}"`, {
+      env: { PATH: process.env.PATH },
+    });
+    expect(stdout.trim()).toBe(NETWORK_DENIED);
+    expect(stderr).toBe('');
   });
 });

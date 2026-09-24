@@ -20,6 +20,11 @@
       "types": "./dist/network-guard.setup.d.ts",
       "default": "./dist/network-guard.setup.js"
     },
+    "./network-guard/preload": {
+      "@argus/source": "./src/network-guard.preload.ts",
+      "types": "./dist/network-guard.preload.d.ts",
+      "default": "./dist/network-guard.preload.js"
+    },
     "./vitest-preset": {
       "@argus/source": "./src/vitest-preset.ts",
       "types": "./dist/vitest-preset.d.ts",

@@ -1,19 +1,22 @@
 /**
  * M00-G4: Tier A is hermetic. The guard is installed by the shared Vitest preset's setup
  * file, not by this test: a socket to example.com:443 fails with NETWORK_DENIED, and
- * loopback connections succeed.
+ * loopback connections succeed. Node child processes and worker threads started by a
+ * test inherit the guard.
  */
+import { execFileSync, spawnSync } from 'node:child_process';
 import dgram from 'node:dgram';
 import dns, { lookup as namedLookup } from 'node:dns';
 import { resolve4 as namedPromisesResolve4 } from 'node:dns/promises';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import tls from 'node:tls';
+import { Worker } from 'node:worker_threads';
 import { afterAll, describe, expect, it } from 'vitest';
 import { NETWORK_DENIED, isNetworkGuardInstalled, recordGateMetrics } from '../src/index.js';
 
@@ -67,6 +70,30 @@ function tcpPort(server: net.Server): number {
   return address.port;
 }
 
+/** Script that tries a connection and prints the error code, or CONNECTED. */
+function probeScript(host: string, port: number): string {
+  return (
+    `const net = require('node:net');` +
+    `try { const s = net.connect(${String(port)}, ${JSON.stringify(host)});` +
+    ` s.on('connect', () => { console.log('CONNECTED'); s.destroy(); });` +
+    ` s.on('error', (e) => { console.log('ERROR ' + e.code); }); }` +
+    ` catch (e) { console.log(e.code); }`
+  );
+}
+
+async function workerOutput(
+  filename: string | URL,
+  options: { eval?: boolean } = {},
+): Promise<string> {
+  const worker = new Worker(filename, { ...options, stdout: true });
+  let output = '';
+  worker.stdout.on('data', (chunk: Buffer) => {
+    output += chunk.toString('utf8');
+  });
+  await once(worker, 'exit');
+  return output.trim();
+}
+
 afterAll(() => {
   recordGateMetrics({ denied: tally.denied, loopbackOk: tally.loopbackOk });
 });
@@ -117,6 +144,53 @@ describe('M00-G4 the Tier A network guard', () => {
       });
     } finally {
       socket.close();
+    }
+  });
+
+  it('denies the same in Node child processes, with inherited or explicit environments', () => {
+    const script = probeScript('example.com', 443);
+    const inherited = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+    expect(inherited.stdout.trim()).toBe(NETWORK_DENIED);
+    tally.denied += 1;
+    const explicit = execFileSync(process.execPath, ['-e', script], {
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH },
+    });
+    expect(explicit.trim()).toBe(NETWORK_DENIED);
+    tally.denied += 1;
+    const throughShell = spawnSync('bash', ['-c', 'exec "$0" -e "$1"', process.execPath, script], {
+      encoding: 'utf8',
+    });
+    expect(throughShell.stdout.trim()).toBe(NETWORK_DENIED);
+    tally.denied += 1;
+  });
+
+  it('denies the same in worker threads, from a file or eval code', async () => {
+    const script = probeScript('example.com', 443);
+    expect(await workerOutput(script, { eval: true })).toBe(NETWORK_DENIED);
+    tally.denied += 1;
+    const dir = mkdtempSync(join(tmpdir(), 'argus-g4-worker-'));
+    const file = join(dir, 'probe.cjs');
+    writeFileSync(file, script);
+    try {
+      expect(await workerOutput(file)).toBe(NETWORK_DENIED);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    tally.denied += 1;
+  });
+
+  it('lets a child process and a worker reach a loopback server', async () => {
+    const server = await echoServer((s) => s.listen(0, '127.0.0.1'));
+    try {
+      const script = probeScript('127.0.0.1', tcpPort(server));
+      const child = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+      expect(child.stdout.trim()).toBe('CONNECTED');
+      tally.loopbackOk += 1;
+      expect(await workerOutput(script, { eval: true })).toBe('CONNECTED');
+      tally.loopbackOk += 1;
+    } finally {
+      server.close();
     }
   });
 

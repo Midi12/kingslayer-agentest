@@ -22,7 +22,12 @@ a connection to anything but 127.0.0.0/8, ::1, `localhost` or a Unix socket thro
 error with `code: 'NETWORK_DENIED'`: `net` and `tls` sockets, `http`/`https` requests
 (including proxy CONNECT and absolute-URL requests), global `fetch`, `dgram`, DNS lookups
 of non-loopback names and every DNS resolver query. Proxy variables are removed from the
-test environment. `ARGUS_NETWORK_GUARD_REPORT=<file>` makes each installation append a
+test environment. The setup file also calls `propagateNetworkGuard()`: `NODE_OPTIONS`
+gains `--import=<network-guard.preload>` (added to an explicit `env` of the
+`child_process` functions as well) and `worker_threads.Worker` loads the same preload, so
+Node child processes and worker threads started by a test are guarded too. Non-Node
+programs (Chromium, Go binaries) are covered only by an OS-level lockdown.
+`ARGUS_NETWORK_GUARD_REPORT=<file>` makes each installation append a
 line, which `pnpm g0` uses to prove the guard was active.
 
 ## Vitest preset

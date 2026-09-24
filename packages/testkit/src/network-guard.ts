@@ -15,7 +15,14 @@
  * `import { lookup } from 'node:dns'` is guarded as well as `dns.lookup`. Proxy variables
  * are removed from the environment so that no library relays traffic through a loopback
  * proxy.
+ *
+ * `propagateNetworkGuard` carries the guard into the processes and threads a test starts:
+ * `NODE_OPTIONS` gains `--import=<preload>` (also added to an explicit `env` passed to the
+ * `child_process` functions), and `worker_threads.Worker` loads the preload before the
+ * worker's own code. Programs that are not Node (Chromium, Go, curl) are outside its
+ * reach; only an OS-level lockdown covers them (ADR M00-network-guard).
  */
+import childProcess from 'node:child_process';
 import dgram from 'node:dgram';
 import dns from 'node:dns';
 import { appendFileSync } from 'node:fs';
@@ -24,6 +31,9 @@ import https from 'node:https';
 import { syncBuiltinESMExports } from 'node:module';
 import net from 'node:net';
 import tls from 'node:tls';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import workerThreads from 'node:worker_threads';
 
 export const NETWORK_DENIED = 'NETWORK_DENIED';
 
@@ -512,5 +522,181 @@ function patchProcess(): void {
   // `import { lookup } from 'node:dns'` binds the ESM named exports, which Node built
   // before this patch (this module imports the built-ins itself). Without this call they
   // would keep pointing at the original, unguarded functions.
+  syncBuiltinESMExports();
+}
+
+const propagatedFlag = Symbol.for('argus.testkit.networkGuard.propagated');
+
+/** The `NODE_OPTIONS` flag that preloads the guard, for a preload module URL. */
+export function guardImportFlag(preloadUrl: string): string {
+  return `--import=${preloadUrl}`;
+}
+
+/** `NODE_OPTIONS` with the guard's `--import` flag added once. */
+export function withGuardNodeOptions(nodeOptions: string | undefined, preloadUrl: string): string {
+  const flag = guardImportFlag(preloadUrl);
+  const current = nodeOptions?.trim() ?? '';
+  if (current.split(/\s+/).includes(flag)) {
+    return current;
+  }
+  return current === '' ? flag : `${current} ${flag}`;
+}
+
+/**
+ * The arguments of a `child_process` call with an explicit `env` option given the guard's
+ * `NODE_OPTIONS`. Calls without an options object, or without `env`, inherit
+ * `process.env` and need no change. The caller's objects are copied, not changed.
+ */
+export function guardChildProcessArguments(
+  args: readonly unknown[],
+  preloadUrl: string,
+): unknown[] {
+  const index = args.findIndex(
+    (arg, position) => position > 0 && isRecord(arg) && !Array.isArray(arg),
+  );
+  const options = index < 0 ? undefined : (args[index] as Record<string, unknown>);
+  if (options === undefined || !isRecord(options.env)) {
+    return [...args];
+  }
+  const env = options.env as Record<string, string | undefined>;
+  const next = [...args];
+  next[index] = {
+    ...options,
+    env: { ...env, NODE_OPTIONS: withGuardNodeOptions(env.NODE_OPTIONS, preloadUrl) },
+  };
+  return next;
+}
+
+/**
+ * The constructor arguments of a `Worker` that loads the preload first: a file worker
+ * gets `--import=<preload>` in its `execArgv` (Node runs `--import` in workers, while
+ * `NODE_OPTIONS` read at startup does not reach a worker with its own `execArgv`); an
+ * `eval` worker, which ignores `--import`, gets a first statement that loads the preload.
+ */
+export function guardWorkerArguments(
+  filename: unknown,
+  options: unknown,
+  preloadUrl: string,
+  parentExecArgv: readonly string[] = process.execArgv,
+): [unknown, Record<string, unknown>] {
+  const given: Record<string, unknown> = isRecord(options) ? options : {};
+  if (given.eval === true && typeof filename === 'string') {
+    const load =
+      `process.getBuiltinModule('node:module').createRequire(${JSON.stringify(preloadUrl)})` +
+      `(${JSON.stringify(fileURLToPath(preloadUrl))});\n`;
+    return [load + filename, { ...given }];
+  }
+  const execArgv = Array.isArray(given.execArgv)
+    ? (given.execArgv as unknown[]).filter((arg): arg is string => typeof arg === 'string')
+    : [...parentExecArgv];
+  const flag = guardImportFlag(preloadUrl);
+  return [
+    filename,
+    { ...given, execArgv: execArgv.includes(flag) ? execArgv : [...execArgv, flag] },
+  ];
+}
+
+const childProcessFunctions = [
+  'spawn',
+  'spawnSync',
+  'exec',
+  'execSync',
+  'execFile',
+  'execFileSync',
+  'fork',
+] as const;
+
+function wrapChildProcessFunction(
+  name: (typeof childProcessFunctions)[number],
+  preloadUrl: string,
+): void {
+  const record = childProcess as unknown as Record<string, unknown>;
+  const original = record[name];
+  if (typeof original !== 'function') {
+    return;
+  }
+  const originalFunction = original as AnyFunction;
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    return Reflect.apply(originalFunction, this, guardChildProcessArguments(args, preloadUrl));
+  };
+  Object.defineProperty(wrapped, 'name', { value: originalFunction.name });
+  // `util.promisify(exec)` and `util.promisify(execFile)` use this custom implementation.
+  const custom = (originalFunction as unknown as Record<symbol, unknown>)[promisify.custom];
+  if (typeof custom === 'function') {
+    const customFunction = custom as AnyFunction;
+    Object.defineProperty(wrapped, promisify.custom, {
+      value: function (this: unknown, ...args: unknown[]): unknown {
+        return Reflect.apply(customFunction, this, guardChildProcessArguments(args, preloadUrl));
+      },
+    });
+  }
+  record[name] = wrapped;
+}
+
+function wrapWorker(preloadUrl: string): void {
+  const record = workerThreads as unknown as Record<string, unknown>;
+  const Original = workerThreads.Worker;
+  class GuardedWorker extends Original {
+    constructor(filename: string | URL, options?: workerThreads.WorkerOptions) {
+      const [guardedFilename, guardedOptions] = guardWorkerArguments(filename, options, preloadUrl);
+      super(guardedFilename as string | URL, guardedOptions);
+    }
+  }
+  Object.defineProperty(GuardedWorker, 'name', { value: 'Worker' });
+  record.Worker = GuardedWorker;
+}
+
+/** The preload beside the given module URL: `.ts` in source form, `.js` in the built `dist`. */
+export function networkGuardPreloadUrl(moduleUrl: string): string {
+  const extension = new URL(moduleUrl).pathname.endsWith('.ts') ? 'ts' : 'js';
+  return new URL(`./network-guard.preload.${extension}`, moduleUrl).href;
+}
+
+/** Why this Node cannot load the preload module in a child process or worker, if it cannot. */
+export function preloadProblem(preloadUrl: string): string | undefined {
+  if (!preloadUrl.startsWith('file:')) {
+    return `the network guard preload must be a file URL, got ${preloadUrl}`;
+  }
+  const path = fileURLToPath(preloadUrl);
+  if (!/\.[cm]?ts$/.test(path)) {
+    return undefined;
+  }
+  if (path.split(/[\\/]/).includes('node_modules')) {
+    return (
+      `the network guard preload ${path} is TypeScript under node_modules, which Node does ` +
+      'not load; import the Vitest preset by relative path (CLAUDE.md) or use the built dist'
+    );
+  }
+  const features = process.features as { typescript?: unknown };
+  if (features.typescript === undefined || features.typescript === false) {
+    return `Node ${process.version} cannot load the TypeScript preload ${path}; use Node 22.18 or later`;
+  }
+  return undefined;
+}
+
+/**
+ * Makes the processes and worker threads that this process starts install the guard too,
+ * by preloading `preloadUrl` (a module that calls `installNetworkGuard` and this function).
+ * Idempotent. Throws when this Node cannot load the preload, since a silent gap would make
+ * Tier A evidence non-hermetic.
+ */
+export function propagateNetworkGuard(
+  preloadUrl: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const problem = preloadProblem(preloadUrl);
+  if (problem !== undefined) {
+    throw new Error(problem);
+  }
+  env.NODE_OPTIONS = withGuardNodeOptions(env.NODE_OPTIONS, preloadUrl);
+  const globals = globalThis as Record<symbol, unknown>;
+  if (globals[propagatedFlag] === true) {
+    return;
+  }
+  globals[propagatedFlag] = true;
+  for (const name of childProcessFunctions) {
+    wrapChildProcessFunction(name, preloadUrl);
+  }
+  wrapWorker(preloadUrl);
   syncBuiltinESMExports();
 }
