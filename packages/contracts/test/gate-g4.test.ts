@@ -4,10 +4,15 @@
  * committed snapshot `schemas/baseline/`. No schema or property may be removed, no type
  * or enum narrowed, no property newly required. Fixture pairs prove that every kind of
  * breaking change is detected, and the committed schema files must be fresh.
+ *
+ * Every version of the snapshot ever committed is compared too (gate change M01-1): a
+ * commit that rewrites `schemas/baseline/` together with a breaking change still fails,
+ * because the snapshot it replaced stays in the history.
  */
 import { recordGateMetrics } from '@argus/testkit';
 import { execFileSync } from 'node:child_process';
-import { join } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { relative, sep } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { diffSchemaSets, exportJsonSchemas, type BreakingChange } from '../src/index.js';
 import { BASELINE_DIR, SCHEMA_DIR, staleFiles } from '../scripts/export-schemas.js';
@@ -48,14 +53,46 @@ function latestReleaseTag(): string | undefined {
 }
 
 function schemasAtTag(tag: string): Map<string, unknown> {
-  const root = git(['rev-parse', '--show-toplevel']).trim();
-  const relative = join(SCHEMA_DIR).slice(root.length + 1);
-  const files = git(['ls-tree', '--name-only', `${tag}:${relative}`])
+  return schemasAt(tag, repoPath(SCHEMA_DIR));
+}
+
+/**
+ * The JSON files of a directory at a revision. `--full-tree` because `ls-tree` run from
+ * a subdirectory lists only entries under it, even for a `<rev>:<path>` tree.
+ */
+function schemasAt(revision: string, path: string): Map<string, unknown> {
+  const files = git(['ls-tree', '--full-tree', '--name-only', `${revision}:${path}`])
     .split('\n')
     .filter((file) => file.endsWith('.json'));
   return new Map(
-    files.map((file) => [file, JSON.parse(git(['show', `${tag}:${relative}/${file}`])) as unknown]),
+    files.map((file) => [
+      file,
+      JSON.parse(git(['show', `${revision}:${path}/${file}`])) as unknown,
+    ]),
   );
+}
+
+/** Every committed version of the snapshot, oldest first, keyed by commit. */
+function committedBaselines(): { commit: string; schemas: Map<string, unknown> }[] {
+  const path = repoPath(BASELINE_DIR);
+  const commits = git(['log', '--reverse', '--format=%H', '--', `:(top)${path}`])
+    .split('\n')
+    .filter((commit) => commit !== '');
+  return commits.flatMap((commit) => {
+    let schemas: Map<string, unknown>;
+    try {
+      schemas = schemasAt(commit, path);
+    } catch {
+      return []; // the commit deleted the snapshot
+    }
+    return schemas.size === 0 ? [] : [{ commit, schemas }];
+  });
+}
+
+/** Path relative to the repository root, in git's form. */
+function repoPath(dir: string): string {
+  const root = realpathSync(git(['rev-parse', '--show-toplevel']).trim());
+  return relative(root, realpathSync(dir)).split(sep).join('/');
 }
 
 const gitRepository = inGitRepository();
@@ -66,6 +103,8 @@ const current = new Map(
   [...exportJsonSchemas()].map(([file, schema]) => [file, schema as unknown]),
 );
 let breaking: BreakingChange[] = [];
+const history = gitRepository ? committedBaselines() : [];
+let historyBreaking: string[] = [];
 const cases = schemaDiffCases();
 let detected = 0;
 let additiveClean = true;
@@ -77,6 +116,17 @@ describe('M01-G4 additive-only schemas', () => {
     expect(baseline.size).toBeGreaterThan(0);
     breaking = diffSchemaSets(baseline, current);
     expect(breaking).toEqual([]);
+  });
+
+  it('finds no breaking change against any committed version of schemas/baseline', () => {
+    expect(history.length).toBeGreaterThan(0);
+    historyBreaking = history.flatMap(({ commit, schemas }) =>
+      diffSchemaSets(schemas, current).map(
+        (change) =>
+          `${commit.slice(0, 12)} ${change.file}${change.path} ${change.kind}: ${change.detail}`,
+      ),
+    );
+    expect(historyBreaking).toEqual([]);
   });
 
   it('publishes fresh schema files', () => {
@@ -122,5 +172,8 @@ afterAll(() => {
     additiveCasesClean: additiveClean,
     requiredKindsMissing: REQUIRED_KINDS.filter((kind) => !kindsProven.has(kind)).length,
     committedSchemasFresh: stale.length === 0,
+    baselineRevisions: history.length,
+    historyBreakingChanges: historyBreaking.length,
+    historyBreakingList: historyBreaking.slice(0, 20),
   });
 });

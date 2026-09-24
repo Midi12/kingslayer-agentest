@@ -59,6 +59,7 @@ gates:
       && metrics.fixtureCases >= 5 && metrics.fixtureCasesDetected == metrics.fixtureCases
       && metrics.additiveCasesClean == true && metrics.requiredKindsMissing == 0
       && metrics.committedSchemasFresh == true
+      && metrics.baselineRevisions >= 1 && metrics.historyBreakingChanges == 0
 
   - id: M01-G5
     tier: A
