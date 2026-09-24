@@ -15,7 +15,9 @@ of `@argus/testkit/vitest-preset` resolves to `dist`, which does not exist witho
 
 - The preset is `packages/testkit/src/vitest-preset.ts`. Each `vitest.config.ts` imports
   it by relative path (`../../packages/testkit/src/vitest-preset.js`) and calls
-  `defineArgusVitestConfig({ kind })`. It is also exported as `@argus/testkit/vitest-preset`.
+  `defineArgusVitestConfig({ kind })`. It is also exported as `@argus/testkit/vitest-preset`;
+  the setup file it names follows the module's extension (`.ts` beside the sources,
+  `.js` beside the built `dist`).
 - It sets `resolve.conditions` and `ssr.resolve.conditions` to `@argus/source`, `module`,
   `node`, `development|production`; `setupFiles` starts with the network guard;
   `pool: 'forks'` with `maxForks` capped at 2; tests are `test/**/*.test.ts` without

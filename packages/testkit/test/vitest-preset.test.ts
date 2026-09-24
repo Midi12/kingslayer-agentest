@@ -7,6 +7,7 @@ import {
   coverageThresholds,
   defineArgusVitestConfig,
   networkGuardSetupFile,
+  networkGuardSetupFileFor,
 } from '../src/vitest-preset.js';
 
 describe('defineArgusVitestConfig', () => {
@@ -68,5 +69,16 @@ describe('coverageThresholds', () => {
       /below the package floor of 85/,
     );
     expect(() => coverageThresholds('app', { lines: 69 })).toThrow(/below the app floor of 70/);
+  });
+});
+
+describe('networkGuardSetupFileFor', () => {
+  it('names the setup file with the extension of the module that asks', () => {
+    expect(networkGuardSetupFileFor('file:///repo/packages/testkit/src/vitest-preset.ts')).toBe(
+      '/repo/packages/testkit/src/network-guard.setup.ts',
+    );
+    expect(networkGuardSetupFileFor('file:///repo/packages/testkit/dist/vitest-preset.js')).toBe(
+      '/repo/packages/testkit/dist/network-guard.setup.js',
+    );
   });
 });

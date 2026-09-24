@@ -29,9 +29,16 @@ export const SOURCE_CONDITIONS: readonly string[] = [
 /** At most two worker processes per Vitest run (CLAUDE.md section 1). */
 export const MAX_WORKERS = 2;
 
-export const networkGuardSetupFile = fileURLToPath(
-  new URL('./network-guard.setup.ts', import.meta.url),
-);
+/**
+ * The setup file next to the given module URL: `network-guard.setup.ts` beside the
+ * TypeScript source, `network-guard.setup.js` beside the built `dist` module.
+ */
+export function networkGuardSetupFileFor(moduleUrl: string): string {
+  const extension = new URL(moduleUrl).pathname.endsWith('.ts') ? 'ts' : 'js';
+  return fileURLToPath(new URL(`./network-guard.setup.${extension}`, moduleUrl));
+}
+
+export const networkGuardSetupFile = networkGuardSetupFileFor(import.meta.url);
 
 export interface ArgusCoverageOptions {
   /** Line coverage threshold; may be raised above the floor, never lowered below it. */
