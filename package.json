@@ -1,0 +1,38 @@
+{
+  "name": "argus",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "turbo run test --concurrency=2",
+    "depcruise": "node tools/gate/bin/argus-depcruise.js",
+    "gate": "node tools/gate/bin/argus-gate.js",
+    "g0": "node tools/gate/bin/argus-g0.js",
+    "gate-guard": "node tools/gate-guard/bin/gate-guard.js",
+    "scenario": "node -e \"console.error('pnpm scenario: not yet available, the scenario runner lands with D2'); process.exit(3)\""
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.4",
+    "@vitest/coverage-v8": "3.2.7",
+    "dependency-cruiser": "18.4.0",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "fast-check": "4.10.2",
+    "globals": "17.12.0",
+    "prettier": "3.9.9",
+    "tsx": "4.23.15",
+    "turbo": "2.11.3",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1",
+    "vitest": "3.2.7"
+  }
+}

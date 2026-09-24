@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+.env
+# Gate runner output that is not committed: command logs and tier-filtered evidence.
+gates/evidence/logs/
+gates/evidence/*.tier-*.json
