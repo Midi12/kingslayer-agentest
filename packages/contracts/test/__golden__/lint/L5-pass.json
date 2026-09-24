@@ -1,0 +1,77 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l5-pass",
+      "title": "Lint fixture l5-pass"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Stop conveyor C12",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Stop button in the row of conveyor C12"
+          }
+        },
+        "risk": "critical"
+      },
+      {
+        "id": "s2",
+        "intent": "Start conveyor C12",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Start button in the row of conveyor C12"
+          }
+        },
+        "risk": "write"
+      },
+      {
+        "id": "s3",
+        "intent": "Open the stopwatch panel",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Stopwatch entry of the tools menu"
+          }
+        }
+      }
+    ]
+  },
+  "expected": []
+}

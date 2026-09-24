@@ -1,0 +1,32 @@
+Start C12 and handle a jam (conveyor-start-and-jam)
+Tags: smoke, conveyors
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+Variables: conveyor = "C12"
+Secrets: OPERATOR_PASSWORD
+
+Steps
+1. [s1] Use fragment login-operator
+2. [s2] Open the conveyor overview
+   Action: Click "Navigation entry that opens the conveyor overview"
+   Expect: "Row of conveyor C12 in the conveyor table" exists
+3. [s3] Start conveyor C12 (risk write, within 10s)
+   Action: Click "Start button in the row of conveyor C12" (role button, text "Start", near "C12")
+   Expect: Text of "Status cell in the row of conveyor C12" equals "Running"
+   Expect: Colour of "Status indicator in the row of conveyor C12" is green
+4. [s4] Trigger a jam on C12 through the simulator
+   Action: Send POST ${env.SIM_URL}/conveyors/C12/faults with JSON {"type":"jam"}, expect status 202
+5. [s5] Check the jam alarm appears and blinks (within 15s)
+   Action: Check the expectations
+   Expect: Jev confirms "The alarm list contains an active jam alarm for conveyor C12."
+   Expect: "Alarm row for the jam on conveyor C12" blinks between 0.5 and 3 Hz
+6. [s6] Acknowledge the alarm (within 5s)
+   Action: Click "Acknowledge button of the jam alarm for conveyor C12"
+   Expect: "Alarm row for the jam on conveyor C12" does not blink
+7. [s7] Compare the overview with its baseline
+   Action: Check the expectations
+   Expect: Screen matches baseline "overview-c12-running" with a pixel difference ratio of at most 0.01, masking "Clock in the header", "Alarm list"
+
+Handlers
+- [h-relogin] When the probe auth_lost fires:
+  1. [h-relogin-1] Use fragment login-operator

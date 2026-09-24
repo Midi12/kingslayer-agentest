@@ -1,0 +1,6 @@
+{
+  "note": "target.schema.json is gone",
+  "expectedKinds": [
+    "removed-schema"
+  ]
+}

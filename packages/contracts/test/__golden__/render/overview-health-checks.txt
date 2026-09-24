@@ -1,0 +1,19 @@
+Check overview health and accessibility (overview-health-checks)
+Tags: health, a11y
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: strict, on break fail, console errors fail, screenshots to the LLM always, artifacts full
+
+Steps
+1. [s1] Open the conveyor overview
+   Action: Go to /overview
+   Expect: No console errors
+   Expect: No responses with status 500 or above
+2. [s2] Check the overview is accessible
+   Action: Check the expectations
+   Expect: No wcag21aa accessibility violations of impact serious or higher
+   Expect: No console errors matching pattern "Uncaught|TypeError"
+   Expect: No responses with status 500 or above for URLs matching pattern "/api/"
+3. [s3] Check the trend chart shows data
+   Action: Check the expectations
+   Expect: AI vision answers yes to "Does the trend chart in the lower half of the screen show a plotted line?"
+   Expect: AI vision answers no to "Is an error placeholder shown instead of the trend chart?"

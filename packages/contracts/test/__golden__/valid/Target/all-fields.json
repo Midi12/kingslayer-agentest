@@ -1,0 +1,13 @@
+{
+  "description": "Start button in the row of conveyor C12",
+  "hints": {
+    "role": "button",
+    "text": "Start",
+    "label": "Start C12",
+    "testId": "start-c12",
+    "near": "C12",
+    "region": "Conveyor table"
+  },
+  "frame": "main",
+  "locator": "getByTestId('start-c12')"
+}

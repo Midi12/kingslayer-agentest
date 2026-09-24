@@ -1,0 +1,10 @@
+{
+  "kind": "dom",
+  "target": {
+    "description": "Average duration cell of the summary row"
+  },
+  "op": "numberCompare",
+  "cmp": "lt",
+  "value": 12.5,
+  "tolerance": 0.5
+}

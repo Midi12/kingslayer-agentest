@@ -1,0 +1,9 @@
+{
+  "reason": "lastSeq is not negative",
+  "expectedPath": "/lastSeq",
+  "document": {
+    "accepted": 16,
+    "duplicates": 0,
+    "lastSeq": -1
+  }
+}

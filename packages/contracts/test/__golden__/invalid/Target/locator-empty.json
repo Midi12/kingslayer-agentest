@@ -1,0 +1,8 @@
+{
+  "reason": "an explicit locator is not empty",
+  "expectedPath": "/locator",
+  "document": {
+    "description": "Start button in the row of conveyor C12",
+    "locator": ""
+  }
+}

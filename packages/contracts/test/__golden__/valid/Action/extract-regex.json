@@ -1,0 +1,9 @@
+{
+  "type": "extract",
+  "target": {
+    "description": "Export reference label in the toolbar"
+  },
+  "into": "exportRef",
+  "parse": "regex",
+  "pattern": "EXP-([0-9]+)"
+}

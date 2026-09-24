@@ -1,0 +1,24 @@
+Navigate the plant synoptic (synoptic-navigation)
+Target: https://hmi.test, viewport 2560x1440, locale fr-FR, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+
+Steps
+1. [s1] Open the plant synoptic
+   Screen: Plant synoptic with the conveyor loop
+   Action: Go to /synoptic/plant
+   Expect: URL equals "/synoptic/plant"
+2. [s2] Zoom into the sorter area
+   Action: Double-click "Sorter area of the plant synoptic" (region "Synoptic")
+3. [s3] Show the context menu of diverter D4
+   Action: Right-click "Diverter D4 symbol in the sorter area" (near "D4")
+   Expect: "Context menu of diverter D4" exists
+4. [s4] Show the tooltip of diverter D4
+   Action: Hover over "Diverter D4 symbol in the sorter area"
+   Expect: Text of "Tooltip of diverter D4" matches pattern "^D4 .*(Left|Right)$"
+5. [s5] Move the tote marker to lane 3 (risk write)
+   Action: Drag "Tote marker on lane 1 of the sorter" onto "Drop zone of lane 3 in the sorter"
+6. [s6] Scroll the event log down
+   Action: Scroll down by 600 px in "Event log panel on the right side"
+7. [s7] Scroll the page back up
+   Action: Scroll up by 2000 px on the page
+   Expect: URL contains "synoptic"

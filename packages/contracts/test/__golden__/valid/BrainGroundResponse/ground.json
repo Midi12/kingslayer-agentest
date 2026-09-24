@@ -1,0 +1,25 @@
+{
+  "result": {
+    "pick": "c17",
+    "confidence": 0.93,
+    "probabilities": {
+      "c17": 0.95,
+      "c16": 0.05
+    },
+    "targetPresent": 0.97,
+    "model": "jev-1.13.0",
+    "usage": {
+      "inputTokens": 1830
+    },
+    "latencyMs": 212,
+    "cacheHit": false
+  },
+  "usage": {
+    "provider": "jev",
+    "model": "jev-1.13.0",
+    "calls": 2,
+    "inputTokens": 7040,
+    "outputTokens": 0,
+    "billable": null
+  }
+}

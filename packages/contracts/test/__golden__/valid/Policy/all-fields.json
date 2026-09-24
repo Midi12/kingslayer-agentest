@@ -1,0 +1,10 @@
+{
+  "strict": false,
+  "onBreak": "skip",
+  "failOnConsoleError": false,
+  "shareScreenshotsWithLlm": "never",
+  "artifacts": "on-failure",
+  "pii": "strict",
+  "degrade": "fail",
+  "healApproval": "auto"
+}

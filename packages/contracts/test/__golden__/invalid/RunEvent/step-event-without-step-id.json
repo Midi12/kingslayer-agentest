@@ -1,0 +1,15 @@
+{
+  "reason": "step events name their step",
+  "expectedPath": "/stepId",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 2,
+    "ts": "2026-09-21T10:15:02.000Z",
+    "type": "step.started",
+    "data": {
+      "attempt": 1,
+      "index": 2
+    },
+    "prev": "sha256:ce36863f51b6baf9d16397ffb3e9af506b284a816f72d487e55943c1fd974d6d"
+  }
+}

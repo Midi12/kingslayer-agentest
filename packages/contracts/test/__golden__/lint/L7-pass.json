@@ -1,0 +1,102 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l7-pass",
+      "title": "Lint fixture l7-pass"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Compare the overview",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "visual",
+            "baseline": "overview",
+            "maxDiffRatio": 0.01,
+            "masks": [
+              {
+                "description": "Clock in the header"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "intent": "Compare the alarm page",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "visual",
+            "baseline": "alarm-page",
+            "maxDiffRatio": 0.01,
+            "masks": [
+              {
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 200,
+                  "height": 40
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Compare the trend page",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "visual",
+            "baseline": "trend-page",
+            "maxDiffRatio": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  "expected": []
+}

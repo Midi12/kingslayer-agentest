@@ -1,0 +1,18 @@
+{
+  "reason": "step outcomes are the closed list",
+  "expectedPath": "/data/outcome",
+  "document": {
+    "runId": "run_01J8",
+    "seq": 9,
+    "ts": "2026-09-21T10:15:09.000Z",
+    "type": "step.finished",
+    "stepId": "s3",
+    "data": {
+      "attempt": 1,
+      "outcome": "green",
+      "durationMs": 2100,
+      "reason": null
+    },
+    "prev": "sha256:0dbabc9cc3b7edd7f84234f185d187fee0bd7e6423add65d53f37aedd9fedb01"
+  }
+}

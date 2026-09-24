@@ -1,0 +1,113 @@
+{
+  "reason": "verdicts are the closed list",
+  "expectedPath": "/verdict",
+  "document": {
+    "runId": "run_01J8",
+    "script": {
+      "name": "conveyor-start-and-jam",
+      "title": "Start C12 and handle a jam",
+      "steps": [
+        {
+          "id": "s3",
+          "intent": "Start conveyor C12"
+        }
+      ]
+    },
+    "verdict": "green",
+    "flags": {
+      "adjudicated": false,
+      "healed": true
+    },
+    "stats": {
+      "steps": 7,
+      "passed": 5,
+      "failed": 1,
+      "broken": 0,
+      "skipped": 1,
+      "durationMs": 74211,
+      "jevCalls": 13,
+      "llmCalls": 2,
+      "credits": 31
+    },
+    "events": [
+      {
+        "runId": "run_01J8",
+        "seq": 1,
+        "ts": "2026-09-21T10:15:01.000Z",
+        "type": "run.started",
+        "data": {
+          "runnerId": "rnr_7",
+          "scriptHash": "sha256:21a0270b7f66a1e4c25933f13a1e5a1bbb4757578072930c8189131f9c6aaae1",
+          "environment": {
+            "id": "env_3",
+            "name": "staging",
+            "kind": "staging",
+            "baseUrl": "https://hmi.test"
+          },
+          "policy": {
+            "strict": false,
+            "onBreak": "escalate",
+            "failOnConsoleError": false,
+            "shareScreenshotsWithLlm": "on-break",
+            "artifacts": "on-failure",
+            "pii": "standard",
+            "degrade": "analyst",
+            "healApproval": "manual"
+          },
+          "versions": {
+            "engine": "0.1.0",
+            "questions": "q-1",
+            "thresholds": "jev-1.13.0",
+            "models": {
+              "navigator": "jev-1.13.0",
+              "analyst": "analyst-standard"
+            }
+          }
+        },
+        "prev": null
+      },
+      {
+        "runId": "run_01J8",
+        "seq": 2,
+        "ts": "2026-09-21T10:15:02.000Z",
+        "type": "step.started",
+        "stepId": "s3",
+        "data": {
+          "attempt": 1,
+          "index": 2
+        },
+        "prev": "sha256:ce36863f51b6baf9d16397ffb3e9af506b284a816f72d487e55943c1fd974d6d"
+      },
+      {
+        "runId": "run_01J8",
+        "seq": 3,
+        "ts": "2026-09-21T10:15:03.000Z",
+        "type": "observation.captured",
+        "stepId": "s3",
+        "data": {
+          "obsId": "obs_01J8",
+          "digestHash": "sha256:fe3b313e0a6b65bb99b6764f3cb3db68bc67246a5ba30d7d86ecaef61b52c152",
+          "artifacts": [
+            "art://runs/r1/s3/before.png"
+          ]
+        },
+        "prev": "sha256:b4e3d14e7519279e6a352f776d75a905a9de9a27efdb6d802fe4e700224ade2e"
+      }
+    ],
+    "keyFrames": [
+      {
+        "ref": "art://runs/r1/ring/f408.jpg",
+        "stepId": "s5",
+        "image": {
+          "mediaType": "image/jpeg",
+          "data": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U"
+        }
+      },
+      {
+        "ref": "art://runs/r1/final.png",
+        "stepId": null
+      }
+    ],
+    "promptVersion": "r-2"
+  }
+}

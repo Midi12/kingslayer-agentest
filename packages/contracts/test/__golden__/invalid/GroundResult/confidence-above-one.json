@@ -1,0 +1,19 @@
+{
+  "reason": "confidence lies between 0 and 1",
+  "expectedPath": "/confidence",
+  "document": {
+    "pick": "c17",
+    "confidence": 1.2,
+    "probabilities": {
+      "c17": 0.95,
+      "c16": 0.05
+    },
+    "targetPresent": 0.97,
+    "model": "jev-1.13.0",
+    "usage": {
+      "inputTokens": 1830
+    },
+    "latencyMs": 212,
+    "cacheHit": false
+  }
+}

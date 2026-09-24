@@ -1,0 +1,85 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l4-pass",
+      "title": "Lint fixture l4-pass"
+    },
+    "target": {
+      "baseUrl": "https://hmi.test",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the overview",
+        "action": {
+          "type": "navigate",
+          "url": "/overview"
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Open the alarm page",
+        "action": {
+          "type": "navigate",
+          "url": "https://hmi.test/alarms"
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Call the simulator",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "url": "https://sim.test:8443/faults"
+          },
+          "expectStatus": 200
+        }
+      },
+      {
+        "id": "s4",
+        "intent": "Call the simulator through the environment",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "url": "${env.SIM_URL}/state"
+          },
+          "expectStatus": 200
+        }
+      }
+    ]
+  },
+  "expected": []
+}

@@ -1,0 +1,20 @@
+{
+  "reason": "images are base64",
+  "expectedPath": "/image/data",
+  "document": {
+    "runId": "run_01J8",
+    "stepId": "s3",
+    "question": "Does the trend chart show a plotted line?",
+    "expected": true,
+    "image": {
+      "mediaType": "image/png",
+      "data": "not base64!"
+    },
+    "frames": [
+      {
+        "mediaType": "image/jpeg",
+        "data": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U"
+      }
+    ]
+  }
+}

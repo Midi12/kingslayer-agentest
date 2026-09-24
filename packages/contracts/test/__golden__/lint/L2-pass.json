@@ -1,0 +1,92 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l2-pass",
+      "title": "Lint fixture l2-pass"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "handlers": [
+      {
+        "id": "h-banner",
+        "when": {
+          "kind": "noul",
+          "statement": "A cookie banner covers the bottom of the page."
+        },
+        "steps": [
+          {
+            "id": "h-banner-1",
+            "intent": "Accept the cookies",
+            "action": {
+              "type": "click",
+              "target": {
+                "description": "Accept button of the cookie banner"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Check the alarm",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "The alarm list contains an active jam alarm for conveyor C12."
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "intent": "Check conveyor 12",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "Conveyor 12 is running."
+          }
+        ]
+      }
+    ]
+  },
+  "expected": []
+}

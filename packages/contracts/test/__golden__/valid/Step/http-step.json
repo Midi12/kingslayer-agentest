@@ -1,0 +1,15 @@
+{
+  "id": "s4",
+  "intent": "Trigger a jam on C12 through the simulator",
+  "action": {
+    "type": "http",
+    "request": {
+      "method": "POST",
+      "url": "${env.SIM_URL}/conveyors/C12/faults",
+      "json": {
+        "type": "jam"
+      }
+    },
+    "expectStatus": 202
+  }
+}

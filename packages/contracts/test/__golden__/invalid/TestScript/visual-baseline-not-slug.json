@@ -1,0 +1,197 @@
+{
+  "reason": "baseline names are slugs",
+  "expectedPath": "/steps/6/expect/0/baseline",
+  "document": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "conveyor-start-and-jam",
+      "title": "Start C12 and handle a jam",
+      "tags": [
+        "smoke",
+        "conveyors"
+      ],
+      "sourceHash": "sha256:0bc2d8bf36a96eac2477a479451ecb86b91a50a77c3df85e03235738207c1aac",
+      "compiler": {
+        "model": "analyst-standard",
+        "promptVersion": "c-3"
+      }
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "variables": {
+      "conveyor": "C12"
+    },
+    "secrets": [
+      "OPERATOR_PASSWORD"
+    ],
+    "handlers": [
+      {
+        "id": "h-relogin",
+        "when": {
+          "kind": "probe",
+          "name": "auth_lost"
+        },
+        "steps": [
+          {
+            "id": "h-relogin-1",
+            "use": "login-operator"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "use": "login-operator"
+      },
+      {
+        "id": "s2",
+        "intent": "Open the conveyor overview",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Navigation entry that opens the conveyor overview"
+          }
+        },
+        "expect": [
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Row of conveyor C12 in the conveyor table"
+            },
+            "op": "exists"
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "intent": "Start conveyor C12",
+        "risk": "write",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Start button in the row of conveyor C12",
+            "hints": {
+              "role": "button",
+              "text": "Start",
+              "near": "C12"
+            }
+          }
+        },
+        "within": "10s",
+        "expect": [
+          {
+            "kind": "dom",
+            "target": {
+              "description": "Status cell in the row of conveyor C12"
+            },
+            "op": "textEquals",
+            "value": "Running"
+          },
+          {
+            "kind": "color",
+            "target": {
+              "description": "Status indicator in the row of conveyor C12"
+            },
+            "op": "is",
+            "value": "green"
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "intent": "Trigger a jam on C12 through the simulator",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "POST",
+            "url": "${env.SIM_URL}/conveyors/C12/faults",
+            "json": {
+              "type": "jam"
+            }
+          },
+          "expectStatus": 202
+        }
+      },
+      {
+        "id": "s5",
+        "intent": "Check the jam alarm appears and blinks",
+        "action": {
+          "type": "assert"
+        },
+        "within": "15s",
+        "expect": [
+          {
+            "kind": "noul",
+            "statement": "The alarm list contains an active jam alarm for conveyor C12."
+          },
+          {
+            "kind": "blink",
+            "target": {
+              "description": "Alarm row for the jam on conveyor C12"
+            },
+            "minHz": 0.5,
+            "maxHz": 3
+          }
+        ]
+      },
+      {
+        "id": "s6",
+        "intent": "Acknowledge the alarm",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Acknowledge button of the jam alarm for conveyor C12"
+          }
+        },
+        "within": "5s",
+        "expect": [
+          {
+            "kind": "blink",
+            "target": {
+              "description": "Alarm row for the jam on conveyor C12"
+            },
+            "op": "absent"
+          }
+        ]
+      },
+      {
+        "id": "s7",
+        "intent": "Compare the overview with its baseline",
+        "action": {
+          "type": "assert"
+        },
+        "expect": [
+          {
+            "kind": "visual",
+            "baseline": "Overview C12",
+            "maxDiffRatio": 0.01,
+            "masks": [
+              {
+                "description": "Clock in the header"
+              },
+              {
+                "description": "Alarm list"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

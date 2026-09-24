@@ -1,0 +1,91 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "Fragment",
+  "metadata": {
+    "name": "login-operator",
+    "title": "Log in as operator",
+    "sourceHash": "sha256:b7876210615dbdf8a184e9297dc622697cda21bdeee96e2f735549f52872f891"
+  },
+  "variables": {
+    "operatorUser": "operator"
+  },
+  "secrets": [
+    "OPERATOR_PASSWORD"
+  ],
+  "steps": [
+    {
+      "id": "login-1",
+      "intent": "Open the login page",
+      "action": {
+        "type": "navigate",
+        "url": "/login"
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "User name field of the login form"
+          },
+          "op": "visible"
+        }
+      ]
+    },
+    {
+      "id": "login-2",
+      "intent": "Enter the operator user name",
+      "risk": "write",
+      "action": {
+        "type": "fill",
+        "target": {
+          "description": "User name field of the login form",
+          "hints": {
+            "label": "User name"
+          }
+        },
+        "value": "${var.operatorUser}"
+      }
+    },
+    {
+      "id": "login-3",
+      "intent": "Enter the operator password",
+      "risk": "write",
+      "action": {
+        "type": "fill",
+        "target": {
+          "description": "Password field of the login form",
+          "hints": {
+            "label": "Password"
+          }
+        },
+        "value": "${secret.OPERATOR_PASSWORD}"
+      }
+    },
+    {
+      "id": "login-4",
+      "intent": "Sign in",
+      "risk": "write",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Sign in button of the login form",
+          "hints": {
+            "role": "button",
+            "text": "Sign in"
+          }
+        }
+      },
+      "within": "10s",
+      "expect": [
+        {
+          "kind": "url",
+          "op": "contains",
+          "value": "/overview"
+        },
+        {
+          "kind": "noul",
+          "statement": "The page shows the main navigation of the HMI for a signed-in operator."
+        }
+      ]
+    }
+  ]
+}

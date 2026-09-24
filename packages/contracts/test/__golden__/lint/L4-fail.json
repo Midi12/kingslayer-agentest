@@ -1,0 +1,122 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l4-fail",
+      "title": "Lint fixture l4-fail"
+    },
+    "target": {
+      "baseUrl": "https://evil.test",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the other site",
+        "action": {
+          "type": "navigate",
+          "url": "https://other.test/x"
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Run a script",
+        "action": {
+          "type": "navigate",
+          "url": "javascript:alert(1)"
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Call the simulator on the default port",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "url": "https://sim.test/faults"
+          },
+          "expectStatus": 200
+        }
+      },
+      {
+        "id": "s4",
+        "intent": "Call a relative endpoint",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "url": "/api/faults"
+          },
+          "expectStatus": 200
+        }
+      },
+      {
+        "id": "s5",
+        "intent": "Call a host from a variable",
+        "action": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "url": "https://${var.host}/x"
+          },
+          "expectStatus": 200
+        }
+      }
+    ]
+  },
+  "expected": [
+    {
+      "code": "L4",
+      "stepId": null
+    },
+    {
+      "code": "L4",
+      "stepId": "s1"
+    },
+    {
+      "code": "L4",
+      "stepId": "s2"
+    },
+    {
+      "code": "L4",
+      "stepId": "s3"
+    },
+    {
+      "code": "L4",
+      "stepId": "s4"
+    },
+    {
+      "code": "L4",
+      "stepId": "s5"
+    }
+  ]
+}

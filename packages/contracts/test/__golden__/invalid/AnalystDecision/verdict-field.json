@@ -1,0 +1,25 @@
+{
+  "reason": "the Analyst cannot set a verdict",
+  "expectedPath": "/verdict",
+  "document": {
+    "decision": "MARK_FAILED_CONTINUE",
+    "classification": "PRODUCT_DEFECT",
+    "certainty": "high",
+    "rationale": "The jam alarm row for C12 is present in all six frames but its background never changes, so it does not blink.",
+    "evidence": [
+      {
+        "frame": "art://runs/r1/ring/f408.jpg",
+        "note": "Alarm row static at t-3 s"
+      }
+    ],
+    "patch": [],
+    "defect": {
+      "title": "Unacknowledged jam alarm does not blink",
+      "severity": "major",
+      "expected": "Alarm row blinks until acknowledged",
+      "actual": "Alarm row is static"
+    },
+    "scriptSuggestion": null,
+    "verdict": "passed"
+  }
+}

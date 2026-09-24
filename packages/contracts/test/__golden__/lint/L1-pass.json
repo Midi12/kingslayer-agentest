@@ -1,0 +1,85 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l1-pass",
+      "title": "Lint fixture l1-pass"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Open the conveyor overview",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Navigation entry that opens the conveyor overview"
+          }
+        }
+      },
+      {
+        "id": "s2",
+        "intent": "Move the tote",
+        "action": {
+          "type": "drag",
+          "source": {
+            "description": "Tote marker on lane 1"
+          },
+          "destination": {
+            "description": "Drop zone of lane 3"
+          }
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Submit the form",
+        "action": {
+          "type": "press",
+          "keys": "Enter"
+        }
+      },
+      {
+        "id": "s4",
+        "intent": "Scroll the page",
+        "action": {
+          "type": "scroll",
+          "direction": "down",
+          "amount": 400
+        }
+      }
+    ]
+  },
+  "expected": []
+}

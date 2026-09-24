@@ -1,0 +1,144 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "login-and-logout",
+    "title": "Log in and log out as operator",
+    "tags": [
+      "smoke",
+      "auth"
+    ],
+    "sourceHash": "sha256:78bb1a33e4149101a7ec91256407bb7309f313ef6fb4adb0048bcf6e416896d2"
+  },
+  "target": {
+    "baseUrl": "${env.BASE_URL}",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "en-GB",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "secrets": [
+    "OPERATOR_PASSWORD"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "intent": "Open the login page",
+      "action": {
+        "type": "navigate",
+        "url": "/login"
+      }
+    },
+    {
+      "id": "s2",
+      "intent": "Enter the operator user name",
+      "risk": "write",
+      "action": {
+        "type": "fill",
+        "target": {
+          "description": "User name field of the login form",
+          "hints": {
+            "label": "User name"
+          }
+        },
+        "value": "operator"
+      }
+    },
+    {
+      "id": "s3",
+      "intent": "Enter the operator password",
+      "risk": "write",
+      "action": {
+        "type": "fill",
+        "target": {
+          "description": "Password field of the login form",
+          "hints": {
+            "label": "Password"
+          }
+        },
+        "value": "${secret.OPERATOR_PASSWORD}"
+      }
+    },
+    {
+      "id": "s4",
+      "intent": "Submit the login form",
+      "risk": "write",
+      "action": {
+        "type": "press",
+        "keys": "Enter",
+        "target": {
+          "description": "Password field of the login form"
+        }
+      },
+      "within": "10s",
+      "expect": [
+        {
+          "kind": "url",
+          "op": "contains",
+          "value": "/overview"
+        },
+        {
+          "kind": "noul",
+          "statement": "The header shows the name of the signed-in operator.",
+          "criteria": {
+            "true": "A user name appears in the page header.",
+            "false": "No user name appears in the page header."
+          }
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "intent": "Open the user menu",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "User menu button in the page header",
+          "hints": {
+            "role": "button"
+          }
+        }
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Log out entry of the user menu"
+          },
+          "op": "visible"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "intent": "Log out",
+      "risk": "write",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Log out entry of the user menu",
+          "hints": {
+            "role": "menuitem",
+            "text": "Log out"
+          }
+        }
+      },
+      "expect": [
+        {
+          "kind": "url",
+          "op": "matches",
+          "value": "/login(\\?.*)?$"
+        }
+      ]
+    }
+  ]
+}

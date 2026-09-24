@@ -1,0 +1,12 @@
+{
+  "runId": "run_01J8",
+  "verdict": "failed",
+  "flags": {
+    "adjudicated": false,
+    "healed": true
+  },
+  "credits": {
+    "reserved": 48,
+    "settled": 31
+  }
+}

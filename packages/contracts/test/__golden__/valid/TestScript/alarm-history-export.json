@@ -1,0 +1,139 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "alarm-history-export",
+    "title": "Export the alarm history",
+    "tags": [
+      "alarms",
+      "export"
+    ]
+  },
+  "target": {
+    "baseUrl": "${env.BASE_URL}",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "en-GB",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "intent": "Open the alarm history",
+      "action": {
+        "type": "navigate",
+        "url": "/alarms/history"
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Rows of the alarm history table"
+          },
+          "op": "countEquals",
+          "value": 25
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "intent": "Read the total number of alarms",
+      "action": {
+        "type": "extract",
+        "target": {
+          "description": "Total counter below the alarm history table"
+        },
+        "into": "alarmTotal",
+        "parse": "number"
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Total counter below the alarm history table"
+          },
+          "op": "numberCompare",
+          "cmp": "ge",
+          "value": 25
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "intent": "Read the export reference",
+      "action": {
+        "type": "extract",
+        "target": {
+          "description": "Export reference label in the toolbar"
+        },
+        "into": "exportRef",
+        "parse": "regex",
+        "pattern": "EXP-([0-9]+)"
+      }
+    },
+    {
+      "id": "s4",
+      "intent": "Read the page subtitle",
+      "action": {
+        "type": "extract",
+        "target": {
+          "description": "Subtitle of the alarm history page"
+        },
+        "into": "subtitle",
+        "parse": "text"
+      }
+    },
+    {
+      "id": "s5",
+      "intent": "Upload the alarm filter preset",
+      "risk": "write",
+      "action": {
+        "type": "upload",
+        "target": {
+          "description": "Preset file input of the filter panel",
+          "hints": {
+            "label": "Preset"
+          }
+        },
+        "file": "datasets/filters/night-shift.json"
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Average duration cell of the summary row"
+          },
+          "op": "numberCompare",
+          "cmp": "lt",
+          "value": 12.5,
+          "tolerance": 0.5
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "intent": "Fetch the export through the API",
+      "action": {
+        "type": "http",
+        "request": {
+          "method": "GET",
+          "url": "${env.API_URL}/exports/${var.exportRef}",
+          "headers": {
+            "Accept": "text/csv"
+          }
+        },
+        "expectStatus": 200,
+        "into": "exportCsv"
+      }
+    }
+  ]
+}

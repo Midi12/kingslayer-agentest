@@ -1,0 +1,139 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "synoptic-navigation",
+    "title": "Navigate the plant synoptic"
+  },
+  "target": {
+    "baseUrl": "https://hmi.test",
+    "viewport": {
+      "width": 2560,
+      "height": 1440
+    },
+    "locale": "fr-FR",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "intent": "Open the plant synoptic",
+      "action": {
+        "type": "navigate",
+        "url": "/synoptic/plant"
+      },
+      "expectedScreen": "Plant synoptic with the conveyor loop",
+      "expect": [
+        {
+          "kind": "url",
+          "op": "equals",
+          "value": "/synoptic/plant"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "intent": "Zoom into the sorter area",
+      "action": {
+        "type": "dblclick",
+        "target": {
+          "description": "Sorter area of the plant synoptic",
+          "hints": {
+            "region": "Synoptic"
+          }
+        }
+      }
+    },
+    {
+      "id": "s3",
+      "intent": "Show the context menu of diverter D4",
+      "action": {
+        "type": "rightclick",
+        "target": {
+          "description": "Diverter D4 symbol in the sorter area",
+          "hints": {
+            "near": "D4"
+          }
+        }
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Context menu of diverter D4"
+          },
+          "op": "exists"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "intent": "Show the tooltip of diverter D4",
+      "action": {
+        "type": "hover",
+        "target": {
+          "description": "Diverter D4 symbol in the sorter area"
+        }
+      },
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Tooltip of diverter D4"
+          },
+          "op": "textMatches",
+          "pattern": "^D4 .*(Left|Right)$"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "intent": "Move the tote marker to lane 3",
+      "risk": "write",
+      "action": {
+        "type": "drag",
+        "source": {
+          "description": "Tote marker on lane 1 of the sorter"
+        },
+        "destination": {
+          "description": "Drop zone of lane 3 in the sorter"
+        }
+      }
+    },
+    {
+      "id": "s6",
+      "intent": "Scroll the event log down",
+      "action": {
+        "type": "scroll",
+        "target": {
+          "description": "Event log panel on the right side"
+        },
+        "direction": "down",
+        "amount": 600
+      }
+    },
+    {
+      "id": "s7",
+      "intent": "Scroll the page back up",
+      "action": {
+        "type": "scroll",
+        "direction": "up",
+        "amount": 2000
+      },
+      "expect": [
+        {
+          "kind": "url",
+          "op": "contains",
+          "value": "synoptic"
+        }
+      ]
+    }
+  ]
+}

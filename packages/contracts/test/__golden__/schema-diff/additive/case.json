@@ -1,0 +1,4 @@
+{
+  "note": "only additive changes: new optional property, wider enum, new variant, relaxed bound, new schema",
+  "expectedKinds": []
+}

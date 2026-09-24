@@ -1,0 +1,114 @@
+{
+  "context": {
+    "criticalVerbs": [
+      "delete",
+      "stop",
+      "reset",
+      "purge",
+      "emergency"
+    ],
+    "allowedOrigins": [
+      "https://hmi.test"
+    ],
+    "allowedHttpHosts": [
+      "sim.test:8443"
+    ],
+    "runTimeoutMs": 900000
+  },
+  "script": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "l5-fail",
+      "title": "Lint fixture l5-fail"
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "handlers": [
+      {
+        "id": "h-alarm",
+        "when": {
+          "kind": "probe",
+          "name": "error_ui"
+        },
+        "steps": [
+          {
+            "id": "h-alarm-1",
+            "intent": "Reset the alarm counter",
+            "action": {
+              "type": "click",
+              "target": {
+                "description": "Reset button of the alarm counter"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "s1",
+        "intent": "Stop conveyor C12",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Stop button in the row of conveyor C12"
+          }
+        },
+        "risk": "write"
+      },
+      {
+        "id": "s2",
+        "intent": "Delete the recipe R-204",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Delete button of recipe R-204"
+          }
+        }
+      },
+      {
+        "id": "s3",
+        "intent": "Purging the line buffer",
+        "action": {
+          "type": "click",
+          "target": {
+            "description": "Purge button of the line buffer panel"
+          }
+        }
+      }
+    ]
+  },
+  "expected": [
+    {
+      "code": "L5",
+      "stepId": "s1"
+    },
+    {
+      "code": "L5",
+      "stepId": "s2"
+    },
+    {
+      "code": "L5",
+      "stepId": "s3"
+    },
+    {
+      "code": "L5",
+      "stepId": "h-alarm-1"
+    }
+  ]
+}

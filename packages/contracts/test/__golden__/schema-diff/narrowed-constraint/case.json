@@ -1,0 +1,6 @@
+{
+  "note": "Target.description maxLength went from 500 to 200",
+  "expectedKinds": [
+    "narrowed-constraint"
+  ]
+}

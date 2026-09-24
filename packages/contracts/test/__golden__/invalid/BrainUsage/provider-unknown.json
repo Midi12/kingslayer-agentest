@@ -1,0 +1,15 @@
+{
+  "reason": "providers are jev, llm or none",
+  "expectedPath": "/provider",
+  "document": {
+    "provider": "openai",
+    "model": "analyst-standard",
+    "calls": 1,
+    "inputTokens": 5800,
+    "outputTokens": 2900,
+    "billable": {
+      "operation": "compile",
+      "quantity": 1
+    }
+  }
+}

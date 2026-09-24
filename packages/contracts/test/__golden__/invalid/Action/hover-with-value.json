@@ -1,0 +1,11 @@
+{
+  "reason": "hover takes only a target",
+  "expectedPath": "/value",
+  "document": {
+    "type": "hover",
+    "target": {
+      "description": "Diverter D4 symbol in the sorter area"
+    },
+    "value": "x"
+  }
+}

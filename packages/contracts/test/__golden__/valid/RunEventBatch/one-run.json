@@ -1,0 +1,268 @@
+[
+  {
+    "runId": "run_01J8",
+    "seq": 1,
+    "ts": "2026-09-21T10:15:01.000Z",
+    "type": "run.started",
+    "data": {
+      "runnerId": "rnr_7",
+      "scriptHash": "sha256:21a0270b7f66a1e4c25933f13a1e5a1bbb4757578072930c8189131f9c6aaae1",
+      "environment": {
+        "id": "env_3",
+        "name": "staging",
+        "kind": "staging",
+        "baseUrl": "https://hmi.test"
+      },
+      "policy": {
+        "strict": false,
+        "onBreak": "escalate",
+        "failOnConsoleError": false,
+        "shareScreenshotsWithLlm": "on-break",
+        "artifacts": "on-failure",
+        "pii": "standard",
+        "degrade": "analyst",
+        "healApproval": "manual"
+      },
+      "versions": {
+        "engine": "0.1.0",
+        "questions": "q-1",
+        "thresholds": "jev-1.13.0",
+        "models": {
+          "navigator": "jev-1.13.0",
+          "analyst": "analyst-standard"
+        }
+      }
+    },
+    "prev": null
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 2,
+    "ts": "2026-09-21T10:15:02.000Z",
+    "type": "step.started",
+    "stepId": "s3",
+    "data": {
+      "attempt": 1,
+      "index": 2
+    },
+    "prev": "sha256:ce36863f51b6baf9d16397ffb3e9af506b284a816f72d487e55943c1fd974d6d"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 3,
+    "ts": "2026-09-21T10:15:03.000Z",
+    "type": "observation.captured",
+    "stepId": "s3",
+    "data": {
+      "obsId": "obs_01J8",
+      "digestHash": "sha256:fe3b313e0a6b65bb99b6764f3cb3db68bc67246a5ba30d7d86ecaef61b52c152",
+      "artifacts": [
+        "art://runs/r1/s3/before.png"
+      ]
+    },
+    "prev": "sha256:b4e3d14e7519279e6a352f776d75a905a9de9a27efdb6d802fe4e700224ade2e"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 4,
+    "ts": "2026-09-21T10:15:04.000Z",
+    "type": "navigator.ground",
+    "stepId": "s3",
+    "data": {
+      "requestHash": "sha256:dbb3b50e59c7326b2ff7d6619430257b9188cf3c0b8d778f7275ffd3bf4998a2",
+      "pick": "c17",
+      "confidence": 0.93,
+      "top": [
+        {
+          "cid": "c17",
+          "p": 0.95
+        },
+        {
+          "cid": "c16",
+          "p": 0.05
+        }
+      ],
+      "targetPresent": 0.97,
+      "source": "jev",
+      "latencyMs": 212,
+      "inputTokens": 1830
+    },
+    "prev": "sha256:1441ba5507f9658d9bea29b0d9567e6900468e0153fa990194e0f0f94699694b"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 5,
+    "ts": "2026-09-21T10:15:05.000Z",
+    "type": "action.performed",
+    "stepId": "s3",
+    "data": {
+      "type": "click",
+      "locator": "getByTestId('start-c12')",
+      "durationMs": 88,
+      "error": null
+    },
+    "prev": "sha256:7867155e59d4840ba0ddc4e8a2105ef5c2da06643a2a0c51891cd41ae063eb97"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 6,
+    "ts": "2026-09-21T10:15:06.000Z",
+    "type": "navigator.verify",
+    "stepId": "s3",
+    "data": {
+      "requestHash": "sha256:a12dd3a7fd3203a452eb34d91a9be20569d5e337a3384347068895c07f3e0c5a",
+      "answers": {
+        "expect_0": 0.93,
+        "probe_error_ui": 0.04
+      },
+      "latencyMs": 301,
+      "inputTokens": 5980
+    },
+    "prev": "sha256:2e46e678bb4f65f93919deca4cfccb22d0fda59b85464af3b8a69e955233f91e"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 7,
+    "ts": "2026-09-21T10:15:07.000Z",
+    "type": "check.evaluated",
+    "stepId": "s3",
+    "data": {
+      "kind": "color",
+      "index": 1,
+      "outcome": "pass",
+      "measured": {
+        "color": "green",
+        "ratio": 0.82
+      }
+    },
+    "prev": "sha256:dee9b7bd6593cfa90d48e86c6bcd59cf68cc997e4500a498fb33c553c21ba133"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 8,
+    "ts": "2026-09-21T10:15:08.000Z",
+    "type": "decision.made",
+    "stepId": "s3",
+    "data": {
+      "rule": 11,
+      "decision": "CONTINUE",
+      "reason": null
+    },
+    "prev": "sha256:5976124a116880e33f397dc0a913686e1b2b7e11043a1990077d5f8dadb8f05c"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 9,
+    "ts": "2026-09-21T10:15:09.000Z",
+    "type": "step.finished",
+    "stepId": "s3",
+    "data": {
+      "attempt": 1,
+      "outcome": "passed",
+      "durationMs": 2100,
+      "reason": null
+    },
+    "prev": "sha256:0dbabc9cc3b7edd7f84234f185d187fee0bd7e6423add65d53f37aedd9fedb01"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 10,
+    "ts": "2026-09-21T10:15:10.000Z",
+    "type": "handler.fired",
+    "stepId": "s4",
+    "data": {
+      "handlerId": "h-relogin"
+    },
+    "prev": "sha256:4beef4f5053f170d7c2bfd69180ea5e3ed6e3ce487a14b6e7e3a6795358b8277"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 11,
+    "ts": "2026-09-21T10:15:11.000Z",
+    "type": "escalation.requested",
+    "stepId": "s5",
+    "data": {
+      "packetRef": "art://runs/r1/s5/packet-1.json",
+      "reason": "EXPECTATION_UNCERTAIN",
+      "attempt": 1
+    },
+    "prev": "sha256:ca7731e11bd510a2d86738aeb730b11531ceeb6a1a5f0c21ec2b25bf0549237c"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 12,
+    "ts": "2026-09-21T10:15:12.000Z",
+    "type": "escalation.decided",
+    "stepId": "s5",
+    "data": {
+      "decision": "MARK_FAILED_CONTINUE",
+      "classification": "PRODUCT_DEFECT",
+      "valid": true,
+      "errors": [],
+      "repaired": false,
+      "inputTokens": 17890,
+      "outputTokens": 640
+    },
+    "prev": "sha256:182e682c84d74cdd7ca6552c7bd01a5e09a6c3500a01d112b25769620055df03"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 13,
+    "ts": "2026-09-21T10:15:13.000Z",
+    "type": "artifact.stored",
+    "stepId": "s5",
+    "data": {
+      "kind": "frame",
+      "ref": "art://runs/r1/ring/f408.jpg",
+      "bytes": 48213,
+      "sha256": "sha256:9dff50df08c635815f4b19da10f756605a34a79a48d4ba48712782502975a70e"
+    },
+    "prev": "sha256:80179e34a2d8caf07b74cba2e7cd78ed0946716503e8c20c5cce4a08ced95bd0"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 14,
+    "ts": "2026-09-21T10:15:14.000Z",
+    "type": "usage.recorded",
+    "stepId": "s5",
+    "data": {
+      "operation": "escalation",
+      "quantity": 1
+    },
+    "prev": "sha256:a797c16f8729ea29beaf2a23ea87c858d08649b3e712841a24b7af8e26fdd41f"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 15,
+    "ts": "2026-09-21T10:15:15.000Z",
+    "type": "usage.recorded",
+    "data": {
+      "operation": "runner_minute",
+      "quantity": 2
+    },
+    "prev": "sha256:428ba7d91bd2b38e40ee6baac0d82ec111351ac72553526eca9c0910b37fe182"
+  },
+  {
+    "runId": "run_01J8",
+    "seq": 16,
+    "ts": "2026-09-21T10:15:16.000Z",
+    "type": "run.finished",
+    "data": {
+      "termination": "completed",
+      "reason": null,
+      "counters": {
+        "steps": 7,
+        "passed": 5,
+        "failed": 1,
+        "broken": 0,
+        "skipped": 1,
+        "escalations": 1,
+        "handlerFirings": 0,
+        "jevCalls": 13,
+        "llmCalls": 2,
+        "durationMs": 74211
+      }
+    },
+    "prev": "sha256:c5f2b63ac29c15bdd260dc84d10abec17920cb729c6a6a3d15f74892af06a80a"
+  }
+]

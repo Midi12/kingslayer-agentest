@@ -1,0 +1,19 @@
+{
+  "artifacts": [
+    {
+      "kind": "screenshot",
+      "name": "s3/before.png",
+      "contentType": "image/png",
+      "bytes": 120433,
+      "sha256": "sha256:6db7d803e74f1ffa7d8f5adc0bf95b3e15bf4c8373fffadf546227cc6c6742cb",
+      "stepId": "s3"
+    },
+    {
+      "kind": "trace",
+      "name": "trace.zip",
+      "contentType": "application/zip",
+      "bytes": 4400100,
+      "sha256": "sha256:eafe895eb8119e6e5d06463590b2ef81b3651c157d5c8e18f1889186c7fd0ac0"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+Visual regression of the energy dashboard (dashboard-visual-regression)
+Tags: visual
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+
+Steps
+1. [s1] Open the energy dashboard
+   Action: Go to /energy
+   Expect: Screen matches baseline "energy-dashboard" with a pixel difference ratio of at most 0.02, masking "Live clock in the header", rectangle 1920x80 at 0,1000
+2. [s2] Check the feeder lamps
+   Action: Check the expectations
+   Expect: Colour of "Status lamp of feeder F1" is not red
+   Expect: Colour of "Status lamp of feeder F2" [locator "[data-testid=lamp-f2]"] is amber
+   Expect: "Warning beacon of feeder F2" in frame "beacons" blinks between 1 and 2.5 Hz
+3. [s3] Open the embedded meter panel
+   Action: Click "Details button of the meter panel" (role button, test id "meter-details") in frame "meters"
+   Expect: Screen matches baseline "meter-details" with a pixel difference ratio of at most 0

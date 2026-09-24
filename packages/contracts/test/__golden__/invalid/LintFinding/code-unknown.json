@@ -1,0 +1,11 @@
+{
+  "reason": "lint codes are L1 to L8",
+  "expectedPath": "/code",
+  "document": {
+    "code": "L9",
+    "stepId": "s2",
+    "path": "/steps/1/action/target/description",
+    "message": "Target description \"Start\" has 1 word, at least three are needed.",
+    "severity": "error"
+  }
+}

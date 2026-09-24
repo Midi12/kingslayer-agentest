@@ -1,0 +1,6 @@
+{
+  "note": "Step now rejects unknown properties",
+  "expectedKinds": [
+    "closed-object"
+  ]
+}

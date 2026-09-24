@@ -1,0 +1,123 @@
+{
+  "apiVersion": "argus/v1",
+  "kind": "TestScript",
+  "metadata": {
+    "name": "emergency-stop-drill",
+    "title": "Emergency stop drill on line 2",
+    "tags": [
+      "safety"
+    ]
+  },
+  "target": {
+    "baseUrl": "${env.BASE_URL}",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "en-GB",
+    "timezone": "Europe/Paris"
+  },
+  "policy": {
+    "strict": false,
+    "onBreak": "escalate",
+    "failOnConsoleError": false,
+    "shareScreenshotsWithLlm": "on-break",
+    "artifacts": "on-failure"
+  },
+  "handlers": [
+    {
+      "id": "h-confirm",
+      "when": {
+        "kind": "noul",
+        "statement": "A confirmation dialog asks to confirm the emergency stop."
+      },
+      "steps": [
+        {
+          "id": "h-confirm-1",
+          "intent": "Confirm the emergency stop dialog",
+          "risk": "critical",
+          "action": {
+            "type": "click",
+            "target": {
+              "description": "Confirm button of the emergency stop dialog",
+              "hints": {
+                "role": "button"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "intent": "Open the line 2 control page",
+      "action": {
+        "type": "navigate",
+        "url": "/lines/2"
+      }
+    },
+    {
+      "id": "s2",
+      "intent": "Trigger the emergency stop of line 2",
+      "risk": "critical",
+      "allowInProduction": false,
+      "artifacts": "full",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Emergency stop button of line 2",
+          "hints": {
+            "role": "button",
+            "text": "E-STOP"
+          }
+        }
+      },
+      "within": "3s",
+      "expect": [
+        {
+          "kind": "noul",
+          "statement": "The line 2 status banner reports an emergency stop."
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "intent": "Wait for line 2 to come to rest",
+      "action": {
+        "type": "wait"
+      },
+      "within": "30s",
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Line 2 status banner"
+          },
+          "op": "textEquals",
+          "value": "EMERGENCY STOP"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "intent": "Reset the emergency stop",
+      "risk": "critical",
+      "action": {
+        "type": "press",
+        "keys": "F12"
+      },
+      "within": "1m",
+      "expect": [
+        {
+          "kind": "dom",
+          "target": {
+            "description": "Line 2 status banner"
+          },
+          "op": "absent"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "reason": "a script has at least one step",
+  "expectedPath": "/steps",
+  "document": {
+    "apiVersion": "argus/v1",
+    "kind": "TestScript",
+    "metadata": {
+      "name": "conveyor-start-and-jam",
+      "title": "Start C12 and handle a jam",
+      "tags": [
+        "smoke",
+        "conveyors"
+      ],
+      "sourceHash": "sha256:0bc2d8bf36a96eac2477a479451ecb86b91a50a77c3df85e03235738207c1aac",
+      "compiler": {
+        "model": "analyst-standard",
+        "promptVersion": "c-3"
+      }
+    },
+    "target": {
+      "baseUrl": "${env.BASE_URL}",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "locale": "en-GB",
+      "timezone": "Europe/Paris"
+    },
+    "policy": {
+      "strict": false,
+      "onBreak": "escalate",
+      "failOnConsoleError": false,
+      "shareScreenshotsWithLlm": "on-break",
+      "artifacts": "on-failure"
+    },
+    "variables": {
+      "conveyor": "C12"
+    },
+    "secrets": [
+      "OPERATOR_PASSWORD"
+    ],
+    "handlers": [
+      {
+        "id": "h-relogin",
+        "when": {
+          "kind": "probe",
+          "name": "auth_lost"
+        },
+        "steps": [
+          {
+            "id": "h-relogin-1",
+            "use": "login-operator"
+          }
+        ]
+      }
+    ],
+    "steps": []
+  }
+}

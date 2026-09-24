@@ -1,0 +1,34 @@
+{
+  "lint": [
+    {
+      "code": "L1",
+      "stepId": "s2",
+      "path": "/steps/1/action/target/description",
+      "message": "Target description \"Start\" has 1 word, at least three are needed.",
+      "severity": "error"
+    }
+  ],
+  "clarifications": [
+    {
+      "id": "q1",
+      "question": "Which conveyor should be started: C12 on line 1 or C12 on line 2?",
+      "stepId": "s3",
+      "sourceExcerpt": "Start conveyor C12",
+      "options": [
+        "Line 1",
+        "Line 2"
+      ]
+    }
+  ],
+  "usage": {
+    "provider": "llm",
+    "model": "analyst-standard",
+    "calls": 1,
+    "inputTokens": 5800,
+    "outputTokens": 2900,
+    "billable": {
+      "operation": "compile",
+      "quantity": 1
+    }
+  }
+}

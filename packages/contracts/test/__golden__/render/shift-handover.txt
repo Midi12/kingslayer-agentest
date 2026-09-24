@@ -1,0 +1,21 @@
+Shift handover checklist (shift-handover)
+Target: ${env.BASE_URL}, viewport 1920x1080, locale en-GB, time zone Europe/Paris
+Policy: not strict, on break escalate, console errors ignored, screenshots to the LLM on-break, artifacts on-failure
+Secrets: OPERATOR_PASSWORD
+
+Steps
+1. [s1] Log in as the incoming operator: Use fragment login-operator
+2. [s2] Open the shift log
+   Action: Go to /shift/log
+   Expect: "Open entries section of the shift log" exists
+   Expect: "Unsigned warning of the shift log" is absent
+3. [s3] Sign the handover (risk write)
+   Action: Click "Sign handover button of the shift log" (role button)
+   Expect: "Handover signature line of the shift log" is visible
+
+Handlers
+- [h-relogin] When the probe auth_lost fires:
+  1. [h-relogin-1] Use fragment login-operator
+- [h-modal] When the probe blocking_modal fires:
+  1. [h-modal-1] Dismiss the blocking dialog
+     Action: Press Escape

@@ -1,0 +1,20 @@
+{
+  "pick": null,
+  "confidence": 0.41,
+  "probabilities": {
+    "c17": 0.52,
+    "c16": 0.48
+  },
+  "targetPresent": 0.62,
+  "confirm": {
+    "c17": 0.55,
+    "c16": 0.51
+  },
+  "model": "jev-1.13.0",
+  "usage": {
+    "inputTokens": 5210,
+    "outputTokens": 0
+  },
+  "latencyMs": 640,
+  "cacheHit": true
+}

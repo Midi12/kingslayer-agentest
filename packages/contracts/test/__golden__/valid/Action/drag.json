@@ -1,0 +1,9 @@
+{
+  "type": "drag",
+  "source": {
+    "description": "Tote marker on lane 1 of the sorter"
+  },
+  "destination": {
+    "description": "Drop zone of lane 3 in the sorter"
+  }
+}

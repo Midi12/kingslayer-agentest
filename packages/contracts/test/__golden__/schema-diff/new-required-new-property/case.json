@@ -1,0 +1,6 @@
+{
+  "note": "Step gained a new required property owner",
+  "expectedKinds": [
+    "new-required"
+  ]
+}

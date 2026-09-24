@@ -1,0 +1,24 @@
+{
+  "id": "s2",
+  "intent": "Trigger the emergency stop of line 2",
+  "risk": "critical",
+  "allowInProduction": false,
+  "artifacts": "full",
+  "action": {
+    "type": "click",
+    "target": {
+      "description": "Emergency stop button of line 2",
+      "hints": {
+        "role": "button",
+        "text": "E-STOP"
+      }
+    }
+  },
+  "within": "3s",
+  "expect": [
+    {
+      "kind": "noul",
+      "statement": "The line 2 status banner reports an emergency stop."
+    }
+  ]
+}
