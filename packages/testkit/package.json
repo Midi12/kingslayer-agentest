@@ -1,0 +1,44 @@
+{
+  "name": "@argus/testkit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Test support for ARGUS: the Tier A network guard, gate metrics and the shared Vitest preset (fakes land with M03)",
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./network-guard": {
+      "@argus/source": "./src/network-guard.ts",
+      "types": "./dist/network-guard.d.ts",
+      "default": "./dist/network-guard.js"
+    },
+    "./network-guard/setup": {
+      "@argus/source": "./src/network-guard.setup.ts",
+      "types": "./dist/network-guard.setup.d.ts",
+      "default": "./dist/network-guard.setup.js"
+    },
+    "./vitest-preset": {
+      "@argus/source": "./src/vitest-preset.ts",
+      "types": "./dist/vitest-preset.d.ts",
+      "default": "./dist/vitest-preset.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "test:gate-g4": "vitest run test/gate-g4.test.ts"
+  },
+  "peerDependencies": {
+    "vitest": "3.2.7"
+  }
+}
