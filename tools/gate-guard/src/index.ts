@@ -1,0 +1,12 @@
+export { NEUTRAL_GLOBS, PROTECTED_GLOBS, classifyChange, classifyPath } from './core/classify.js';
+export type { Classification, PathClass } from './core/classify.js';
+export { globToRegExp, normalizePath } from './core/globs.js';
+export { CONVENTIONAL_TYPES, isConventionalSubject } from './core/conventional.js';
+export { GUARD_USAGE, parseFileList, parseGuardArgs } from './core/cli-args.js';
+export type { GuardCommand } from './core/cli-args.js';
+export { RepositoryError } from './ports/index.js';
+export type { CommitInfo, GuardIo, Repository } from './ports/index.js';
+export { guardCli } from './app/guard.js';
+export type { GuardDeps } from './app/guard.js';
+export { GitRepository } from './adapters/git-repository.js';
+export { NodeGuardIo } from './adapters/node-io.js';

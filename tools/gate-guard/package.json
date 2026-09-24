@@ -1,0 +1,36 @@
+{
+  "name": "@argus/gate-guard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Protected-path guard: protected paths never change together with implementation code",
+  "bin": {
+    "gate-guard": "./bin/gate-guard.js"
+  },
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "test:gate-g5": "vitest run test/gate-g5.test.ts"
+  },
+  "dependencies": {
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@argus/testkit": "workspace:*"
+  }
+}
