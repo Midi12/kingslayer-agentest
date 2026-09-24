@@ -1,0 +1,38 @@
+# ADR M00-ci: CI jobs
+
+- Status: accepted
+- Date: 2026-09-24
+- Module: M00
+
+## Context
+
+ADR-0001 makes GitHub Actions the active pipeline with `.gitlab-ci.yml` as a reference.
+Plan section 4.3 lists `gate-guard`, `tier-a` (in `argus/toolchain`, network guard on,
+no egress) and `build-images`, plus a nightly Tier B.
+
+## Decision
+
+- `.github/workflows/ci.yml`, on pull requests, pushes to `main` and `master`, and manual
+  dispatch:
+  - `gate-guard`: `pnpm gate-guard --range <base>..<head> --per-commit --conventional`
+    over the pull request range, the pushed range, or for a new branch the range from its
+    merge base with the default branch.
+  - `tier-a`: `docker compose -f compose.dev.yaml up -d --wait`, `pnpm install
+    --frozen-lockfile`, then `pnpm gate all --tier A` as a dedicated user whose outbound
+    traffic iptables limits to loopback and the Docker bridge networks. Docker builds and
+    the M00-G1 container run in the daemon and keep registry access. The job runs on the
+    runner rather than inside `argus/toolchain`, because that image is not published to a
+    registry until the release pipeline exists; M00-G1 exercises the image on every run.
+  - `build-images`: `docker buildx bake -f deploy/docker/docker-bake.hcl` when that file
+    exists (D1), a message otherwise.
+- `.github/workflows/tier-b.yml`: nightly and on demand, `TYPESAFE_API_KEY` and
+  `ARGUS_LLM_API_KEY` from secrets, `pnpm gate all --tier B`, evidence as artifacts.
+- `.gitlab-ci.yml` has the same jobs; `tier-a` uses Docker-in-Docker so that
+  compose.dev.yaml and the toolchain image behave as on a developer host.
+- `CODEOWNERS` routes the protected paths to a human; the pull request template asks for
+  the evidence file, the ADR links and one line per new dependency.
+
+## Consequences
+
+When images are published, `tier-a` can move into `argus/toolchain` with the same
+commands.

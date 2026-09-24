@@ -24,3 +24,26 @@ gates/         Mxx.yaml  evidence/
 deploy/        docker/  compose.*.yaml  helm/  cloud/  install.sh  images.lock
 docs/          plan/  spec/  adr/
 ```
+
+## Development
+
+Node 22, pnpm 10 (through corepack) and Docker with Compose v2.
+
+```sh
+pnpm install
+DOCKERHUB_MIRROR=mirror.gcr.io docker compose -f compose.dev.yaml up -d --wait  # postgres :5432, S3 :9000
+pnpm build              # turbo: every package's dist
+pnpm typecheck          # tsc --noEmit per package (sources through the @argus/source condition)
+pnpm lint               # ESLint, typescript-eslint strict
+pnpm test               # Vitest per package, behind the Tier A network guard, with coverage
+pnpm depcruise          # dependency rules (.dependency-cruiser.cjs)
+pnpm format             # Prettier
+pnpm gate M00           # one module's gates; writes gates/evidence/M00.json
+pnpm gate all --tier A  # the regression suite
+pnpm g0 tools/gate      # global gate G0 on package directories
+pnpm gate-guard --range origin/main..HEAD --per-commit  # protected paths, commit by commit
+```
+
+`tools/gate/README.md` documents gate files, pass expressions and evidence; `.env.example`
+the environment variables. `argus/toolchain:dev` (`deploy/docker/toolchain.Dockerfile`) is
+the CI image and dev container.
