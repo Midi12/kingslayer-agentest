@@ -85,6 +85,30 @@ describe('guardCli', () => {
     expect(await guardCli(['--files', 'absent'], deps(io))).toBe(2);
   });
 
+  it('uses the commit subject for tests next to protected paths', async () => {
+    const io = new MemoryIo({ both: 'gates/M01.yaml\npackages/c/test/gate-g1.test.ts\n' });
+    expect(await guardCli(['--files', 'both'], deps(io))).toBe(0);
+    expect(
+      await guardCli(
+        ['--files', 'both', '--subject', 'test(M01): gates and failing tests'],
+        deps(io),
+      ),
+    ).toBe(0);
+    expect(await guardCli(['--files', 'both', '--subject', 'fix(M01): relax'], deps(io))).toBe(1);
+    expect(io.lines.join('\n')).toMatch(/test {12}packages\/c\/test\/gate-g1.test.ts/);
+    expect(io.lines.join('\n')).toMatch(/gate-change commits/);
+    const weakened = new FakeRepository([
+      ...history,
+      {
+        sha: 'c'.repeat(40),
+        parents: ['b'.repeat(40)],
+        subject: 'fix(M06): relax the gate',
+        files: ['gates/M06.yaml', 'packages/n/test/gate-g1.test.ts'],
+      },
+    ]);
+    expect(await guardCli(['--range', 'x..y', '--per-commit'], deps(io, weakened))).toBe(1);
+  });
+
   it('checks a range per commit or combined', async () => {
     const io = new MemoryIo();
     expect(await guardCli(['--range', 'x..y', '--per-commit'], deps(io))).toBe(0);

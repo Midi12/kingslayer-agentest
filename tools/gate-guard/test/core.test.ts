@@ -5,8 +5,10 @@ import {
   GUARD_USAGE,
   NEUTRAL_GLOBS,
   PROTECTED_GLOBS,
+  TEST_GLOBS,
   classifyChange,
   classifyPath,
+  isGateCommitSubject,
   globToRegExp,
   isConventionalSubject,
   normalizePath,
@@ -49,20 +51,21 @@ describe('classification', () => {
       'prompts/**',
       'packages/navigator/src/questions.ts',
     ]);
-    expect(NEUTRAL_GLOBS).toContain('gates/evidence/**');
-    expect(NEUTRAL_GLOBS).toContain('docs/gate-changes/**');
+    expect(NEUTRAL_GLOBS).toEqual(['gates/evidence/**', 'docs/gate-changes/**']);
+    expect(TEST_GLOBS).toContain('**/*.test.*');
   });
 
-  it('classifies paths, protected before neutral', () => {
+  it('classifies paths, protected before neutral and tests', () => {
     expect(classifyPath('gates/M00.yaml')).toBe('protected');
     expect(classifyPath('packages/x/test/__golden__/a.json')).toBe('protected');
     expect(classifyPath('gates/evidence/M00.json')).toBe('neutral');
-    expect(classifyPath('packages/x/test/a.test.ts')).toBe('neutral');
-    expect(classifyPath('packages/x/src/a.spec.ts')).toBe('neutral');
+    expect(classifyPath('docs/gate-changes/M00-1.md')).toBe('neutral');
+    expect(classifyPath('packages/x/test/a.test.ts')).toBe('test');
+    expect(classifyPath('packages/x/src/a.spec.ts')).toBe('test');
     expect(classifyPath('packages/x/src/a.ts')).toBe('implementation');
     expect(classifyPath('.\\gates\\M01.yaml')).toBe('protected');
-    expect(classifyPath('tools/gate/test/fixtures/a.txt')).toBe('neutral');
-    expect(classifyPath('apps/api/test/helpers.ts')).toBe('neutral');
+    expect(classifyPath('tools/gate/test/fixtures/a.txt')).toBe('test');
+    expect(classifyPath('apps/api/test/helpers.ts')).toBe('test');
     expect(classifyPath('packages/x/src/test/helpers.ts')).toBe('implementation');
     expect(classifyPath('apps/fixture-hmi/src/test/page.ts')).toBe('implementation');
   });
@@ -73,9 +76,43 @@ describe('classification', () => {
     expect(classifyChange(['', 'src/a.ts', 'src/a.ts'])).toEqual({
       protected: [],
       neutral: [],
+      tests: [],
       implementation: ['src/a.ts'],
+      testsNeutral: true,
       violation: false,
     });
+  });
+
+  it('lets tests accompany protected paths only in gates-first and gate-change commits', () => {
+    const paths = ['gates/M06.yaml', 'packages/n/test/gate-g1.test.ts'];
+    expect(classifyChange(paths).violation).toBe(false);
+    expect(classifyChange(paths, { subject: 'test(M06): gates and failing tests' })).toMatchObject({
+      testsNeutral: true,
+      violation: false,
+    });
+    expect(classifyChange(paths, { subject: 'chore(M06): gate-change 2' }).violation).toBe(false);
+    expect(classifyChange(paths, { subject: 'fix(M06): lower the bound' })).toMatchObject({
+      tests: ['packages/n/test/gate-g1.test.ts'],
+      testsNeutral: false,
+      violation: true,
+    });
+    expect(classifyChange(paths, { subject: 'chore(M06): gate evidence' }).violation).toBe(true);
+    const implementationOnly = ['packages/n/src/a.ts', 'packages/n/test/a.test.ts'];
+    expect(classifyChange(implementationOnly, { subject: 'feat(M06): x' }).violation).toBe(false);
+    expect(
+      classifyChange(['gates/M06.yaml', 'gates/evidence/M06.json'], { subject: 'fix(M06): x' })
+        .violation,
+    ).toBe(false);
+  });
+
+  it('recognises gates-first and gate-change subjects', () => {
+    expect(isGateCommitSubject('test(M06): gates and failing tests')).toBe(true);
+    expect(isGateCommitSubject('test(M06)!: gates')).toBe(true);
+    expect(isGateCommitSubject('chore(M06): gate-change 1')).toBe(true);
+    expect(isGateCommitSubject('chore(M06): gate-changes')).toBe(false);
+    expect(isGateCommitSubject('chore(M06): gate evidence')).toBe(false);
+    expect(isGateCommitSubject('test: no scope')).toBe(false);
+    expect(isGateCommitSubject('feat(M06): test(M06): nested')).toBe(false);
   });
 
   it('never flags a change made of one side plus neutral paths', () => {
@@ -154,6 +191,10 @@ describe('parseGuardArgs', () => {
       ok: true,
       value: { kind: 'files', list: 'list.txt' },
     });
+    expect(parseGuardArgs(['--files', '-', '--subject', 'test(M01): gates'])).toEqual({
+      ok: true,
+      value: { kind: 'files', list: '-', subject: 'test(M01): gates' },
+    });
     expect(parseGuardArgs(['-h'])).toEqual({ ok: true, value: { kind: 'help' } });
     for (const range of ['v1.2.0..HEAD', 'origin/release-1.0..HEAD', 'abc123..def.456']) {
       expect(parseGuardArgs(['--range', range])).toMatchObject({ ok: true, value: { range } });
@@ -176,6 +217,8 @@ describe('parseGuardArgs', () => {
     [['--files', 'x', '--per-commit'], /apply to --range only/],
     [['--files', 'x', '--repo', 'r'], /does not apply to --files/],
     [['--repo'], /needs a directory/],
+    [['--files', 'x', '--subject'], /needs a commit subject/],
+    [['--range', 'a..b', '--subject', 's'], /applies to --files only/],
     [['--bogus'], /unexpected argument --bogus/],
   ])('rejects %j', (argv, message) => {
     const parsed = parseGuardArgs(argv);

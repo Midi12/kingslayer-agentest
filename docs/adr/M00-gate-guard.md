@@ -15,12 +15,18 @@ test files counted as implementation, that commit would always violate the rule.
 
 - Protected, exactly as CLAUDE.md: `gates/*.yaml`, `**/__golden__/**`, `thresholds/**`,
   `prompts/**`, `packages/navigator/src/questions.ts`.
-- Neutral: `gates/evidence/**`, `docs/gate-changes/**`, and tests: a project's root
-  test directory (`apps/*/test/**`, `packages/*/test/**`, `tools/*/test/**`) and
-  `**/*.test.*`, `**/*.spec.*`. A `test/` directory inside `src/` is implementation code.
-  Protected wins, so a golden file under `test/` stays protected.
+- Neutral: `gates/evidence/**`, `docs/gate-changes/**`.
+- Tests: a project's root test directory (`apps/*/test/**`, `packages/*/test/**`,
+  `tools/*/test/**`) and `**/*.test.*`, `**/*.spec.*`; a `test/` directory inside `src/`
+  is implementation code. Protected wins, so a golden file under `test/` stays protected.
+  Tests may change with implementation in any commit. With protected paths they may
+  change only in a commit whose subject is `test(<MOD>): …` (gates first) or
+  `chore(<MOD>): gate-change …` (step 5 of the working loop, where a gate's mechanism can
+  live in its test). When the subject is unknown (`--files` without `--subject`,
+  `--diff`, a range checked as a whole) tests are neutral.
 - Everything else, documentation and package manifests included, is implementation.
-- Violation: protected and implementation paths in the same change.
+- Violation: protected paths with implementation paths in the same change, or with tests
+  in a commit whose known subject is neither of the two above.
 - `--range` without `--per-commit` checks the range as one change; with it, each commit
   against its first parent; merge commits are skipped because their commits are checked
   one by one. `--conventional` also checks subjects:
@@ -32,5 +38,7 @@ test files counted as implementation, that commit would always violate the rule.
 
 ## Consequences
 
-A test can change with either side, which is what the working loop needs. A weakened
-assertion in a test is caught by the independent review (ADR-0015), not by the guard.
+A commit that lowers a bound in `gates/Mxx.yaml` and weakens the matching gate test under
+a `fix(...)` or `feat(...)` subject fails the per-commit check. A gate-change commit can
+still carry both; its note and the independent review (ADR-0015) judge it. A weakened
+assertion in an ordinary implementation commit is also left to the review.

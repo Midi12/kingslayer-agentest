@@ -1,14 +1,18 @@
 export const GUARD_USAGE = `Usage:
   pnpm gate-guard --diff <base> <head>                  merge-request mode: the combined diff base...head
   pnpm gate-guard --range <base>..<head> [--per-commit] each commit separately (ADR-0015), or the whole range
-  pnpm gate-guard --files <file-list|->                 a list of changed paths, one per line
+  pnpm gate-guard --files <file-list|-> [--subject <s>] a list of changed paths, one per line
 Options:
   --conventional   also require conventional commit subjects (range mode)
+  --subject <s>    the commit subject the file list belongs to (files mode)
   --repo <dir>     repository directory (default: current directory)
 
 Fails with exit 1 when protected paths (gates/*.yaml, **/__golden__/**, thresholds/**,
 prompts/**, packages/navigator/src/questions.ts) change together with other paths.
-gates/evidence/**, docs/gate-changes/** and tests are neutral. Exit 2 on usage or git errors.`;
+gates/evidence/**, docs/gate-changes/** are neutral. Tests are neutral too, except next to
+protected paths in a commit whose subject is known and is neither test(<MOD>): ... nor
+chore(<MOD>): gate-change ... (per-commit ranges, --files with --subject).
+Exit 2 on usage or git errors.`;
 
 export type GuardCommand =
   | {
@@ -24,7 +28,7 @@ export type GuardCommand =
       readonly conventional: boolean;
       readonly repo: string | undefined;
     }
-  | { readonly kind: 'files'; readonly list: string }
+  | { readonly kind: 'files'; readonly list: string; readonly subject: string | undefined }
   | { readonly kind: 'help' };
 
 export type Parsed =
@@ -58,6 +62,7 @@ export function parseGuardArgs(argv: readonly string[]): Parsed {
   let range: string | undefined;
   let list: string | undefined;
   let repo: string | undefined;
+  let subject: string | undefined;
   let perCommit = false;
   let conventional = false;
   const setMode = (next: 'diff' | 'range' | 'files'): string | undefined => {
@@ -102,6 +107,13 @@ export function parseGuardArgs(argv: readonly string[]): Parsed {
       case '--conventional':
         conventional = true;
         break;
+      case '--subject':
+        subject = argv[index + 1];
+        index += 1;
+        if (subject === undefined) {
+          problem = '--subject needs a commit subject';
+        }
+        break;
       case '--repo':
         repo = argv[index + 1];
         index += 1;
@@ -115,6 +127,9 @@ export function parseGuardArgs(argv: readonly string[]): Parsed {
     if (problem !== undefined) {
       return { ok: false, error: problem };
     }
+  }
+  if (subject !== undefined && mode !== 'files') {
+    return { ok: false, error: '--subject applies to --files only' };
   }
   if ((perCommit || conventional) && mode !== 'range') {
     return { ok: false, error: '--per-commit and --conventional apply to --range only' };
@@ -131,7 +146,7 @@ export function parseGuardArgs(argv: readonly string[]): Parsed {
       if (repo !== undefined) {
         return { ok: false, error: '--repo does not apply to --files' };
       }
-      return { ok: true, value: { kind: 'files', list: list ?? '' } };
+      return { ok: true, value: { kind: 'files', list: list ?? '', subject } };
     case undefined:
       return { ok: false, error: 'choose --diff, --range or --files' };
   }

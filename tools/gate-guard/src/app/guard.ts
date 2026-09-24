@@ -10,7 +10,7 @@ export interface GuardDeps {
 }
 
 function report(label: string, classification: Classification, io: GuardIo): boolean {
-  const counts = `protected ${String(classification.protected.length)}, implementation ${String(classification.implementation.length)}, neutral ${String(classification.neutral.length)}`;
+  const counts = `protected ${String(classification.protected.length)}, implementation ${String(classification.implementation.length)}, tests ${String(classification.tests.length)}, neutral ${String(classification.neutral.length)}`;
   if (!classification.violation) {
     io.info(`OK         ${label} (${counts})`);
     return true;
@@ -21,6 +21,16 @@ function report(label: string, classification: Classification, io: GuardIo): boo
   }
   for (const path of classification.implementation) {
     io.error(`  implementation  ${path}`);
+  }
+  if (!classification.testsNeutral) {
+    for (const path of classification.tests) {
+      io.error(`  test            ${path}`);
+    }
+    if (classification.tests.length > 0) {
+      io.error(
+        '  tests change with protected paths only in test(<MOD>): or chore(<MOD>): gate-change commits',
+      );
+    }
   }
   return false;
 }
@@ -52,7 +62,7 @@ async function checkRange(
     }
     const files = await repository.commitFiles(commit.sha);
     if (perCommit) {
-      passed = report(label, classifyChange(files), io) && passed;
+      passed = report(label, classifyChange(files, { subject: commit.subject }), io) && passed;
     } else {
       all.push(...files);
     }
@@ -80,7 +90,11 @@ export async function guardCli(argv: readonly string[], deps: GuardDeps): Promis
         return 0;
       case 'files': {
         const files = parseFileList(await io.readList(command.list));
-        return report(`files ${command.list}`, classifyChange(files), io) ? 0 : 1;
+        const label =
+          command.subject === undefined
+            ? `files ${command.list}`
+            : `files ${command.list} (${command.subject})`;
+        return report(label, classifyChange(files, { subject: command.subject }), io) ? 0 : 1;
       }
       case 'diff': {
         const files = await deps.openRepository(command.repo).diffFiles(command.base, command.head);
