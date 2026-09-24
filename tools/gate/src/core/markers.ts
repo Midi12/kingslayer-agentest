@@ -13,11 +13,16 @@ export const MARKER_PATTERNS: readonly MarkerPattern[] = [
   { name: word('TO', 'DO'), pattern: new RegExp(`\\b${word('TO', 'DO')}\\b`) },
   { name: word('FIX', 'ME'), pattern: new RegExp(`\\b${word('FIX', 'ME')}\\b`) },
   { name: word('.', 'skip'), pattern: new RegExp(`\\.${word('sk', 'ip')}(If)?\\b`) },
-  { name: word('.', 'only('), pattern: new RegExp(`\\.${word('on', 'ly')}\\(`) },
+  // The focus modifier as a whole word, so chained forms such as `.each` match as well.
+  { name: word('.', 'only'), pattern: new RegExp(`\\.${word('on', 'ly')}\\b`) },
   { name: word('.', 'todo('), pattern: new RegExp(`\\.${word('to', 'do')}\\(`) },
-  { name: word('x', 'it('), pattern: new RegExp(`\\b${word('x', 'it')}\\(`) },
-  { name: word('x', 'test('), pattern: new RegExp(`\\b${word('x', 'test')}\\(`) },
-  { name: word('x', 'describe('), pattern: new RegExp(`\\b${word('x', 'describe')}\\(`) },
+  // Excluded-test helpers followed by a call, a chained modifier or a template tag.
+  { name: word('x', 'it'), pattern: new RegExp(`\\b${word('x', 'it')}\\s*[(.\`]`) },
+  { name: word('x', 'test'), pattern: new RegExp(`\\b${word('x', 'test')}\\s*[(.\`]`) },
+  {
+    name: word('x', 'describe'),
+    pattern: new RegExp(`\\b${word('x', 'describe')}\\s*[(.\`]`),
+  },
 ];
 
 export interface MarkerHit {

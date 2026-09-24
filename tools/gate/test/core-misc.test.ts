@@ -50,10 +50,17 @@ describe('scanForMarkers', () => {
       `${joined('x', 'describe')}('x', () => {});`,
       `${joined('x', 'test')}('x', () => {});`,
       `${joined('it', '.to', 'do')}('x');`,
+      `${joined('it', '.on', 'ly')}.each([1, 2])('x %i', () => {});`,
+      `${joined('describe', '.on', 'ly')}.each([1])('x', () => {});`,
+      `${joined('test', '.on', 'ly')}.each\`a | b\`('x', () => {});`,
+      `${joined('x', 'it')}.each([1])('x', () => {});`,
+      `${joined('x', 'describe')} ('x', () => {});`,
       'const clean = 1;',
     ].join('\n');
     const hits = scanForMarkers('a.ts', text);
-    expect(hits.map((hit) => hit.line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(hits.map((hit) => hit.line)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
     expect(hits[0]).toEqual({
       file: 'a.ts',
       line: 1,
@@ -70,7 +77,10 @@ describe('scanForMarkers', () => {
       'fixme()',
       'skipped = true',
       'onlyOnce()',
+      'const { onlyIf } = options;',
       'mixit(1)',
+      'const xitem = 1;',
+      'xtests.push(1)',
     ].join('\n');
     expect(scanForMarkers('b.ts', text)).toEqual([]);
   });
