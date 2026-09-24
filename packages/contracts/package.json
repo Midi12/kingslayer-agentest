@@ -34,7 +34,6 @@
     "@sinclair/typebox": "0.34.52"
   },
   "devDependencies": {
-    "@argus/testkit": "workspace:*",
     "ajv": "8.17.1",
     "fast-check": "4.10.2"
   }

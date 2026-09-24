@@ -9,7 +9,7 @@
  * breaking change still fails, because the snapshot it replaced stays in the history.
  * Outside a git work tree every check here fails; nothing falls back.
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { relative, sep } from 'node:path';

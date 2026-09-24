@@ -1,0 +1,38 @@
+{
+  "name": "@argus/fakes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only servers for the fake Jev API, the fake LLM and the cassette proxy (image argus/fakes)",
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "argus-fakes": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "start": "node dist/main.js",
+    "dev": "tsx --conditions=@argus/source src/main.ts",
+    "test:gate-m03-g6": "vitest run --config vitest.docker.config.ts"
+  },
+  "dependencies": {
+    "@argus/testkit": "workspace:*",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@typesafe-ai/sdk": "0.6.0"
+  }
+}

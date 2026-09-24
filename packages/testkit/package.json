@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Test support for ARGUS: the Tier A network guard, gate metrics and the shared Vitest preset (fakes land with M03)",
+  "description": "Test support for ARGUS: the Tier A network guard, gate metrics, the shared Vitest preset, the Jev and LLM fakes, cassettes and in-memory port fakes",
   "exports": {
     ".": {
       "@argus/source": "./src/index.ts",
@@ -41,9 +41,24 @@
     "lint": "eslint .",
     "test": "vitest run --coverage",
     "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
-    "test:gate-g4": "vitest run test/gate-g4.test.ts"
+    "test:gate-g4": "vitest run test/gate-g4.test.ts",
+    "test:gate-m03-g1": "vitest run test/m03-gate-g1.test.ts",
+    "test:gate-m03-g2": "vitest run test/m03-gate-g2.test.ts",
+    "test:gate-m03-g3": "vitest run test/m03-gate-g3.test.ts",
+    "test:gate-m03-g4": "vitest run test/m03-gate-g4.test.ts",
+    "test:gate-m03-g5": "vitest run test/m03-gate-g5.test.ts"
   },
   "peerDependencies": {
     "vitest": "3.2.7"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@typesafe-ai/sdk": "0.6.0",
+    "ajv": "8.17.1",
+    "fast-check": "4.10.2"
+  },
+  "dependencies": {
+    "@argus/contracts": "workspace:*",
+    "@sinclair/typebox": "0.34.52"
   }
 }

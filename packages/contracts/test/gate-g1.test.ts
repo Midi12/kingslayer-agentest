@@ -4,7 +4,7 @@
  * published JSON Schema files must agree with TypeBox on every golden (checked with Ajv
  * in JSON Schema 2020-12 mode).
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { afterAll, describe, expect, it } from 'vitest';
 import {

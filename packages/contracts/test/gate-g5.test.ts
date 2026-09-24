@@ -2,7 +2,7 @@
  * M01-G5: step rendering needs no model. The rendered step lists of the golden scripts
  * are byte-equal to `__golden__/render/*.txt`, and rendering does not depend on key order.
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import { afterAll, describe, expect, it } from 'vitest';
 import { renderSteps, validate } from '../src/index.js';
 import { renderGoldens } from './support/goldens.js';

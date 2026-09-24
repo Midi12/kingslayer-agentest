@@ -11,7 +11,7 @@
  * `gate-g4.git.ts`, which `test:gate-g4` runs after this file and which fails outright
  * outside a git work tree (gate change M01-4).
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import { afterAll, describe, expect, it } from 'vitest';
 import { diffSchemaSets, type BreakingChange } from '../src/index.js';
 import { BASELINE_DIR, staleFiles } from '../scripts/export-schemas.js';

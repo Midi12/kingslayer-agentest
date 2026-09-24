@@ -2,7 +2,7 @@
  * M01-G3: every lint rule fires. For each rule L1 to L8 one fixture fails with exactly the
  * expected finding codes and step ids, and one passes with no finding at all.
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import { afterAll, describe, expect, it } from 'vitest';
 import { LINT_CODES, lintScript, validate, type LintContext } from '../src/index.js';
 import { lintFixtures } from './support/goldens.js';

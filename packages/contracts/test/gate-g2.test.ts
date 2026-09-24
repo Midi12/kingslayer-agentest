@@ -4,7 +4,7 @@
  * whitespace. The RFC 8785 test vectors (key sorting, string escapes, number
  * serialisation) are checked too.
  */
-import { recordGateMetrics } from '@argus/testkit';
+import { recordGateMetrics } from '../../testkit/src/gate-metrics.js';
 import fc from 'fast-check';
 import { isDeepStrictEqual } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
