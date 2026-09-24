@@ -11,8 +11,24 @@ describe('FixtureSimulator conveyors', () => {
     const sim = newSim();
     const conveyors = sim.listConveyors(0);
     expect(conveyors).toHaveLength(20);
-    expect(conveyors.map((c) => c.id)).toEqual(CONVEYOR_IDS);
+    expect(new Set(conveyors.map((c) => c.id))).toEqual(new Set(CONVEYOR_IDS));
     expect(conveyors.every((c) => c.status === 'Stopped')).toBe(true);
+  });
+
+  it('row order is a deterministic function of the seed, and varies with it (M19 needs seeds that reorder rows)', () => {
+    const a1 = new FixtureSimulator({ seed: 1, operatorPassword: 'x', atMs: 0 }).listConveyors(0).map((c) => c.id);
+    const a2 = new FixtureSimulator({ seed: 1, operatorPassword: 'x', atMs: 0 }).listConveyors(0).map((c) => c.id);
+    expect(a1).toEqual(a2);
+
+    const orders = [1, 2, 3].map((seed) =>
+      new FixtureSimulator({ seed, operatorPassword: 'x', atMs: 0 }).listConveyors(0).map((c) => c.id),
+    );
+    // At least one of the three differs from the fixed CONVEYOR_IDS order and from
+    // another seed's order; a fixed table layout (the round-1 review finding) would fail
+    // this.
+    const distinctOrders = new Set(orders.map((order) => order.join(',')));
+    expect(distinctOrders.size).toBeGreaterThan(1);
+    expect(orders.some((order) => order.join(',') !== CONVEYOR_IDS.join(','))).toBe(true);
   });
 
   it('start becomes Running only after the delay elapses', () => {

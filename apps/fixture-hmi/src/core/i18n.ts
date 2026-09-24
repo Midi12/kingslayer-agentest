@@ -43,9 +43,13 @@ export interface Strings {
   readonly settingsLabel: string;
   readonly settingsThreshold: string;
   readonly settingsMode: string;
+  readonly settingsModeAuto: string;
+  readonly settingsModeManual: string;
+  readonly settingsModeMaintenance: string;
   readonly settingsNotify: string;
   readonly settingsAccessCode: string;
   readonly settingsSave: string;
+  readonly settingsError: string;
   readonly modalTitle: string;
   readonly modalOpen: string;
   readonly modalClose: string;
@@ -54,6 +58,9 @@ export interface Strings {
   readonly errorToast: string;
   readonly blockingModalTitle: string;
   readonly blockingModalBody: string;
+  /** Seeded alarm message templates; `{conveyor}` is replaced with the conveyor id. */
+  readonly alarmJamMessage: string;
+  readonly alarmSensorMessage: string;
 }
 
 const en: Strings = {
@@ -95,9 +102,13 @@ const en: Strings = {
   settingsLabel: 'Label',
   settingsThreshold: 'Threshold',
   settingsMode: 'Mode',
+  settingsModeAuto: 'auto',
+  settingsModeManual: 'manual',
+  settingsModeMaintenance: 'maintenance',
   settingsNotify: 'Notify on fault',
   settingsAccessCode: 'Access code',
   settingsSave: 'Save',
+  settingsError: 'Label and threshold are required.',
   modalTitle: 'Modal demo',
   modalOpen: 'Open modal',
   modalClose: 'Close',
@@ -106,6 +117,8 @@ const en: Strings = {
   errorToast: 'An unexpected error occurred while contacting the PLC.',
   blockingModalTitle: 'System busy',
   blockingModalBody: 'A blocking operation is in progress. Please wait.',
+  alarmJamMessage: 'Jam detected on {conveyor}',
+  alarmSensorMessage: 'Sensor fault on {conveyor}',
 };
 
 const fr: Strings = {
@@ -147,9 +160,13 @@ const fr: Strings = {
   settingsLabel: 'Libellé',
   settingsThreshold: 'Seuil',
   settingsMode: 'Mode',
+  settingsModeAuto: 'automatique',
+  settingsModeManual: 'manuel',
+  settingsModeMaintenance: 'maintenance',
   settingsNotify: 'Notifier en cas de défaut',
   settingsAccessCode: "Code d'accès",
   settingsSave: 'Enregistrer',
+  settingsError: 'Le libellé et le seuil sont obligatoires.',
   modalTitle: 'Démonstration de fenêtre modale',
   modalOpen: 'Ouvrir la fenêtre modale',
   modalClose: 'Fermer',
@@ -158,10 +175,17 @@ const fr: Strings = {
   errorToast: "Une erreur inattendue s'est produite lors de la communication avec l'automate.",
   blockingModalTitle: 'Système occupé',
   blockingModalBody: 'Une opération bloquante est en cours. Veuillez patienter.',
+  alarmJamMessage: 'Bourrage détecté sur {conveyor}',
+  alarmSensorMessage: 'Défaut capteur sur {conveyor}',
 };
 
 const DICTIONARIES: Record<Locale, Strings> = { en, fr };
 
 export function stringsFor(locale: Locale): Strings {
   return DICTIONARIES[locale];
+}
+
+/** Formats a seeded alarm's message from its template and conveyor id, in the given locale. */
+export function formatAlarmMessage(template: string, conveyorId: string): string {
+  return template.replace('{conveyor}', conveyorId);
 }

@@ -12,6 +12,19 @@ export { FixtureSimulator } from './core/sim.js';
 export type { ClockMode } from './adapters/clock.js';
 export { FAULT_NAMES, CONVEYOR_IDS } from './core/types.js';
 export type { FaultName, ConveyorStatus, SimSnapshot } from './core/types.js';
+// The dataset schemas and helpers: M04, M06, M10 and M19 read `datasets/*.jsonl` and
+// need these to parse and validate the rows rather than re-deriving the shapes.
+export {
+  BREAK_EXPECTATIONS,
+  GROUNDING_ACTIONS,
+  GroundingTarget,
+  GroundingTask,
+  BreakTask,
+  PAGES,
+  parseJsonl,
+  toJsonl,
+} from './core/dataset-schema.js';
+export type { BreakExpectation, GroundingAction, Page } from './core/dataset-schema.js';
 
 export const DEFAULT_OPERATOR_PASSWORD = 'op-secret-2026';
 

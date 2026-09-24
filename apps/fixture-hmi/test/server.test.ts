@@ -267,3 +267,92 @@ describe('slow-load', () => {
     expect(Date.now() - start).toBeGreaterThanOrEqual(1000);
   });
 });
+
+describe('session-expiry', () => {
+  it('invalidates sessions that existed when it fired, but a fresh login afterwards still works', async () => {
+    const staleCookie = await login(handle.url);
+    await fetch(`${handle.url}/sim/faults/session-expiry`, { method: 'POST' });
+
+    const staleAttempt = await fetch(`${handle.url}/conveyors`, {
+      headers: { cookie: staleCookie },
+      redirect: 'manual',
+    });
+    expect(staleAttempt.status).toBe(302);
+    expect(staleAttempt.headers.get('location')).toBe('/login');
+
+    // A re-login made after the fault fired must still work — the fault expires the
+    // sessions that existed when it fired, not "every session, forever".
+    const freshCookie = await login(handle.url);
+    const freshAttempt = await fetch(`${handle.url}/conveyors`, {
+      headers: { cookie: freshCookie },
+      redirect: 'manual',
+    });
+    expect(freshAttempt.status).toBe(200);
+  });
+});
+
+describe('/sim/log source', () => {
+  it('tells a page click apart from a direct API call', async () => {
+    // Marked as coming from the page (the fixture's own client script sends this header).
+    await fetch(`${handle.url}/sim/conveyors/C03/start`, {
+      method: 'POST',
+      headers: { 'x-argus-ui': '1' },
+    });
+    // A plain API call, as a test harness or another module would make it.
+    await fetch(`${handle.url}/sim/conveyors/C04/start`, { method: 'POST' });
+
+    const log = (await fetch(`${handle.url}/sim/log`).then((res) => res.json())) as {
+      entries: { action: string; source: string; conveyorId: string | null }[];
+    };
+    const uiEntry = log.entries.find((entry) => entry.action === 'start' && entry.conveyorId === 'C03');
+    const apiEntry = log.entries.find((entry) => entry.action === 'start' && entry.conveyorId === 'C04');
+    expect(uiEntry?.source).toBe('ui');
+    expect(apiEntry?.source).toBe('api');
+  });
+
+  it('logs fault toggles, seed/reset and clock changes too, with a sequence that survives a reset', async () => {
+    await fetch(`${handle.url}/sim/faults/injection`, { method: 'POST' });
+    await fetch(`${handle.url}/sim/clock`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'frozen', now: 42 }),
+    });
+    const beforeReset = (await fetch(`${handle.url}/sim/log`).then((res) => res.json())) as {
+      entries: { seq: number; action: string }[];
+    };
+    expect(beforeReset.entries.some((entry) => entry.action === 'fault-toggle')).toBe(true);
+    expect(beforeReset.entries.some((entry) => entry.action === 'clock')).toBe(true);
+    const maxSeqBeforeReset = Math.max(...beforeReset.entries.map((entry) => entry.seq));
+
+    await fetch(`${handle.url}/sim/reset`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seed: 5 }),
+    });
+    const afterReset = (await fetch(`${handle.url}/sim/log`).then((res) => res.json())) as {
+      entries: { seq: number; action: string }[];
+    };
+    expect(afterReset.entries).toHaveLength(1);
+    expect(afterReset.entries[0]?.action).toBe('reset');
+    // The sequence counter is monotonic over the server's lifetime, not reset to 1 each time.
+    expect(afterReset.entries[0]?.seq).toBeGreaterThan(maxSeqBeforeReset);
+  });
+});
+
+describe('/settings error handling', () => {
+  it('redirects with an error flag and shows it, instead of silently dropping an invalid submission', async () => {
+    const cookie = await login(handle.url);
+    const post = await fetch(`${handle.url}/settings`, {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'label=&threshold=77',
+      redirect: 'manual',
+    });
+    expect(post.status).toBe(303);
+    expect(post.headers.get('location')).toBe('/settings?error=1');
+
+    const page = await fetch(`${handle.url}/settings?error=1`, { headers: { cookie } });
+    const html = await page.text();
+    expect(html).toContain('data-testid="settings-error"');
+  });
+});

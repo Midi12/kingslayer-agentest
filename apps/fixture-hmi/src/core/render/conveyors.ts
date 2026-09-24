@@ -20,7 +20,8 @@ function indicatorColor(conveyor: Conveyor, faults: ReadonlySet<FaultName>, nowM
   return 'grey';
 }
 
-function statusLabel(status: Conveyor['status'], t: Strings): string {
+/** Also used by the SVG and canvas synoptics, so status text is localized everywhere alike. */
+export function statusLabel(status: Conveyor['status'], t: Strings): string {
   if (status === 'Running') {
     return t.statusRunning;
   }
@@ -35,6 +36,18 @@ function displayName(conveyor: Conveyor, faults: ReadonlySet<FaultName>): string
     return 'Conveyor C12';
   }
   return conveyor.name;
+}
+
+/**
+ * `dup-labels` also disguises C13's id cell as `C12`, so the two rows are indistinguishable
+ * by their visible text alone (`data-testid` stays the real `id-c13`, `row-c13`, etc., so a
+ * testid-based locator still tells them apart). S4 and M06-G5 rely on that ambiguity.
+ */
+function displayId(conveyor: Conveyor, faults: ReadonlySet<FaultName>): string {
+  if (faults.has('dup-labels') && conveyor.id === 'C13') {
+    return 'C12';
+  }
+  return conveyor.id;
 }
 
 /** The table fragment alone, reused by the plain page, the shadow-dom host and the iframe route. */
@@ -57,7 +70,7 @@ export function renderConveyorsTableFragment(
       const statusCell = `<td data-testid="status-${conveyor.id.toLowerCase()}"><span class="indicator" data-testid="indicator-${conveyor.id.toLowerCase()}" style="background:${INDICATOR_HEX[color]}"></span>${escapeHtml(statusLabel(conveyor.status, t))}${moved ? ` ${startButton}` : ''}</td>`;
       const actionsCell = `<td data-testid="actions-${conveyor.id.toLowerCase()}">${moved ? stopButton : `${startButton} ${stopButton}`}</td>`;
       return `<tr data-testid="row-${conveyor.id.toLowerCase()}">
-        <td data-testid="id-${conveyor.id.toLowerCase()}">${escapeHtml(conveyor.id)}</td>
+        <td data-testid="id-${conveyor.id.toLowerCase()}">${escapeHtml(displayId(conveyor, faults))}</td>
         <td data-testid="name-${conveyor.id.toLowerCase()}">${escapeHtml(displayName(conveyor, faults))}</td>
         ${statusCell}
         <td data-testid="speed-${conveyor.id.toLowerCase()}">${conveyor.speed.toFixed(2)}</td>
@@ -74,15 +87,48 @@ export function renderConveyorsTableFragment(
   </table>`;
 }
 
+/**
+ * Start's effect is delayed (`START_DELAY_MS` of simulator time), so reloading right
+ * after the POST still shows the pending, amber state. After Start the script instead
+ * polls `/sim/state` until this conveyor is no longer pending (resolved to Running, or
+ * left in place by a fault such as `wrong-state`) before reloading, up to a bound so a
+ * fault that never resolves it (`no-effect`) still reloads once and shows its own state.
+ * Stop has no delay, so it reloads immediately as before.
+ */
 const CLIENT_SCRIPT = `
 <script>
+function pollThenReload(conveyorId) {
+  var attemptsLeft = 40;
+  function check() {
+    fetch('/sim/state', { headers: { 'x-argus-ui': '1' } })
+      .then(function (res) { return res.json(); })
+      .then(function (state) {
+        var row = (state.conveyors || []).filter(function (c) { return c.id === conveyorId; })[0];
+        var stillPending = row && row.pendingRunAtMs !== null && row.pendingRunAtMs !== undefined;
+        attemptsLeft -= 1;
+        if (!stillPending || attemptsLeft <= 0) {
+          location.reload();
+        } else {
+          setTimeout(check, 150);
+        }
+      })
+      .catch(function () { location.reload(); });
+  }
+  check();
+}
 document.addEventListener('click', function (event) {
   var target = event.target.closest('[data-action]');
   if (!target) return;
   var action = target.getAttribute('data-action');
   var conveyor = target.getAttribute('data-conveyor');
-  fetch('/sim/conveyors/' + conveyor + '/' + action, { method: 'POST' })
-    .then(function () { location.reload(); });
+  fetch('/sim/conveyors/' + conveyor + '/' + action, { method: 'POST', headers: { 'x-argus-ui': '1' } })
+    .then(function () {
+      if (action === 'start') {
+        pollThenReload(conveyor);
+      } else {
+        location.reload();
+      }
+    });
 });
 </script>`;
 

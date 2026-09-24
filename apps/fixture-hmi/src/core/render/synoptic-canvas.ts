@@ -1,6 +1,7 @@
 import { INJECTION_SITES } from '../injection.js';
 import type { Strings } from '../i18n.js';
 import type { Conveyor, FaultName } from '../types.js';
+import { statusLabel } from './conveyors.js';
 import { escapeHtml, INDICATOR_HEX } from './html.js';
 import { renderLayout } from './layout.js';
 
@@ -35,7 +36,7 @@ export function renderSynopticCanvasPage(
   const height = rows * CELL_H;
   const cells = conveyors.map((conveyor, index) => ({
     id: conveyor.id,
-    status: conveyor.status,
+    status: statusLabel(conveyor.status, t),
     fill: INDICATOR_HEX[color(conveyor, faults)],
     x: (index % COLUMNS) * CELL_W + 10,
     y: Math.floor(index / COLUMNS) * CELL_H + 10,

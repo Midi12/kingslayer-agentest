@@ -51,6 +51,18 @@ function bodyRecord(body: unknown): Record<string, unknown> {
   return (body ?? {}) as Record<string, unknown>;
 }
 
+/**
+ * `/sim/log`'s `source` field is meant to tell a page click from a direct API call
+ * (CLAUDE.md-level spec wording, `/sim/log`'s doc comment in the module notes). The
+ * fixture's own page scripts mark their `fetch` calls with this header; anything without
+ * it is an external caller and counts as `api`.
+ */
+const UI_SOURCE_HEADER = 'x-argus-ui';
+
+function sourceOf(request: FastifyRequest): 'ui' | 'api' {
+  return request.headers[UI_SOURCE_HEADER] === '1' ? 'ui' : 'api';
+}
+
 export interface BuildServerOptions {
   readonly sim: FixtureSimulator;
   readonly clock: SimClock;
@@ -195,14 +207,15 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     reply.type('text/html; charset=utf-8').send(html);
   });
 
-  app.get('/settings', (_request, reply) => {
-    const html = renderSettingsPage(sim.getSettings(), faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim));
+  app.get('/settings', (request, reply) => {
+    const showError = (request.query as Record<string, unknown>)['error'] === '1';
+    const html = renderSettingsPage(sim.getSettings(), faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim), showError);
     reply.type('text/html; charset=utf-8').send(html);
   });
 
   app.post('/settings', (request, reply) => {
     const body = bodyRecord(request.body);
-    sim.updateSettings(
+    const result = sim.updateSettings(
       {
         label: typeof body['label'] === 'string' ? body['label'] : '',
         threshold: Number(body['threshold'] ?? 0),
@@ -213,7 +226,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       clock.now(),
       'ui',
     );
-    reply.redirect('/settings', 303);
+    reply.redirect(result.ok ? '/settings' : '/settings?error=1', 303);
   });
 
   app.get('/modal', (_request, reply) => {
@@ -226,12 +239,12 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   // -----------------------------------------------------------------------
 
   app.post<{ Params: { id: string } }>('/sim/conveyors/:id/start', (request, reply) => {
-    const result = sim.startConveyor(request.params.id, clock.now(), 'api');
+    const result = sim.startConveyor(request.params.id, clock.now(), sourceOf(request));
     reply.status(result.ok ? 200 : 404).send(result.ok ? { ok: true } : result.error);
   });
 
   app.post<{ Params: { id: string } }>('/sim/conveyors/:id/stop', (request, reply) => {
-    const result = sim.stopConveyor(request.params.id, clock.now(), 'api');
+    const result = sim.stopConveyor(request.params.id, clock.now(), sourceOf(request));
     reply.status(result.ok ? 200 : 404).send(result.ok ? { ok: true } : result.error);
   });
 
@@ -247,7 +260,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   });
 
   app.post<{ Params: { id: string } }>('/sim/alarms/:id/ack', (request, reply) => {
-    const result = sim.ackAlarm(request.params.id, clock.now(), 'api');
+    const result = sim.ackAlarm(request.params.id, clock.now(), sourceOf(request));
     if (!result.ok) {
       reply.status(result.error.code === 'UNKNOWN_ALARM' ? 404 : 409).send(result.error);
       return;
@@ -258,7 +271,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   app.post('/sim/reset', (request, reply) => {
     const body = bodyRecord(request.body);
     const seed = typeof body['seed'] === 'number' ? body['seed'] : undefined;
-    sim.reset(clock.now(), seed);
+    sim.reset(clock.now(), seed, sourceOf(request), 'reset');
     reply.status(200).send(sim.snapshot(clock.now()));
   });
 
@@ -269,7 +282,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a number' });
       return;
     }
-    sim.reset(clock.now(), seed);
+    sim.reset(clock.now(), seed, sourceOf(request), 'seed');
     reply.status(200).send({ seed });
   });
 
@@ -282,6 +295,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     }
     const at = typeof body['now'] === 'number' ? body['now'] : undefined;
     clock.setMode(mode, at);
+    sim.logAction(clock.now(), sourceOf(request), 'clock', `mode=${mode}${at === undefined ? '' : ` now=${String(at)}`}`);
     reply.status(200).send({ mode: clock.getMode(), now: clock.now() });
   });
 
@@ -302,7 +316,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       reply.status(404).send({ code: 'UNKNOWN_FAULT', message: `unknown fault "${request.params.name}"` });
       return;
     }
-    sim.setFault(request.params.name, true);
+    sim.setFault(request.params.name, true, clock.now(), sourceOf(request));
     reply.status(200).send({ active: sim.activeFaults() });
   });
 
@@ -311,7 +325,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       reply.status(404).send({ code: 'UNKNOWN_FAULT', message: `unknown fault "${request.params.name}"` });
       return;
     }
-    sim.setFault(request.params.name, false);
+    sim.setFault(request.params.name, false, clock.now(), sourceOf(request));
     reply.status(200).send({ active: sim.activeFaults() });
   });
 

@@ -8,8 +8,13 @@ export function renderSettingsPage(
   faults: ReadonlySet<FaultName>,
   t: Strings,
   locale: 'en' | 'fr',
+  showError = false,
 ): string {
+  const errorBlock = showError
+    ? `<p class="error" data-testid="settings-error">${escapeHtml(t.settingsError)}</p>`
+    : '';
   const body = `<h1 data-testid="page-title">${escapeHtml(t.settingsTitle)}</h1>
+  ${errorBlock}
   <form method="post" action="/settings" data-testid="settings-form">
     <p><label>${escapeHtml(t.settingsLabel)}<br/>
       <input type="text" name="label" data-testid="settings-label" value="${escapeAttr(values.label)}" />
@@ -19,9 +24,9 @@ export function renderSettingsPage(
     </label></p>
     <p><label>${escapeHtml(t.settingsMode)}<br/>
       <select name="mode" data-testid="settings-mode">
-        <option value="auto" ${values.mode === 'auto' ? 'selected' : ''}>auto</option>
-        <option value="manual" ${values.mode === 'manual' ? 'selected' : ''}>manual</option>
-        <option value="maintenance" ${values.mode === 'maintenance' ? 'selected' : ''}>maintenance</option>
+        <option value="auto" ${values.mode === 'auto' ? 'selected' : ''}>${escapeHtml(t.settingsModeAuto)}</option>
+        <option value="manual" ${values.mode === 'manual' ? 'selected' : ''}>${escapeHtml(t.settingsModeManual)}</option>
+        <option value="maintenance" ${values.mode === 'maintenance' ? 'selected' : ''}>${escapeHtml(t.settingsModeMaintenance)}</option>
       </select>
     </label></p>
     <p><label>

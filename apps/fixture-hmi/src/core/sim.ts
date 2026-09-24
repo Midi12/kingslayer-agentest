@@ -48,6 +48,39 @@ function baseSpeed(seed: number, index: number): number {
   return Math.round((0.6 + 0.35 * Math.sin(phase / 7)) * 100) / 100;
 }
 
+/**
+ * A deterministic permutation of `CONVEYOR_IDS`, seeded only by `seed` (xorshift32, no
+ * `Math.random`). M19's evaluation protocol runs every grounding task under three data
+ * seeds "that reorder rows" (`docs/spec/03-implementation-spec.md`, M19 section); this is
+ * what gives row order something to vary. Every other seeded default (speeds, the two
+ * alarm conveyors, settings) already varied with the seed, but row order did not.
+ */
+function conveyorRowOrder(seed: number): ConveyorId[] {
+  const ids = [...CONVEYOR_IDS];
+  let state = (seed ^ 0x9e3779b9) >>> 0;
+  if (state === 0) {
+    state = 0x9e3779b9;
+  }
+  const nextUint32 = (): number => {
+    state ^= state << 13;
+    state >>>= 0;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    state >>>= 0;
+    return state;
+  };
+  for (let i = ids.length - 1; i > 0; i -= 1) {
+    const j = nextUint32() % (i + 1);
+    const a = ids[i];
+    const b = ids[j];
+    if (a !== undefined && b !== undefined) {
+      ids[i] = b;
+      ids[j] = a;
+    }
+  }
+  return ids;
+}
+
 function initialConveyors(seed: number): Conveyor[] {
   return CONVEYOR_IDS.map((id, index) => ({
     id,
@@ -69,6 +102,7 @@ function initialAlarms(seed: number, atMs: number): Alarm[] {
       conveyorId: first,
       kind: 'jam',
       message: `Jam detected on ${first}`,
+      messageKey: 'jam',
       raisedAtMs: atMs - 4000,
       ackedAtMs: null,
     },
@@ -77,6 +111,7 @@ function initialAlarms(seed: number, atMs: number): Alarm[] {
       conveyorId: second,
       kind: 'sensor',
       message: `Sensor fault on ${second}`,
+      messageKey: 'sensor',
       raisedAtMs: atMs - 2000,
       ackedAtMs: null,
     },
@@ -102,6 +137,7 @@ export class FixtureSimulator {
   private seed: number;
   private readonly operatorPassword: string;
   private conveyors = new Map<ConveyorId, Conveyor>();
+  private rowOrder: ConveyorId[] = [...CONVEYOR_IDS];
   private alarms: Alarm[] = [];
   private faults = new Set<FaultName>();
   private log: LogEntry[] = [];
@@ -110,6 +146,17 @@ export class FixtureSimulator {
   private nextLogSeq = 1;
   private nextAlarmSeq = 1;
   private nextSessionSeq = 1;
+  /**
+   * A snapshot of every session token that existed the moment `session-expiry` was last
+   * turned on, taken fresh each time it turns on. Only those tokens are treated as
+   * expired (and only while the fault stays on), so a login made afterwards — a
+   * re-login attempt — still works. A timestamp comparison would have the same intent
+   * but breaks under a frozen clock, where "before" and "after" the fault fired can be
+   * the same instant; a token snapshot has no such ambiguity (ADR-M02-3 revisited: the
+   * fault models "every session that existed when the fault fired", not "every session,
+   * forever").
+   */
+  private sessionExpiryVictims = new Set<string>();
 
   constructor(options: { readonly seed: number; readonly operatorPassword: string; readonly atMs: number }) {
     this.seed = options.seed;
@@ -118,17 +165,20 @@ export class FixtureSimulator {
     this.reset(options.atMs, this.seed);
   }
 
-  reset(atMs: number, seed?: number): void {
+  /** `source` and `action` describe the call that triggered the reset for the log; `/sim/seed` uses `'seed'`. */
+  reset(atMs: number, seed?: number, source: LogSource = 'api', action: 'reset' | 'seed' = 'reset'): void {
     this.seed = seed ?? this.seed;
+    this.rowOrder = conveyorRowOrder(this.seed);
     this.conveyors = new Map(initialConveyors(this.seed).map((conveyor) => [conveyor.id, conveyor]));
     this.alarms = initialAlarms(this.seed, atMs);
     this.faults = new Set();
     this.log = [];
     this.sessions = new Map();
     this.settings = defaultSettings(this.seed);
-    this.nextLogSeq = 1;
+    this.sessionExpiryVictims = new Set();
     this.nextAlarmSeq = this.alarms.length + 1;
     this.nextSessionSeq = 1;
+    this.record(atMs, source, action, { detail: `seed=${String(this.seed)}` });
   }
 
   private record(atMs: number, source: LogSource, action: string, extra: Partial<Omit<LogEntry, 'seq' | 'atMs' | 'source' | 'action'>> = {}): void {
@@ -155,17 +205,28 @@ export class FixtureSimulator {
     return this.faults.has(name);
   }
 
-  setFault(name: string, on: boolean): Result<void, SimError> {
+  setFault(name: string, on: boolean, atMs = 0, source: LogSource = 'api'): Result<void, SimError> {
     if (!(FAULT_NAMES as readonly string[]).includes(name)) {
       return simErr('UNKNOWN_FAULT', `unknown fault "${name}"`);
     }
     const fault = name as FaultName;
     if (on) {
       this.faults.add(fault);
+      if (fault === 'session-expiry') {
+        this.sessionExpiryVictims = new Set(this.sessions.keys());
+      }
     } else {
       this.faults.delete(fault);
+      // The victim set is left as-is: it is only consulted while the fault is active
+      // (see validateSession) and rebuilt fresh the next time this turns on.
     }
+    this.record(atMs, source, 'fault-toggle', { detail: `${fault}=${String(on)}` });
     return ok(undefined);
+  }
+
+  /** Records a state-changing call that has no conveyor/alarm of its own, e.g. `/sim/clock`. */
+  logAction(atMs: number, source: LogSource, action: string, detail = ''): void {
+    this.record(atMs, source, action, { detail });
   }
 
   // ---------------------------------------------------------------------
@@ -187,8 +248,9 @@ export class FixtureSimulator {
     return found === undefined ? undefined : this.resolved(found, atMs);
   }
 
+  /** Row order is `conveyorRowOrder(seed)`, not insertion order: see that function's doc. */
   listConveyors(atMs: number): Conveyor[] {
-    return CONVEYOR_IDS.map((id) => this.conveyor(id, atMs)).filter(
+    return this.rowOrder.map((id) => this.conveyor(id, atMs)).filter(
       (conveyor): conveyor is Conveyor => conveyor !== undefined,
     );
   }
@@ -303,10 +365,19 @@ export class FixtureSimulator {
   }
 
   validateSession(token: string | undefined): Session | undefined {
-    if (token === undefined || this.faults.has('session-expiry')) {
+    if (token === undefined) {
       return undefined;
     }
-    return this.sessions.get(token);
+    const session = this.sessions.get(token);
+    if (session === undefined) {
+      return undefined;
+    }
+    if (this.faults.has('session-expiry') && this.sessionExpiryVictims.has(token)) {
+      // Only sessions that already existed when the fault fired are expired; a login
+      // made afterwards (a re-login attempt) keeps working.
+      return undefined;
+    }
+    return session;
   }
 
   // ---------------------------------------------------------------------

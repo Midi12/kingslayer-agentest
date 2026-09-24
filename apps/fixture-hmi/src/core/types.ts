@@ -66,7 +66,15 @@ export interface Alarm {
   readonly id: string;
   readonly conveyorId: ConveyorId;
   readonly kind: AlarmKind;
+  /** English message, used by `/sim/*` API responses and as the fallback when `messageKey` is unset. */
   readonly message: string;
+  /**
+   * Set only for the two alarms `reset` seeds; the render layer looks up a localized
+   * template by this key instead of `message` so `locale-fr` translates them too. Alarms
+   * raised through `/sim/conveyors/{id}/faults` carry an arbitrary caller-supplied fault
+   * type in `message` and have no key: free text like that cannot be machine-translated.
+   */
+  readonly messageKey?: 'jam' | 'sensor';
   readonly raisedAtMs: number;
   readonly ackedAtMs: number | null;
 }

@@ -16,7 +16,6 @@ export function renderModalPage(faults: ReadonlySet<FaultName>, t: Strings, loca
     document.querySelector('[data-testid="open-modal"]').addEventListener('click', function () { dialog.showModal(); });
     document.querySelector('[data-testid="modal-close"]').addEventListener('click', function () { dialog.close(); });
     document.querySelector('[data-testid="modal-confirm"]').addEventListener('click', function () { dialog.close(); });
-    dialog.showModal();
   </script>`;
   return renderLayout({ title: t.modalTitle, t, locale, faults: [...faults], bodyHtml: body });
 }

@@ -1,11 +1,22 @@
 import { blinkOn } from '../sim.js';
-import type { Strings } from '../i18n.js';
+import { formatAlarmMessage, type Strings } from '../i18n.js';
 import type { Alarm, FaultName } from '../types.js';
 import { ALARM_OFF_HEX, ALARM_ON_HEX, escapeAttr, escapeHtml } from './html.js';
 import { renderLayout } from './layout.js';
 
 function formatTime(ms: number): string {
   return new Date(ms).toISOString();
+}
+
+/** The seeded alarms' message is localized from `messageKey`; API-raised ones keep their English `message`. */
+function displayMessage(alarm: Alarm, t: Strings): string {
+  if (alarm.messageKey === 'jam') {
+    return formatAlarmMessage(t.alarmJamMessage, alarm.conveyorId);
+  }
+  if (alarm.messageKey === 'sensor') {
+    return formatAlarmMessage(t.alarmSensorMessage, alarm.conveyorId);
+  }
+  return alarm.message;
 }
 
 export interface RenderAlarmsOptions {
@@ -38,7 +49,7 @@ export function renderAlarmsPage(options: RenderAlarmsOptions): string {
           ? `<button type="button" data-testid="ack-${idLower}" data-action="ack" data-alarm="${escapeAttr(alarm.id)}">${escapeHtml(t.acknowledge)}</button>`
           : `<span data-testid="ack-state-${idLower}">${escapeHtml(t.acknowledged)}</span>`;
       return `<tr data-testid="alarm-row-${idLower}"${cssClass}${style}>
-        <td data-testid="alarm-message-${idLower}">${escapeHtml(alarm.message)}</td>
+        <td data-testid="alarm-message-${idLower}">${escapeHtml(displayMessage(alarm, t))}</td>
         <td data-testid="alarm-conveyor-${idLower}">${escapeHtml(alarm.conveyorId)}</td>
         <td data-testid="alarm-raised-${idLower}">${formatTime(alarm.raisedAtMs)}</td>
         <td data-testid="alarm-ack-${idLower}">${ackCell}</td>
@@ -54,7 +65,7 @@ document.addEventListener('click', function (event) {
   var target = event.target.closest('[data-action="ack"]');
   if (!target) return;
   var id = target.getAttribute('data-alarm');
-  fetch('/sim/alarms/' + id + '/ack', { method: 'POST' }).then(function () { location.reload(); });
+  fetch('/sim/alarms/' + id + '/ack', { method: 'POST', headers: { 'x-argus-ui': '1' } }).then(function () { location.reload(); });
 });
 </script>`;
   const body = `<h1 data-testid="page-title">${escapeHtml(t.alarmsTitle)}</h1>
