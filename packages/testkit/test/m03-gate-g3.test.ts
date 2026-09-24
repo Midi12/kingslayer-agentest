@@ -1,0 +1,430 @@
+/**
+ * M03-G3: cassettes are strict. An unrecorded request fails with CASSETTE_MISS and opens
+ * zero outbound connections, through the fetch wrapper, the proxy and the fake Jev
+ * server in cassette mode; recorded files contain nothing matching the key patterns, no
+ * planted secret and no credential header. The files are scanned twice, with the
+ * implementation's KEY_PATTERNS and with an independent pattern list kept in this file,
+ * and every stored base64 body is decoded and scanned too. Binary (non-UTF-8) request and
+ * response bodies carrying a planted key are recorded as well: whether the recorder
+ * refuses them or redacts them, nothing of the key may reach the disk.
+ */
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import net from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { NotFoundError, TypeSafeClient } from '@typesafe-ai/sdk';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  CASSETTE_MISS,
+  CassetteMissError,
+  DEFAULT_FAKE_JEV_API_KEY,
+  FileCassetteStore,
+  createCassetteFetch,
+  findKeyMaterial,
+  startCassetteProxy,
+  startFakeJev,
+} from '../src/index.js';
+import { recordGateMetrics } from '../src/gate-metrics.js';
+
+const metrics = {
+  missCases: 0,
+  missesDetected: 0,
+  outboundConnections: 0,
+  replayHits: 0,
+  filesScanned: 0,
+  keyPatternMatches: 0,
+  plantedSecretsFound: 0,
+  credentialHeadersFound: 0,
+  independentMatches: 0,
+  binaryCases: 0,
+};
+
+afterAll(() => {
+  recordGateMetrics({ ...metrics });
+});
+
+// Secrets are assembled at run time so this file itself holds no literal key.
+const piece = (...parts: string[]): string => parts.join('');
+const SECRETS = {
+  anthropic: piece('sk-', 'ant-api03-', 'Zq8vT4mN2pR7wK1xY5bC9dF3gH6jL0nM'),
+  openai: piece('sk-', 'proj-', 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6'),
+  typesafe: piece('tsk', '-', 'live_9f8e7d6c5b4a39281706f5e4d3c2b1a0'),
+  hex: piece('3f5a9c2e8b7d1046', 'aa3e9f0c5d2b8e71', '6c4a0f9e3d2b1c8a'),
+  base64: piece('QWxhZGRpbjpvcGVu', 'IHNlc2FtZSBhbmQg', 'bW9yZTEyMzQ1Njc4OQ=='),
+  bearer: piece('eyJhbGciOi', 'JIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.', 'c2lnbmF0dXJl'),
+  // 39 characters: below the generic 40-character threshold.
+  google: piece('AIza', 'SyD3xQ9vN2mK7pL4', 'rT8wB1cF6hJ0gY5eZ-q'),
+  // 42 characters, lower case and digits only.
+  lowercase: piece('k3j9x2m8q7w4e6r1', 't5y0u2i8o3p9a7s4', 'd6f1g5h2j0'),
+  // 39 characters after a newline: 40 once the file escapes the newline as \n.
+  glued: piece('Zq8vT4mN2pR7wK1xY5bC', '9dF3gH6jL0nMaBc1De2'),
+};
+
+/**
+ * Key shapes written independently of the implementation's KEY_PATTERNS, so a gap in
+ * those patterns is not hidden by scanning with them. Content digests written
+ * `sha256:<hex>` are the only long runs a recorded file may hold.
+ */
+const INDEPENDENT_PATTERNS: readonly RegExp[] = [
+  /\bt?sk-[\w-]{8,}/g,
+  /\b[rsp]k_(?:live|test)_\w{8,}/g,
+  /\bwhsec_\S{8,}/g,
+  /\beyJ[\w-]{4,}\.[\w-]{4,}\.[\w-]{4,}/g,
+  /\bbearer\s+(?!\[REDACTED\])\S{8,}/gi,
+  /\bAIza[\w-]{35}/g,
+  /(?<!sha256:)(?<![\w+/=-])[A-Za-z0-9+/_-]{40,}={0,2}/g,
+  /(?<!sha256:)(?<![\w])[0-9a-fA-F]{32,}(?!\w)/g,
+];
+
+function independentMatches(text: string): number {
+  let count = 0;
+  for (const pattern of INDEPENDENT_PATTERNS) {
+    count += [...text.matchAll(pattern)].length;
+  }
+  return count;
+}
+
+/** Upstream on loopback that counts every TCP connection it accepts and echoes JSON. */
+let upstream: Server;
+let upstreamUrl = '';
+let accepted = 0;
+
+beforeAll(async () => {
+  upstream = createServer((request, response) => {
+    const chunks: Buffer[] = [];
+    request.on('data', (chunk: Buffer) => chunks.push(chunk));
+    request.on('end', () => {
+      if (request.url?.startsWith('/binary') === true) {
+        response.writeHead(200, { 'content-type': 'application/octet-stream' });
+        response.end(binaryWithSecret(SECRETS.openai));
+        return;
+      }
+      const body = Buffer.concat(chunks).toString('utf8');
+      response.writeHead(200, {
+        'content-type': 'application/json',
+        'set-cookie': `session=${SECRETS.hex}`,
+        'x-upstream-token': SECRETS.openai,
+      });
+      response.end(
+        JSON.stringify({
+          echoed: body.length,
+          path: request.url,
+          note: `issued ${SECRETS.typesafe} for the next call`,
+          digest: `sha256:${'ab'.repeat(32)}`,
+        }),
+      );
+    });
+  });
+  upstream.on('connection', () => {
+    accepted += 1;
+  });
+  await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const address = upstream.address();
+  upstreamUrl = `http://127.0.0.1:${String(typeof address === 'object' && address !== null ? address.port : 0)}`;
+});
+
+afterAll(async () => {
+  await new Promise<void>((resolve) => {
+    upstream.close(() => {
+      resolve();
+    });
+    upstream.closeAllConnections();
+  });
+});
+
+const dirs: string[] = [];
+afterEach(() => {
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+function tempDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'argus-m03-g3-'));
+  dirs.push(dir);
+  return dir;
+}
+
+/** Counts client socket connects made while `action` runs, and upstream accepts. */
+async function outbound<T>(
+  action: () => Promise<T>,
+): Promise<{ result: T | undefined; error: unknown; connects: number; accepts: number }> {
+  const prototype = net.Socket.prototype as unknown as {
+    connect: (this: net.Socket, ...args: unknown[]) => net.Socket;
+  };
+  const original = prototype.connect;
+  let connects = 0;
+  prototype.connect = function patched(this: net.Socket, ...args: unknown[]) {
+    connects += 1;
+    return original.apply(this, args);
+  };
+  const before = accepted;
+  try {
+    const result = await action();
+    return { result, error: undefined, connects, accepts: accepted - before };
+  } catch (error) {
+    return { result: undefined, error, connects, accepts: accepted - before };
+  } finally {
+    prototype.connect = original;
+  }
+}
+
+/** Bytes that are not UTF-8 (0xFF 0xFE) followed by a planted key in ASCII. */
+function binaryWithSecret(secret: string): Buffer {
+  return Buffer.concat([Buffer.from([0xff, 0xfe, 0x00, 0x81]), Buffer.from(` key=${secret} `)]);
+}
+
+function secretRequest(path: string): [string, RequestInit] {
+  return [
+    `${upstreamUrl}${path}?key=${SECRETS.typesafe}&google=${SECRETS.google}`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${SECRETS.anthropic}`,
+        'x-api-key': SECRETS.openai,
+        'content-type': 'application/json',
+        'x-trace': SECRETS.bearer,
+      },
+      body: JSON.stringify({
+        prompt: `use ${SECRETS.typesafe} and ${SECRETS.hex}`,
+        token: SECRETS.base64,
+        session: `issued ${SECRETS.lowercase} today`,
+        log: `first line\n${SECRETS.glued}`,
+        header: `Bearer ${SECRETS.bearer}`,
+        image: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo'.repeat(200) },
+        url: `data:image/png;base64,${'iVBORw0KGgoAAAANSUhEUg'.repeat(50)}`,
+        [SECRETS.hex]: 'secret as a key',
+      }),
+    },
+  ];
+}
+
+interface StoredBody {
+  readonly base64?: unknown;
+}
+
+/** Every stored base64 body, decoded as Latin-1 so ASCII key material stays readable. */
+function decodedBodies(entry: {
+  request: { body: StoredBody | null };
+  response: { body: StoredBody | null };
+}): string[] {
+  return [entry.request.body, entry.response.body]
+    .map((body) => body?.base64)
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => Buffer.from(value, 'base64').toString('latin1'));
+}
+
+function scan(dir: string): void {
+  for (const name of readdirSync(dir)) {
+    const text = readFileSync(join(dir, name), 'utf8');
+    metrics.filesScanned += 1;
+    metrics.keyPatternMatches += findKeyMaterial(text).length;
+    const entry = JSON.parse(text) as {
+      request: { headers: Record<string, string>; body: StoredBody | null };
+      response: { headers: Record<string, string>; body: StoredBody | null };
+    };
+    for (const view of [text, ...decodedBodies(entry)]) {
+      metrics.independentMatches += independentMatches(view);
+      for (const secret of Object.values(SECRETS)) {
+        if (view.includes(secret)) metrics.plantedSecretsFound += 1;
+      }
+    }
+    for (const headers of [entry.request.headers, entry.response.headers]) {
+      for (const name of [
+        'authorization',
+        'x-api-key',
+        'cookie',
+        'set-cookie',
+        'proxy-authorization',
+      ]) {
+        if (name in headers) metrics.credentialHeadersFound += 1;
+      }
+    }
+  }
+}
+
+describe('M03-G3 recorded files hold no key material', () => {
+  it('strips credential headers and redacts every key pattern in requests and responses', async () => {
+    const dir = tempDir();
+    const recorder = createCassetteFetch({ store: dir, mode: 'record' });
+    for (const path of ['/v1/messages', '/v1/systemone', '/v1/chat/completions']) {
+      const [url, init] = secretRequest(path);
+      const response = await recorder(url, init);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-argus-cassette')).toBe('recorded');
+    }
+    expect(recorder.stats.recorded).toBe(3);
+    scan(dir);
+    expect(metrics.filesScanned).toBe(3);
+    expect(
+      metrics.keyPatternMatches +
+        metrics.plantedSecretsFound +
+        metrics.credentialHeadersFound +
+        metrics.independentMatches,
+    ).toBe(0);
+    // Content digests and ordinary fields survive redaction.
+    const text = readFileSync(join(dir, readdirSync(dir)[0] ?? ''), 'utf8');
+    expect(text).toContain(`sha256:${'ab'.repeat(32)}`);
+    expect(text).toContain('[inline image/png:');
+  });
+});
+
+describe('M03-G3 binary bodies never carry a key to disk', () => {
+  it('a non-UTF-8 request body with a planted key is refused or redacted', async () => {
+    const dir = tempDir();
+    const recorder = createCassetteFetch({ store: dir, mode: 'record' });
+    metrics.binaryCases += 1;
+    await recorder(`${upstreamUrl}/v1/upload`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: binaryWithSecret(SECRETS.anthropic),
+    }).catch((error: unknown) => error);
+    const before = { ...metrics };
+    scan(dir);
+    expect(metrics.plantedSecretsFound).toBe(before.plantedSecretsFound);
+    expect(metrics.keyPatternMatches).toBe(before.keyPatternMatches);
+    expect(metrics.independentMatches).toBe(before.independentMatches);
+  });
+
+  it('a non-UTF-8 response body with a planted key is refused or redacted', async () => {
+    const dir = tempDir();
+    const recorder = createCassetteFetch({ store: dir, mode: 'record' });
+    metrics.binaryCases += 1;
+    await recorder(`${upstreamUrl}/binary/file`).catch((error: unknown) => error);
+    const proxy = await startCassetteProxy({ upstream: upstreamUrl, store: dir, mode: 'record' });
+    try {
+      metrics.binaryCases += 1;
+      await fetch(`${proxy.url}/binary/other`);
+    } finally {
+      await proxy.close();
+    }
+    const before = { ...metrics };
+    scan(dir);
+    expect(metrics.plantedSecretsFound).toBe(before.plantedSecretsFound);
+    expect(metrics.keyPatternMatches).toBe(before.keyPatternMatches);
+    expect(metrics.independentMatches).toBe(before.independentMatches);
+  });
+});
+
+describe('M03-G3 strict mode never calls out', () => {
+  it('fetch wrapper: a recorded request replays with no connection, an unknown one throws CASSETTE_MISS', async () => {
+    const dir = tempDir();
+    const [url, init] = secretRequest('/v1/systemone');
+    await createCassetteFetch({ store: dir, mode: 'record' })(url, init);
+
+    const strict = createCassetteFetch({ store: dir, mode: 'strict' });
+    const hit = await outbound(async () => {
+      const response = await strict(url, init);
+      return (await response.json()) as { echoed: number };
+    });
+    expect(hit.error).toBeUndefined();
+    expect(hit.result?.echoed).toBeGreaterThan(0);
+    metrics.replayHits += 1;
+    metrics.outboundConnections += hit.connects + hit.accepts;
+
+    metrics.missCases += 1;
+    const miss = await outbound(() =>
+      strict(url, { ...init, body: JSON.stringify({ other: 'request' }) }),
+    );
+    if (
+      miss.error instanceof CassetteMissError &&
+      (miss.error as { code: unknown }).code === CASSETTE_MISS
+    )
+      metrics.missesDetected += 1;
+    metrics.outboundConnections += miss.connects + miss.accepts;
+    expect(miss.error).toBeInstanceOf(CassetteMissError);
+    expect(miss.connects + miss.accepts).toBe(0);
+    expect(strict.stats).toEqual({ hits: 1, misses: 1, recorded: 0 });
+  });
+
+  it('proxy: an unknown request answers 404 CASSETTE_MISS and the upstream sees nothing', async () => {
+    const dir = tempDir();
+    const proxy = await startCassetteProxy({ upstream: upstreamUrl, store: dir, mode: 'strict' });
+    try {
+      metrics.missCases += 1;
+      const before = accepted;
+      const response = await fetch(`${proxy.url}/v1/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'x', messages: [] }),
+      });
+      const body = (await response.json()) as { error: { code: string } };
+      if (response.status === 404 && body.error.code === CASSETTE_MISS) metrics.missesDetected += 1;
+      metrics.outboundConnections += accepted - before;
+      expect(response.status).toBe(404);
+      expect(accepted - before).toBe(0);
+      expect(proxy.requests.at(-1)?.cassette).toBe('miss');
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('proxy: record through it, then replay strictly with the upstream untouched', async () => {
+    const dir = tempDir();
+    const recording = await startCassetteProxy({
+      upstream: upstreamUrl,
+      store: dir,
+      mode: 'record',
+    });
+    const payload = { model: 'fake', messages: [{ role: 'user', content: 'hello' }] };
+    const recorded = await fetch(`${recording.url}/v1/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const recordedBody: unknown = await recorded.json();
+    await recording.close();
+
+    const replaying = await startCassetteProxy({
+      upstream: upstreamUrl,
+      store: dir,
+      mode: 'strict',
+    });
+    try {
+      const before = accepted;
+      // Same JSON with different key order and spacing: same canonical key.
+      const replayed = await fetch(`${replaying.url}/v1/messages`, {
+        method: 'POST',
+        body: `{ "messages": [{"content":"hello","role":"user"}], "model": "fake" }`,
+      });
+      expect(replayed.status).toBe(200);
+      // The replay is the recording: identical except for the redacted key material.
+      expect(await replayed.json()).toEqual({
+        ...(recordedBody as Record<string, unknown>),
+        note: 'issued [REDACTED] for the next call',
+      });
+      metrics.replayHits += 1;
+      metrics.outboundConnections += accepted - before;
+      expect(accepted - before).toBe(0);
+      scan(dir);
+    } finally {
+      await replaying.close();
+    }
+  });
+
+  it('fake Jev in cassette mode: an unrecorded request is CASSETTE_MISS for the SDK', async () => {
+    const dir = tempDir();
+    const server = await startFakeJev({
+      mode: { kind: 'cassette', store: new FileCassetteStore(dir) },
+    });
+    try {
+      metrics.missCases += 1;
+      const sdk = new TypeSafeClient({
+        apiKey: DEFAULT_FAKE_JEV_API_KEY,
+        baseURL: server.url,
+        logLevel: 'off',
+      });
+      const before = accepted;
+      const error = await sdk
+        .systemOne({ state: 'never recorded', questions: { q: { type: 'noul' } } })
+        .then(
+          () => undefined,
+          (e: unknown) => e,
+        );
+      if (error instanceof NotFoundError && JSON.stringify(error.body).includes(CASSETTE_MISS))
+        metrics.missesDetected += 1;
+      metrics.outboundConnections += accepted - before;
+      expect(error).toBeInstanceOf(NotFoundError);
+      expect(server.requests).toHaveLength(1);
+    } finally {
+      await server.close();
+    }
+  });
+});

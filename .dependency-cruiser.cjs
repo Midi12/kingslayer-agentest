@@ -113,11 +113,16 @@ module.exports = {
     {
       name: 'no-testkit-in-production',
       comment:
-        '@argus/testkit is for tests; production sources import it only in apps/fixture-hmi and tools/**.',
+        '@argus/testkit is for tests; production sources import it only in apps/fixture-hmi, apps/fakes (the dev-only fake servers, ADR M03-packaging) and tools/**.',
       severity: 'error',
       from: {
         path: '(^|/)(packages|apps)/[^/]+/src/',
-        pathNot: ['(^|/)packages/testkit/', '(^|/)apps/fixture-hmi/', '\\.test\\.ts$'],
+        pathNot: [
+          '(^|/)packages/testkit/',
+          '(^|/)apps/fixture-hmi/',
+          '(^|/)apps/fakes/',
+          '\\.test\\.ts$',
+        ],
       },
       to: { path: ['(^|/)packages/testkit/', 'node_modules/@argus/testkit/'] },
     },

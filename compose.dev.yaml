@@ -6,6 +6,17 @@
 # postgres  127.0.0.1:5432  user argus, password argus, database argus
 # s3        127.0.0.1:9000  VersityGW (ADR-0014): access key argus, secret argus-dev-secret,
 #                           bucket argus created at start
+#
+# Profile "fakes" (M03, image argus/fakes built from deploy/docker/fakes.Dockerfile):
+#
+#   DOCKERHUB_MIRROR=mirror.gcr.io ARGUS_EXTRA_CA_FILE=$NODE_EXTRA_CA_CERTS \
+#     docker compose -f compose.dev.yaml --profile fakes up -d --wait fake-jev fake-llm
+#
+# fake-jev  127.0.0.1:4100  Jev API fake: TYPESAFE_BASE_URL=http://127.0.0.1:4100,
+#                           TYPESAFE_API_KEY=fake-typesafe-key
+# fake-llm  127.0.0.1:4200  LLM fake: ARGUS_LLM_BASE_URL=http://127.0.0.1:4200,
+#                           ARGUS_LLM_API_KEY=fake-llm-key
+# Scripts and faults are set at run time through PUT /_fake/script and POST /_fake/outcomes.
 name: argus-dev
 
 services:
@@ -71,6 +82,66 @@ services:
       retries: 60
       start_period: 5s
     restart: unless-stopped
+
+  fake-jev:
+    profiles: [fakes]
+    build: &fakes-build
+      context: .
+      dockerfile: deploy/docker/fakes.Dockerfile
+      network: host
+      args:
+        DOCKERHUB_MIRROR: ${DOCKERHUB_MIRROR:-docker.io}
+      secrets: [extra-ca]
+    image: argus/fakes:dev
+    command: [fake-jev]
+    # Files named below are paths inside the container, under /fixtures (the directory
+    # FAKE_FIXTURES_DIR, ./deploy/fakes by default, mounted read-only).
+    environment:
+      FAKE_JEV_MODE: ${FAKE_JEV_MODE:-scripted}
+      FAKE_JEV_SCRIPT: ${FAKE_JEV_SCRIPT:-}
+      FAKE_JEV_CASSETTE_DIR: ${FAKE_JEV_CASSETTE_DIR:-}
+      FAKE_JEV_ORACLE_TARGETS: ${FAKE_JEV_ORACLE_TARGETS:-}
+      FAKE_JEV_ORACLE_SEED: ${FAKE_JEV_ORACLE_SEED:-}
+      FAKE_JEV_ORACLE_NOISE: ${FAKE_JEV_ORACLE_NOISE:-}
+    volumes: &fakes-fixtures
+      - ${FAKE_FIXTURES_DIR:-./deploy/fakes}:/fixtures:ro
+    ports:
+      - 127.0.0.1:4100:4100
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    healthcheck: &fakes-health
+      test: [CMD, node, dist/health.js]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    # A configuration error exits 78: stop after three attempts instead of looping.
+    restart: on-failure:3
+
+  fake-llm:
+    profiles: [fakes]
+    build: *fakes-build
+    image: argus/fakes:dev
+    command: [fake-llm]
+    environment:
+      FAKE_LLM_FAULT: ${FAKE_LLM_FAULT:-}
+      FAKE_LLM_SCRIPT: ${FAKE_LLM_SCRIPT:-}
+    volumes: *fakes-fixtures
+    ports:
+      - 127.0.0.1:4200:4200
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    healthcheck: *fakes-health
+    restart: on-failure:3
+
+# Optional CA of a network that re-terminates TLS, for the image build only.
+secrets:
+  extra-ca:
+    file: ${ARGUS_EXTRA_CA_FILE:-/dev/null}
 
 volumes:
   pgdata:

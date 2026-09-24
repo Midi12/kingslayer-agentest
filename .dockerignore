@@ -1,0 +1,10 @@
+# Build context of the images built from the repository root (deploy/docker/*.Dockerfile).
+.git
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/*.tsbuildinfo
+.env
+gates/evidence
+docs
