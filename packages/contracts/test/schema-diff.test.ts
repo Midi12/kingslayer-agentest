@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffSchema, diffSchemaSets } from '../src/index.js';
+import { diffSchema, diffSchemaSets, exportJsonSchema } from '../src/index.js';
 
 const kinds = (before: unknown, after: unknown) =>
   diffSchema('x.schema.json', before, after).map((change) => change.kind);
@@ -109,5 +109,52 @@ describe('diffSchema', () => {
     expect(changes).toEqual([
       { file: 'a.json', path: '', kind: 'removed-schema', detail: 'a.json was removed' },
     ]);
+  });
+});
+
+describe('diffSchema fails closed on keywords it does not model', () => {
+  const published = exportJsonSchema('TestScript') as Record<string, unknown>;
+  const additions: Record<string, unknown> = {
+    allOf: [{ required: ['variables'] }],
+    not: { required: ['handlers'] },
+    if: { required: ['handlers'] },
+    then: { required: ['secrets'] },
+    dependentRequired: { handlers: ['secrets'] },
+    dependentSchemas: { handlers: { required: ['secrets'] } },
+    propertyNames: { maxLength: 3 },
+    format: 'uri',
+    oneOf: [{ type: 'object' }],
+    $ref: '#/$defs/x',
+    unevaluatedProperties: false,
+    prefixItems: [{ type: 'string' }],
+    contains: { const: 'x' },
+  };
+
+  it.each(Object.entries(additions))('reports a new %s at the root and inside', (key, value) => {
+    const root = { ...structuredClone(published), [key]: value };
+    expect(kinds(published, root)).toEqual(['unmodelled-keyword']);
+    const nested = structuredClone(published) as {
+      properties: { target: Record<string, unknown> };
+    };
+    nested.properties.target[key] = value;
+    const changes = diffSchema('test-script.schema.json', published, nested);
+    expect(changes.map((change) => [change.kind, change.path])).toEqual([
+      ['unmodelled-keyword', '/properties/target'],
+    ]);
+  });
+
+  it('reports a changed unmodelled keyword and ignores unchanged ones and annotations', () => {
+    expect(kinds({ format: 'uri' }, { format: 'uri' })).toEqual([]);
+    expect(kinds({ format: 'uri' }, { format: 'email' })).toEqual(['unmodelled-keyword']);
+    expect(kinds({ not: { const: 1 } }, {})).toEqual([]);
+    expect(
+      kinds({ type: 'string' }, { type: 'string', title: 'T', description: 'd', examples: ['x'] }),
+    ).toEqual([]);
+  });
+
+  it('turns an unmodelled keyword inside a union variant into a removed variant', () => {
+    const before = { anyOf: [{ type: 'string' }, { type: 'integer' }] };
+    const after = { anyOf: [{ type: 'string', format: 'uri' }, { type: 'integer' }] };
+    expect(kinds(before, after)).toEqual(['removed-variant']);
   });
 });

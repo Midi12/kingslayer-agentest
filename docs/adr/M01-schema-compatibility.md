@@ -24,6 +24,10 @@ M01-G4 diffs the schemas against the last release tag, and no release tag exists
   literal sets, closed objects, stricter bounds, lengths, patterns, uniqueness and
   multiples, and union variants that lost their counterpart. Discriminated variants are
   matched by discriminator value, others by finding an equally permissive new variant.
+  Any other keyword (`allOf`, `not`, `if`/`then`, `dependentRequired`, `propertyNames`,
+  `format`, `$ref`, ...) that is added or changed is reported as `unmodelled-keyword`:
+  the diff fails closed; annotations (`title`, `description`, `examples`, ...) are
+  ignored.
 - Fixture pairs under `test/__golden__/schema-diff/` prove each kind is detected and
   that an additive change (new optional property, wider enum, new variant, relaxed
   bound, new schema) passes.

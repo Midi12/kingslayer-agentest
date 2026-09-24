@@ -10,7 +10,10 @@
  * - `narrowed-enum`: a `const`, `enum` or literal union accepts fewer values;
  * - `closed-object`: an open object now rejects unknown properties;
  * - `narrowed-constraint`: a bound, length, pattern, uniqueness or multiple got stricter;
- * - `removed-variant`: a union variant no longer has an equally permissive counterpart.
+ * - `removed-variant`: a union variant no longer has an equally permissive counterpart;
+ * - `unmodelled-keyword`: a keyword the diff does not model (`allOf`, `not`, `if`,
+ *   `format`, `propertyNames`, `$ref`, ...) was added or changed. The check fails closed:
+ *   such a change is reported as breaking even when it happens to be harmless.
  */
 
 export type BreakingKind =
@@ -21,7 +24,8 @@ export type BreakingKind =
   | 'narrowed-enum'
   | 'closed-object'
   | 'narrowed-constraint'
-  | 'removed-variant';
+  | 'removed-variant'
+  | 'unmodelled-keyword';
 
 export interface BreakingChange {
   readonly file: string;
@@ -108,6 +112,48 @@ function admitsLiteral(schema: Node, value: unknown): boolean {
   return true;
 }
 
+/** Keywords whose changes `compare` understands. */
+const MODELLED_KEYWORDS = new Set([
+  'type',
+  'const',
+  'enum',
+  'anyOf',
+  'properties',
+  'required',
+  'patternProperties',
+  'additionalProperties',
+  'items',
+  'minimum',
+  'exclusiveMinimum',
+  'maximum',
+  'exclusiveMaximum',
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems',
+  'minProperties',
+  'maxProperties',
+  'pattern',
+  'multipleOf',
+  'uniqueItems',
+]);
+
+/** Annotations: they never change which documents are valid. */
+const ANNOTATION_KEYWORDS = new Set([
+  '$id',
+  '$schema',
+  '$comment',
+  'title',
+  'description',
+  'default',
+  'examples',
+  'deprecated',
+  'readOnly',
+  'writeOnly',
+  'discriminator',
+  'x-runner-only',
+]);
+
 const LOWER_BOUNDS = ['minimum', 'exclusiveMinimum', 'minLength', 'minItems', 'minProperties'];
 const UPPER_BOUNDS = ['maximum', 'exclusiveMaximum', 'maxLength', 'maxItems', 'maxProperties'];
 
@@ -121,6 +167,16 @@ function compare(
   const push = (kind: BreakingKind, detail: string, at = path) => {
     out.push({ file, path: at, kind, detail });
   };
+
+  // Fail closed on any assertion keyword the diff does not model.
+  for (const key of Object.keys(after).sort()) {
+    if (MODELLED_KEYWORDS.has(key) || ANNOTATION_KEYWORDS.has(key)) continue;
+    if (!(key in before)) {
+      push('unmodelled-keyword', `keyword ${key} was added`);
+    } else if (!same(before[key], after[key])) {
+      push('unmodelled-keyword', `keyword ${key} changed`);
+    }
+  }
 
   // Union on either side: every old variant needs an equally permissive new variant.
   const oldLiterals = literalValues(before);
