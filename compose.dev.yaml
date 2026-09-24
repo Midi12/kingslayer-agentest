@@ -104,7 +104,7 @@ services:
       FAKE_JEV_ORACLE_SEED: ${FAKE_JEV_ORACLE_SEED:-}
       FAKE_JEV_ORACLE_NOISE: ${FAKE_JEV_ORACLE_NOISE:-}
     volumes: &fakes-fixtures
-      - ${FAKE_FIXTURES_DIR:-./deploy/fakes}:/fixtures:ro
+      - fakes-fixtures:/fixtures:ro
     ports:
       - 127.0.0.1:4100:4100
     read_only: true
@@ -146,3 +146,12 @@ secrets:
 volumes:
   pgdata:
   s3data:
+  # A named volume so the compose convention above holds (no relative bind mounts inline
+  # in a service), but backed by a bind driver so it is still the host fixtures directory
+  # (FAKE_FIXTURES_DIR, ./deploy/fakes by default), read-only in the containers.
+  fakes-fixtures:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${FAKE_FIXTURES_DIR:-./deploy/fakes}
