@@ -20,13 +20,20 @@ all with severity `error`, ordered by rule then position.
   an interrogative first word) nor instructions (check, verify, ensure, ...); make one
   claim (no and, or, but, also, as well as, `;`, single sentence); contain no numeric
   comparison (more or less than, at least or most, symbols, above or below a number),
-  count (number words, "number of", a number before a plural noun or `%`) or date or time
-  (month and day names, today, ISO and numeric dates, clock times), and states no numeric
-  value. A number is allowed only as an identifier: glued to a letter ("C12", "3B") or a
-  whole number right after a naming word ("conveyor 12 is running", "alarm 7"). A
+  count ("number of", a number before a plural noun or `%`, "one" or "a single" before a
+  noun) or date or time (month and day names, today, ISO and numeric dates, clock
+  times), and states no numeric value. Every number word is a finding, zero to ninety,
+  hundred, thousand, million, billion, trillion, dozen and compounds such as
+  "eighty-five": one followed by a unit or `percent` or closing its clause ("reads
+  seventy.", "eighty percent") is a value, any other a count. "one" before a verb
+  ("the selected one is highlighted") is a pronoun and allowed. A number in digits is
+  allowed only as an identifier: glued to a letter wherever it stands ("C12", "3B",
+  "the 3B conveyor", "12B"), unless the letters are a unit ("5MB", "1500rpm", "5th"), or
+  a whole number right after a naming word ("conveyor 12 is running", "alarm 7"). A
   decimal, a signed number, a number with a unit or `percent`, or one that opens the
-  statement or follows a verb, preposition, article or measured quantity ("is 0.5 m/s",
-  "shows 5", "a value of 42", "reads 80 percent") is a value and a finding.
+  statement or follows a verb (including says), preposition, article or measured
+  quantity or instrument ("is 0.5 m/s", "shows 5", "a value of 42", "reads 80 percent",
+  "gauge 80") is a value and a finding.
 - L3: every `${secret.NAME}` is declared and appears only in a fill value or an http
   header or body; a fill whose target names a password, passcode, passphrase, PIN or pwd
   takes exactly `${secret.NAME}`; literal credentials are flagged anywhere (API keys,

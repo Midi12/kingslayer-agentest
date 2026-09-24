@@ -188,8 +188,18 @@ const IMPERATIVE_START = new Set([
   'type',
   'enter',
 ]);
-const NUMBER_WORDS =
-  /\b(zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|hundred|thousand|dozens?)\b/i;
+const DIGIT_WORDS = 'one|two|three|four|five|six|seven|eight|nine';
+/**
+ * Number words, compounds such as "eighty-five" included. "one" is left to
+ * `COUNTED_ONE`, because it is also a pronoun ("the selected one is highlighted").
+ */
+const NUMBER_WORD = new RegExp(
+  `\\b(?:zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|trillions?|dozens?)(?:-(?:${DIGIT_WORDS}))?\\b`,
+  'giu',
+);
+/** "one" or "a single" used as a count: followed by a word other than a verb. */
+const COUNTED_ONE =
+  /\b(?:one|(?:a|only|just|exactly)\s+single)\s+(?!(?:is|are|was|were|be|has|have|had|does|do|did|shows|reads|remains|stays|displays|contains|appears|blinks|turns|looks|becomes|can|could|should|would|will|must|may|might)\b)\p{L}/iu;
 const COUNT_PHRASES = /\b(number of|count of|counts?|how many|exactly|several|at least|at most)\b/i;
 const COMPARISON =
   /\b(more|less|fewer|greater|higher|lower|larger|smaller|bigger|longer|shorter)\s+than\b|[<>≤≥]|\b(above|below|under|over|exceeds?|exceeding|between|equals?|equal to|up to|within)\s+[-+]?[0-9]/i;
@@ -203,7 +213,7 @@ const CONJUNCTION = /\b(and|or|but|as well as|also)\b|;/i;
 const STANDALONE_NUMBER = /(?<![\p{L}\p{N}_.,])[-+]?[0-9]+(?:[.,][0-9]+)*(?![0-9])/gu;
 /** Units, ordinals and signs that make a number a measured or counted value. */
 const UNIT =
-  /^(?:%|‰|°|°c|°f|c|f|k|percent|per|pct|degrees?|x|times|mm|cm|m|km|m\/s|km\/h|mph|s|sec|secs|seconds?|ms|min|mins|minutes?|h|hrs?|hours?|hz|khz|mhz|rpm|v|kv|mv|a|ma|w|kw|mw|kwh|wh|va|bar|mbar|pa|kpa|mpa|psi|kg|g|mg|t|tons?|tonnes?|l|ml|m3|l\/min|l\/h|m3\/h|nm|st|nd|rd|th|px|db|ppm|lux|lx)$/i;
+  /^(?:%|‰|°|°c|°f|c|f|k|percent|per|pct|degrees?|x|times|mm|cm|m|km|m\/s|km\/h|mph|s|sec|secs|seconds?|ms|min|mins|minutes?|h|hrs?|hours?|days?|weeks?|hz|khz|mhz|ghz|rpm|fps|v|kv|mv|a|ma|w|kw|mw|kwh|wh|va|bar|mbar|pa|kpa|mpa|psi|kg|g|mg|t|tons?|tonnes?|l|ml|m3|l\/min|l\/h|m3\/h|nm|st|nd|rd|th|px|db|ppm|lux|lx|bytes?|bits?|kb|mb|gb|tb|kib|mib|gib|kbps|mbps)$/i;
 /**
  * Words after which a number is a value rather than the name of a thing: verbs of state
  * and display, prepositions, articles and measured quantities. "conveyor 12" and "line 2"
@@ -234,6 +244,12 @@ const VALUE_CONTEXT = new Set([
   'displayed',
   'reads',
   'read',
+  'says',
+  'say',
+  'said',
+  'states',
+  'measures',
+  'measured',
   'reading',
   'readings',
   'reaches',
@@ -296,31 +312,81 @@ const VALUE_CONTEXT = new Set([
   'voltage',
   'current',
   'power',
+  'gauge',
+  'gauges',
+  'readout',
+  'readouts',
+  'meter',
+  'meters',
+  'dial',
+  'battery',
+  'charge',
+  'humidity',
+  'load',
+  'usage',
+  'progress',
+  'size',
+  'length',
+  'width',
+  'height',
+  'distance',
+  'angle',
+  'frequency',
+  'volume',
+  'capacity',
+  'utilisation',
+  'utilization',
+  'efficiency',
+  'consumption',
+  'torque',
+  'density',
 ]);
+
+/** The word or sign after a number: a unit, or the next word (undefined at the end). */
+function nextToken(after: string): string | undefined {
+  return /^\s*([%‰°]|[\p{L}][\p{L}\p{N}/]*)/u.exec(after)?.[1];
+}
 
 /**
  * Whether the statement states a numeric value. A number is allowed only as an
- * identifier: a whole number right after a naming word ("conveyor 12", "alarm 7") and
- * not followed by a unit. A decimal, a signed number, a number with a unit or a
- * percentage, one that follows a verb, preposition, article or measured quantity, or one
- * that opens the statement is a value.
+ * identifier: glued to a letter ("C12", "3B", "12B", wherever it stands) or a whole
+ * number right after a naming word ("conveyor 12", "alarm 7") and not followed by a
+ * unit. A decimal, a signed number, a number with a unit or a percentage, one that
+ * follows a verb, preposition, article or measured quantity, or one that opens the
+ * statement is a value.
  */
 function statesNumericValue(text: string): boolean {
   for (const match of text.matchAll(STANDALONE_NUMBER)) {
     const number = match[0];
     if (/[.,+-]/.test(number)) return true;
-    const before = words(text.slice(0, match.index)).at(-1);
-    if (before === undefined || VALUE_CONTEXT.has(before)) return true;
     const after = text.slice(match.index + number.length);
     const glued = /^[\p{L}°%‰][\p{L}\p{N}°%‰/]*/u.exec(after)?.[0];
     if (glued !== undefined) {
       if (UNIT.test(glued)) return true;
-      continue; // an identifier such as 12B
+      continue; // an identifier such as 3B or 12B
     }
-    const next = /^\s*([%‰°]|[\p{L}][\p{L}\p{N}/]*)/u.exec(after)?.[1];
+    const before = words(text.slice(0, match.index)).at(-1);
+    if (before === undefined || VALUE_CONTEXT.has(before)) return true;
+    const next = nextToken(after);
     if (next !== undefined && UNIT.test(next)) return true;
   }
   return false;
+}
+
+/**
+ * Number words in the statement, sorted by use: a word followed by a unit or percent,
+ * or closing its clause ("reads seventy.", "eighty percent"), states a value; any other
+ * ("sixty alarms", "a million rows", "one alarm") is a count.
+ */
+function numberWords(text: string): { value: boolean; count: boolean } {
+  const result = { value: false, count: false };
+  for (const match of text.matchAll(NUMBER_WORD)) {
+    const next = nextToken(text.slice(match.index + match[0].length));
+    if (next === undefined || UNIT.test(next)) result.value = true;
+    else result.count = true;
+  }
+  if (COUNTED_ONE.test(text)) result.count = true;
+  return result;
 }
 
 /** Reasons a Noul statement breaks L2; empty when it is fine. */
@@ -338,11 +404,12 @@ export function noulStatementProblems(statement: string): string[] {
     problems.push('makes more than one claim');
   }
   const comparison = COMPARISON.test(text);
-  const count = COUNT_PHRASES.test(text) || NUMBER_WORDS.test(text) || COUNTED_NUMBER.test(text);
+  const spelled = numberWords(text);
+  const count = COUNT_PHRASES.test(text) || spelled.count || COUNTED_NUMBER.test(text);
   const date = DATE_OR_TIME.test(text);
   if (comparison) {
     problems.push('contains a numeric comparison');
-  } else if (!count && !date && statesNumericValue(text)) {
+  } else if (!count && !date && (spelled.value || statesNumericValue(text))) {
     problems.push('states a numeric value, which is checked in code');
   }
   if (count) {

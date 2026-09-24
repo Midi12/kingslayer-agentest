@@ -416,3 +416,58 @@ describe('lintScript, review round 2', () => {
     expect(lintScript(http, context)).toEqual([]);
   });
 });
+
+describe('lintScript, review round 3', () => {
+  const count = 'contains a count or quantity';
+  const value = 'states a numeric value, which is checked in code';
+
+  it('L2 flags every number word, compounds and "one" or "a single" used as a count', () => {
+    for (const statement of [
+      'The alarm list contains sixty alarms.',
+      'The table lists ninety rows.',
+      'Seventy-two alarms are listed.',
+      'The page shows a million rows.',
+      'Billions of records are stored.',
+      'One alarm is active.',
+      'The list shows a single alarm.',
+      'Hundreds of events are logged.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([count]);
+    }
+    for (const statement of [
+      'The tank reads eighty percent.',
+      'The tank level reads seventy.',
+      'The counter shows eighty-five.',
+      'The fan turns at sixty rpm.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([value]);
+    }
+    for (const statement of [
+      'The selected one is highlighted.',
+      'No one is logged in.',
+      'The sixties theme is active.',
+      'Someone acknowledged the alarm.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([]);
+    }
+  });
+
+  it('L2 allows numbers glued to a letter wherever they stand, and reads more value contexts', () => {
+    for (const statement of [
+      'The 3B conveyor is running.',
+      '3B is running.',
+      'The alarm of 12B is active.',
+      'Pump 3B is running.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([]);
+    }
+    for (const statement of [
+      'The readout says 42.',
+      'The battery gauge 80 is highlighted.',
+      'The upload is 5MB.',
+      'The 5th alarm is active.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([value]);
+    }
+  });
+});
