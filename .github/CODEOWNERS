@@ -1,0 +1,6 @@
+# Protected paths (CLAUDE.md section 2, plan 4.3): a human approves every change.
+/gates/*.yaml                          @Midi12
+**/__golden__/**                       @Midi12
+/thresholds/                           @Midi12
+/prompts/                              @Midi12
+/packages/navigator/src/questions.ts   @Midi12

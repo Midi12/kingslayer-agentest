@@ -1,0 +1,110 @@
+# Active pipeline (ADR-0001). The logic lives in the repository: jobs call only
+# `pnpm gate-guard`, `pnpm gate` and `docker buildx bake`.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+
+jobs:
+  gate-guard:
+    name: gate-guard
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Protected paths and commit subjects, commit by commit (ADR-0015)
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = pull_request ]; then
+            base="$PR_BASE"; head="$PR_HEAD"
+          elif [ -n "${PUSH_BEFORE:-}" ] && ! [[ "$PUSH_BEFORE" =~ ^0+$ ]]; then
+            base="$PUSH_BEFORE"; head="$PUSH_AFTER"
+          else
+            head="$PUSH_AFTER"
+            base="$(git merge-base "origin/$DEFAULT_BRANCH" "$head" 2>/dev/null || git rev-list --max-parents=0 "$head" | tail -n 1)"
+          fi
+          echo "checking $base..$head"
+          pnpm gate-guard --range "$base..$head" --per-commit --conventional
+
+  tier-a:
+    name: tier-a
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      # Shared with the tier-a user below, so pnpm is not downloaded after the lockdown.
+      COREPACK_HOME: /tmp/corepack
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm && pnpm --version && chmod -R a+rwX "$COREPACK_HOME"
+      - name: Shared services (postgres, versitygw) from compose.dev.yaml
+        run: docker compose -f compose.dev.yaml up -d --wait
+      - run: pnpm install --frozen-lockfile
+      - name: Tier A without egress
+        # The gates run as a dedicated user whose outbound traffic is limited to loopback
+        # and the Docker bridge networks, over IPv4 and IPv6 (spec M00, ADR-0008). Docker
+        # builds and the install container of M00-G1 run in the daemon as root and keep
+        # registry access; M00-G1 runs build and test in a host-network container as this
+        # user's uid, so the same rule applies to them.
+        # --strict: a Tier A gate that cannot run (daemon unreachable, tool missing) fails
+        # the job instead of passing silently as not_run.
+        run: |
+          set -euo pipefail
+          sudo useradd --create-home --groups docker tiera
+          sudo iptables -A OUTPUT -m owner --uid-owner tiera -o lo -j ACCEPT
+          sudo iptables -A OUTPUT -m owner --uid-owner tiera -d 172.16.0.0/12 -j ACCEPT
+          sudo iptables -A OUTPUT -m owner --uid-owner tiera -j REJECT
+          sudo ip6tables -A OUTPUT -m owner --uid-owner tiera -o lo -j ACCEPT
+          sudo ip6tables -A OUTPUT -m owner --uid-owner tiera -j REJECT
+          sudo chmod -R a+rwX "$GITHUB_WORKSPACE"
+          sudo -u tiera -H env "PATH=$PATH" "COREPACK_HOME=$COREPACK_HOME" CI=true TURBO_TELEMETRY_DISABLED=1 \
+            bash -c 'cd "$0" && git config --global --add safe.directory "$0" && pnpm gate all --tier A --strict' "$GITHUB_WORKSPACE"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tier-a-evidence
+          path: gates/evidence/
+          if-no-files-found: warn
+
+  build-images:
+    name: build-images
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: docker buildx bake
+        run: |
+          if [ -f deploy/docker/docker-bake.hcl ]; then
+            docker buildx bake -f deploy/docker/docker-bake.hcl
+          else
+            echo "deploy/docker/docker-bake.hcl does not exist yet (D1); nothing to bake"
+          fi

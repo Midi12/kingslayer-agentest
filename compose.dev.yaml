@@ -1,0 +1,77 @@
+# Shared development services (CLAUDE.md section 1). Every worktree targets the same
+# containers: the project name is fixed and nothing is bind-mounted from a relative path.
+#
+#   DOCKERHUB_MIRROR=mirror.gcr.io docker compose -f compose.dev.yaml up -d --wait
+#
+# postgres  127.0.0.1:5432  user argus, password argus, database argus
+# s3        127.0.0.1:9000  VersityGW (ADR-0014): access key argus, secret argus-dev-secret,
+#                           bucket argus created at start
+name: argus-dev
+
+services:
+  postgres:
+    image: ${DOCKERHUB_MIRROR:-docker.io}/library/postgres:16-bookworm
+    environment:
+      POSTGRES_USER: argus
+      POSTGRES_PASSWORD: argus
+      POSTGRES_DB: argus
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -U, argus, -d, argus]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  s3:
+    # Pinned by tag and digest (ADR-0014); verified with docker pull.
+    image: ghcr.io/versity/versitygw:v1.8.0@sha256:30292fc2eeacc67a36993b01f7a7a5e3361a19cced0e80c1d71cfa2a4b0a2499
+    environment:
+      ROOT_ACCESS_KEY: argus
+      ROOT_SECRET_KEY: argus-dev-secret
+      ADMIN_ACCESS_KEY: argus
+      ADMIN_SECRET_KEY: argus-dev-secret
+      ADMIN_ENDPOINT_URL: http://127.0.0.1:7070
+      ARGUS_S3_BUCKET: argus
+    ports:
+      - 127.0.0.1:9000:7070
+    volumes:
+      - s3data:/data
+    # Starts the gateway on the POSIX backend, then creates the bucket through the admin
+    # API (so it has an owner and ACL like any bucket created over S3) and keeps the
+    # gateway in the foreground. `$$` escapes Compose interpolation.
+    entrypoint: [/bin/sh, -c]
+    command:
+      - |
+        versitygw --health /health posix /data &
+        server=$$!
+        trap 'kill -TERM "$$server" 2>/dev/null' TERM INT
+        until wget -q -O /dev/null http://127.0.0.1:7070/health; do
+          kill -0 "$$server" 2>/dev/null || exit 1
+          sleep 0.5
+        done
+        if ! out=$$(versitygw admin create-bucket --owner "$$ROOT_ACCESS_KEY" --bucket "$$ARGUS_S3_BUCKET" 2>&1); then
+          case "$$out" in
+            *BucketAlreadyOwnedByYou*) ;;
+            *) echo "bucket creation failed: $$out" >&2; kill -TERM "$$server"; exit 1 ;;
+          esac
+        fi
+        echo "bucket $$ARGUS_S3_BUCKET ready"
+        wait "$$server"
+    healthcheck:
+      # Healthy once the gateway answers and the bucket exists (a directory of the POSIX
+      # backend), so `up --wait` returns with the bucket in place.
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:7070/health && test -d /data/argus']
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  s3data:

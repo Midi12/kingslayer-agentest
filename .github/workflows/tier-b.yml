@@ -1,0 +1,36 @@
+# Nightly and on-demand live-AI gates (Tier B). Without the secrets every Tier B gate
+# reports not_run with the missing variable names (ADR-0016); it is never faked.
+name: tier-b
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tier-b:
+    name: tier-b
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      ARGUS_LLM_API_KEY: ${{ secrets.ARGUS_LLM_API_KEY }}
+      TURBO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+      - run: docker compose -f compose.dev.yaml up -d --wait
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm gate all --tier B
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tier-b-evidence
+          path: gates/evidence/
+          if-no-files-found: warn

@@ -77,3 +77,18 @@ Claude-Session: https://claude.ai/code/session_01TnB6D6WodNqVyh1B1QQZQz
 ```
 
 Git identity is configured in the repository. Never push: only the merge step pushes, and only the integration branch `claude/determined-darwin-e5wdgo`.
+
+## 6. Commands
+
+| Command | What it does |
+| --- | --- |
+| `pnpm install` | Install the workspace (pnpm 10.33.0 through corepack) |
+| `DOCKERHUB_MIRROR=mirror.gcr.io docker compose -f compose.dev.yaml up -d --wait` | Start or check the shared Postgres and S3 services; never `down` them |
+| `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm format` | Turborepo over every package |
+| `pnpm depcruise [path...]` | Dependency rules on the real tree, or on the given paths |
+| `pnpm gate <MOD\|all> [--tier A\|B\|C] [--strict]` | Run gates, write `gates/evidence/<MOD>.json`; `pnpm gate verify <file>` rechecks a hash |
+| `pnpm g0 <package-dir...>` | Global gate G0; every module lists it as its `Mxx-G0` gate |
+| `pnpm gate-guard --range <base>..<head> --per-commit` | Protected paths commit by commit (`--diff`, `--files` also exist) |
+| `pnpm scenario` | Not available until D2 (exit 3) |
+
+A package's `vitest.config.ts` calls `defineArgusVitestConfig` from `packages/testkit/src/vitest-preset.ts` (relative import), which installs the network guard. Gate tests call `recordGateMetrics` from `@argus/testkit`. Run `pnpm gate` with `DOCKERHUB_MIRROR=mirror.gcr.io` and `NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` on this host, so M00-G1 can build its image and reach the npm registry from the container.

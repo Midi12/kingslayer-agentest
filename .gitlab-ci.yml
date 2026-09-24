@@ -1,0 +1,88 @@
+# Reference pipeline with the same jobs as .github/workflows/ci.yml (ADR-0001). GitHub
+# Actions is the active CI; both call only pnpm gate-guard, pnpm gate and docker buildx bake.
+
+stages: [guard, test, build]
+
+variables:
+  TURBO_TELEMETRY_DISABLED: '1'
+  DOCKERHUB_MIRROR: docker.io
+
+.node:
+  image: ${DOCKERHUB_MIRROR}/library/node:22-bookworm-slim
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+    - corepack enable pnpm
+    - pnpm install --frozen-lockfile
+
+gate-guard:
+  extends: .node
+  stage: guard
+  variables:
+    GIT_DEPTH: '0'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
+        base="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+      elif [ -n "${CI_COMMIT_BEFORE_SHA:-}" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+        base="$CI_COMMIT_BEFORE_SHA"
+      else
+        base="$(git rev-list --max-parents=0 "$CI_COMMIT_SHA" | tail -n 1)"
+      fi
+      pnpm gate-guard --range "$base..$CI_COMMIT_SHA" --per-commit --conventional
+
+# Tier A runs in Docker-in-Docker so that compose.dev.yaml provides the same services on
+# loopback as on a developer host. The gates run in argus/toolchain with --network host,
+# which here is the dind network namespace. Known gaps of this reference job, recorded in
+# ADR M00-ci: it has no egress lockdown (only the in-process network guard applies), and
+# the toolchain image has no Docker CLI, so M00-G1 reports not_run; for that reason it
+# runs without --strict. The active GitHub job has neither gap and runs with --strict.
+tier-a:
+  stage: test
+  image: ${DOCKERHUB_MIRROR}/library/docker:27-cli
+  services:
+    - name: ${DOCKERHUB_MIRROR}/library/docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ''
+  script:
+    - docker compose -f compose.dev.yaml up -d --wait
+    - docker build --network host --build-arg DOCKERHUB_MIRROR -f deploy/docker/toolchain.Dockerfile -t argus/toolchain:dev deploy/docker
+    - >-
+      docker run --rm --network host -v "$CI_PROJECT_DIR:/work/repo" -w /work/repo -e CI=true
+      argus/toolchain:dev bash -c 'pnpm install --frozen-lockfile && pnpm gate all --tier A'
+  artifacts:
+    when: always
+    paths: [gates/evidence/]
+
+build-images:
+  stage: build
+  image: ${DOCKERHUB_MIRROR}/library/docker:27-cli
+  services:
+    - name: ${DOCKERHUB_MIRROR}/library/docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ''
+  script:
+    - |
+      if [ -f deploy/docker/docker-bake.hcl ]; then
+        docker buildx bake -f deploy/docker/docker-bake.hcl
+      else
+        echo "deploy/docker/docker-bake.hcl does not exist yet (D1); nothing to bake"
+      fi
+
+tier-b:
+  extends: .node
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - pnpm gate all --tier B
+  artifacts:
+    when: always
+    paths: [gates/evidence/]

@@ -1,0 +1,66 @@
+module: M00
+title: Foundation and gate harness
+gates:
+  - id: M00-G0
+    tier: A
+    title: Global gate G0 on the packages M00 owns
+    command: pnpm g0 packages/testkit tools/gate tools/gate-guard
+    timeoutSec: 1800
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.packages == 3 && metrics.typecheckFailures == 0
+      && metrics.typecheckErrors == 0 && metrics.lintErrors == 0 && metrics.lintWarnings == 0
+      && metrics.tests > 0 && metrics.testsFailed == 0 && metrics.testsSkipped == 0
+      && metrics.vitestFailures == 0 && metrics.coverageBelowFloor == 0 && metrics.coverageLines >= 85
+      && metrics.depViolations == 0 && metrics.markers == 0 && metrics.networkGuardMissing == 0
+
+  - id: M00-G1
+    tier: A
+    title: Clean-clone bootstrap in a fresh argus/toolchain container
+    command: pnpm --filter @argus/gate-tool test:gate-g1
+    timeoutSec: 2700
+    requires: [docker]
+    pass: >-
+      exitCode == 0 && metrics.fresh == true && metrics.frozenLockfile == true
+      && metrics.installExit == 0 && metrics.buildExit == 0 && metrics.testExit == 0
+      && metrics.containerMs < 600000
+
+  - id: M00-G2
+    tier: A
+    title: The gate runner tells the truth
+    command: pnpm --filter @argus/gate-tool test:gate-g2
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.samples == 3 && metrics.statuses == "pass,fail,fail"
+      && metrics.runnerExitCode != 0 && metrics.hashesVerified == 3
+
+  - id: M00-G3
+    tier: A
+    title: Dependency rules bite
+    command: pnpm --filter @argus/gate-tool test:gate-g3
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.realTreeExit == 0 && metrics.coreAdapterFixtureExit != 0
+      && metrics.coreAdapterRuleFired == true && metrics.ruleCases >= 7
+      && metrics.ruleCasesCorrect == metrics.ruleCases
+
+  - id: M00-G4
+    tier: A
+    title: Tier A is hermetic
+    command: pnpm --filter @argus/testkit test:gate-g4
+    timeoutSec: 300
+    requires: []
+    pass: exitCode == 0 && metrics.denied >= 10 && metrics.loopbackOk >= 4
+
+  - id: M00-G5
+    tier: A
+    title: Protected paths are protected
+    command: pnpm --filter @argus/gate-guard test:gate-g5
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.cases >= 10 && metrics.correct == metrics.cases
+      && metrics.mixedExit == 1 && metrics.oneSideExit == 0 && metrics.gitModesCorrect == metrics.gitModes
+      && metrics.gitModes >= 4

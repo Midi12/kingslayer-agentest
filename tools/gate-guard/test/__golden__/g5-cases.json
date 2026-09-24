@@ -1,0 +1,38 @@
+[
+  {
+    "list": "gates-and-src.txt",
+    "exit": 1,
+    "why": "a gate file and implementation source together"
+  },
+  {
+    "list": "gates-only.txt",
+    "exit": 0,
+    "why": "gates-first commit: gate file, gate tests and goldens"
+  },
+  { "list": "src-only.txt", "exit": 0, "why": "implementation only" },
+  {
+    "list": "golden-and-src.txt",
+    "exit": 1,
+    "why": "a golden file and implementation source together"
+  },
+  {
+    "list": "questions-and-src.txt",
+    "exit": 1,
+    "why": "navigator questions.ts and implementation source together"
+  },
+  {
+    "list": "thresholds-and-prompts.txt",
+    "exit": 0,
+    "why": "protected paths with a gate-change note"
+  },
+  {
+    "list": "prompts-and-docs.txt",
+    "exit": 1,
+    "why": "a prompt and a non-neutral document together"
+  },
+  { "list": "evidence-and-src.txt", "exit": 0, "why": "evidence is neutral" },
+  { "list": "gate-change.txt", "exit": 0, "why": "gate-change: gate file and its note" },
+  { "list": "evidence-only.txt", "exit": 0, "why": "evidence only" },
+  { "list": "dot-slash-and-src.txt", "exit": 1, "why": "paths are normalised before matching" },
+  { "list": "src-and-tests.txt", "exit": 0, "why": "implementation with its tests" }
+]

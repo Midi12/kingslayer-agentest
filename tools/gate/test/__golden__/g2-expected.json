@@ -1,0 +1,5 @@
+{
+  "M91": { "status": "pass", "exitCode": 0 },
+  "M92": { "status": "fail", "exitCode": 3 },
+  "M93": { "status": "fail", "exitCode": 0 }
+}
