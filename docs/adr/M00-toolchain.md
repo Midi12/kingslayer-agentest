@@ -22,8 +22,9 @@ dependency-cruiser and tsx, each at the current stable version of its line.
 - Development tools are root devDependencies; a package declares what it imports at run
   time.
 - `pnpm gate`, `pnpm g0`, `pnpm depcruise` and `pnpm gate-guard` run the TypeScript
-  sources through tsx (`tools/*/bin/*.js` register tsx and import `src/main.ts`), so a
-  clean clone can gate itself without a build. tsx is a dependency of those two tools.
+  sources through tsx (`tools/*/bin/*.js` register tsx plus a resolve hook that adds the
+  `@argus/source` condition, then import `src/main.ts`), so a clean clone can gate itself
+  without a build, also once the tools import workspace packages. tsx is a dependency of those two tools.
 - ESLint: `typescript-eslint` `strictTypeChecked` with the project service,
   `no-explicit-any` and `no-non-null-assertion` as errors, unused variables allowed only
   with a leading underscore, `eqeqeq`, and unused disable directives reported.
