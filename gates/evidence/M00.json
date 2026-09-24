@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M00",
   "title": "Foundation and gate harness",
-  "commit": "7f78abd",
+  "commit": "292eada",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-24T18:46:51.088Z",
-  "finishedAt": "2026-09-24T18:50:38.434Z",
+  "startedAt": "2026-09-24T19:07:25.769Z",
+  "finishedAt": "2026-09-24T19:11:07.987Z",
   "gates": [
     {
       "id": "M00-G0",
@@ -20,18 +20,18 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 96346,
+      "durationMs": 85741,
       "metrics": {
         "packages": 3,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 314,
+        "tests": 328,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
-        "coverageLines": 96.11,
+        "coverageLines": 96.23,
         "coverageBelowFloor": 0,
         "depViolations": 0,
         "markers": 0,
@@ -42,10 +42,10 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 51,
+            "tests": 58,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 99.03,
+            "coverageLines": 98.77,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
@@ -55,27 +55,27 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 216,
+            "tests": 217,
             "testsFailed": 0,
             "testsSkipped": 0,
             "coverageLines": 99.63,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
-            "networkGuardInstalls": 13
+            "networkGuardInstalls": 14
           },
           "tools/gate-guard": {
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 47,
+            "tests": 53,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 96.11,
+            "coverageLines": 96.23,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
-            "networkGuardInstalls": 3
+            "networkGuardInstalls": 4
           }
         }
       },
@@ -97,21 +97,21 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 60911,
+      "durationMs": 64835,
       "metrics": {
-        "commit": "7f78abd",
+        "commit": "292eada",
         "image": "argus/toolchain:dev",
         "imageBuildExit": 0,
         "fresh": true,
         "frozenLockfile": true,
         "installExit": 0,
-        "installMs": 3758,
+        "installMs": 3178,
         "buildExit": 0,
-        "buildMs": 5373,
+        "buildMs": 5387,
         "testExit": 0,
-        "testMs": 48194,
+        "testMs": 52162,
         "containerExit": 0,
-        "containerMs": 57947,
+        "containerMs": 61345,
         "limitMs": 600000
       },
       "missingMetrics": [],
@@ -130,7 +130,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 10557,
+      "durationMs": 10438,
       "metrics": {
         "samples": 3,
         "statuses": "pass,fail,fail",
@@ -153,7 +153,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 36436,
+      "durationMs": 38161,
       "metrics": {
         "realTreeExit": 0,
         "coreAdapterFixtureExit": 1,
@@ -177,9 +177,9 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 1889,
+      "durationMs": 1840,
       "metrics": {
-        "denied": 16,
+        "denied": 18,
         "loopbackOk": 4
       },
       "missingMetrics": [],
@@ -198,7 +198,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 21070,
+      "durationMs": 21082,
       "metrics": {
         "cases": 12,
         "correct": 12,
@@ -223,5 +223,5 @@
     "pnpm": "10.33.0",
     "docker": "29.3.1"
   },
-  "evidenceHash": "sha256:0377a3270e14d3e2ed5b213de8d696fb06d1025cf13365b829e24803e933a129"
+  "evidenceHash": "sha256:0d11d858127118c845c37da09da97d74bdbd026a2ae3d0df5d97515a688f3f30"
 }
