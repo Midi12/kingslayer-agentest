@@ -291,15 +291,24 @@ function compare(
     push('narrowed-constraint', 'uniqueItems added');
   }
 
-  // Objects
+  // Objects. A member name is governed by its property schema and every pattern property
+  // it matches, or by additionalProperties when neither applies (absent or true: any
+  // value). Every schema that governs a name now must accept whatever some schema that
+  // governed it before accepted, so a property or pattern added to an open object or a
+  // record cannot narrow what old documents carried under that name.
   const oldProperties = asNode(before.properties);
   const newProperties = asNode(after.properties);
-  for (const [name, schema] of Object.entries(oldProperties)) {
+  const names = new Set([...Object.keys(oldProperties), ...Object.keys(newProperties)]);
+  for (const name of names) {
     const at = `${path}/properties/${escape(name)}`;
-    if (!(name in newProperties)) {
+    if (Object.hasOwn(oldProperties, name) && !Object.hasOwn(newProperties, name)) {
       push('removed-property', `property ${name} was removed`, at);
-    } else {
-      compare(file, asNode(schema), asNode(newProperties[name]), at, out);
+      continue;
+    }
+    const sources = governing(before, name);
+    if (sources.includes(false)) continue; // the name was rejected before
+    for (const next of governing(after, name)) {
+      if (next !== false) requireImplied(file, sources as Node[], next, at, out);
     }
   }
   const oldRequired = new Set(Array.isArray(before.required) ? (before.required as string[]) : []);
@@ -319,19 +328,24 @@ function compare(
       compare(file, asNode(schema), asNode(newPatterns[pattern]), at, out);
     }
   }
-  if (after.additionalProperties === false && before.additionalProperties !== false) {
-    push('closed-object', 'unknown properties are now rejected');
-  } else if (
-    typeof before.additionalProperties === 'object' &&
-    typeof after.additionalProperties === 'object'
-  ) {
-    compare(
-      file,
-      asNode(before.additionalProperties),
-      asNode(after.additionalProperties),
-      `${path}/additionalProperties`,
-      out,
-    );
+  const oldAdditional = additional(before.additionalProperties);
+  for (const [pattern, schema] of Object.entries(newPatterns)) {
+    if (pattern in oldPatterns) continue;
+    // Which old patterns overlap the new one is not decidable in general: every one of
+    // them, and additionalProperties unless it was false, must admit the new schema.
+    const at = `${path}/patternProperties/${escape(pattern)}`;
+    const sources = [
+      ...Object.values(oldPatterns).map(asNode),
+      ...(oldAdditional === false ? [] : [oldAdditional]),
+    ];
+    for (const source of sources) compare(file, source, asNode(schema), at, out);
+  }
+  const newAdditional = additional(after.additionalProperties);
+  if (newAdditional === false) {
+    if (oldAdditional !== false) push('closed-object', 'unknown properties are now rejected');
+  } else if (oldAdditional !== false && typeof after.additionalProperties === 'object') {
+    // Absent or true on both sides admits anything: nothing to compare.
+    compare(file, oldAdditional, newAdditional, `${path}/additionalProperties`, out);
   }
 
   // Arrays
@@ -342,6 +356,54 @@ function compare(
       compare(file, asNode(before.items), asNode(after.items), `${path}/items`, out);
     }
   }
+}
+
+/** additionalProperties as a schema: absent or true admit anything, false admits nothing. */
+function additional(value: unknown): Node | false {
+  return value === false ? false : asNode(value);
+}
+
+/** Whether a pattern property applies to a name; an unreadable pattern is assumed to. */
+function matches(pattern: string, name: string): boolean {
+  try {
+    return new RegExp(pattern, 'u').test(name);
+  } catch {
+    return true;
+  }
+}
+
+/** The schemas that govern a member name of an object schema (false: it is rejected). */
+function governing(schema: Node, name: string): (Node | false)[] {
+  const properties = asNode(schema.properties);
+  const result: (Node | false)[] = [];
+  if (Object.hasOwn(properties, name)) result.push(asNode(properties[name]));
+  for (const [pattern, sub] of Object.entries(asNode(schema.patternProperties))) {
+    if (matches(pattern, name)) result.push(asNode(sub));
+  }
+  if (result.length === 0) result.push(additional(schema.additionalProperties));
+  return result;
+}
+
+/**
+ * Reports the changes from the first source unless some source already accepts
+ * everything `next` requires. The test is per source, so a schema implied only by several
+ * old schemas together is reported: the diff stays on the safe side.
+ */
+function requireImplied(
+  file: string,
+  sources: readonly Node[],
+  next: Node,
+  path: string,
+  out: BreakingChange[],
+): void {
+  let first: BreakingChange[] | undefined;
+  for (const source of sources) {
+    const changes: BreakingChange[] = [];
+    compare(file, source, next, path, changes);
+    if (changes.length === 0) return;
+    first ??= changes;
+  }
+  out.push(...(first ?? []));
 }
 
 /** Breaking changes between one old and one new schema document. */

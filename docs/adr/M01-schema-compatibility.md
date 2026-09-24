@@ -25,6 +25,13 @@ M01-G4 diffs the schemas against the last release tag, and no release tag exists
   literal sets, closed objects, stricter bounds, lengths, patterns, uniqueness and
   multiples, and union variants that lost their counterpart. Discriminated variants are
   matched by discriminator value, others by finding an equally permissive new variant.
+  A member name is governed by its property schema and every pattern property it
+  matches, or else by `additionalProperties` (absent or `true`: anything). Each schema
+  governing a name after the change must accept all that one schema governing it
+  before accepted. So a typed property added to an open object or a record, a pattern
+  property that may overlap an old one or an open remainder, and `additionalProperties`
+  going from `true` or absent to a schema are narrowing; a property added where the old
+  object rejected the name is additive.
   Any other keyword (`allOf`, `not`, `if`/`then`, `dependentRequired`, `propertyNames`,
   `format`, `$ref`, ...) that is added or changed is reported as `unmodelled-keyword`:
   the diff fails closed; annotations (`title`, `description`, `examples`, ...) are

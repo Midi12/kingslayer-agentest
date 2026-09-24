@@ -158,3 +158,73 @@ describe('diffSchema fails closed on keywords it does not model', () => {
     expect(kinds(before, after)).toEqual(['removed-variant']);
   });
 });
+
+describe('diffSchema, members governed by patterns and additionalProperties', () => {
+  const open = { type: 'object', properties: { code: { type: 'string' } } };
+  const record = {
+    type: 'object',
+    patternProperties: { '^[a-z]+$': { type: ['string', 'boolean'] } },
+    additionalProperties: false,
+  };
+
+  it('treats a schema for additionalProperties on an open object as narrowing', () => {
+    expect(kinds(open, { ...open, additionalProperties: { type: 'string' } })).toEqual([
+      'narrowed-type',
+    ]);
+    expect(
+      kinds({ ...open, additionalProperties: true }, { ...open, additionalProperties: {} }),
+    ).toEqual([]);
+    expect(kinds({ ...open, additionalProperties: { type: 'string' } }, { ...open })).toEqual([]);
+  });
+
+  it('reports a typed property added to an open object', () => {
+    const after = { ...open, properties: { ...open.properties, extra: { type: 'string' } } };
+    expect(diffSchema('x', open, after).map((c) => [c.kind, c.path])).toEqual([
+      ['narrowed-type', '/properties/extra'],
+    ]);
+    const untyped = { ...open, properties: { ...open.properties, extra: {} } };
+    expect(kinds(open, untyped)).toEqual([]);
+    const closed = { ...open, additionalProperties: false };
+    const closedAfter = {
+      ...closed,
+      properties: { ...open.properties, extra: { type: 'string' } },
+    };
+    expect(kinds(closed, closedAfter)).toEqual([]);
+  });
+
+  it('checks a named property added to a record against the pattern it used to match', () => {
+    expect(kinds(record, { ...record, properties: { x: { type: 'boolean' } } })).toEqual([
+      'narrowed-type',
+    ]);
+    expect(
+      kinds(record, { ...record, properties: { x: { type: ['string', 'boolean', 'null'] } } }),
+    ).toEqual([]);
+    // A name the old record rejected may take any schema.
+    expect(kinds(record, { ...record, properties: { X1: { type: 'boolean' } } })).toEqual([]);
+  });
+
+  it('checks a pattern property added next to an overlapping one or an open remainder', () => {
+    const overlapping = {
+      ...record,
+      patternProperties: { ...record.patternProperties, '^x': { type: 'boolean' } },
+    };
+    expect(kinds(record, overlapping)).toEqual(['narrowed-type']);
+    expect(kinds(open, { ...open, patternProperties: { '^x-': { type: 'string' } } })).toEqual([
+      'narrowed-type',
+    ]);
+    // A new pattern that also constrains an existing property is checked through it.
+    const named = { type: 'object', properties: { xray: { type: 'string' } } };
+    expect(
+      kinds(named, {
+        ...named,
+        additionalProperties: false,
+        patternProperties: { '^x': { type: 'string', maxLength: 3 } },
+      }),
+    ).toEqual(['narrowed-constraint', 'narrowed-type', 'closed-object']);
+    // An unreadable pattern is assumed to match.
+    const odd = { ...record, patternProperties: { '(': { type: 'boolean' } } };
+    expect(kinds(odd, { ...odd, properties: { a: { type: 'string' } } })).toEqual([
+      'narrowed-type',
+    ]);
+  });
+});
