@@ -9,6 +9,13 @@
 
 The three specification documents define what ARGUS is, its contracts, and the twenty-one modules with their gates. This plan does not restate them. It fixes the order of work, the delivery mechanics (repository, CI, images, Compose, Helm, installer), the parallel tracks, the estimates, and the decisions that must be taken before code is written. Where this plan and the specification disagree, the specification wins until an ADR records the change.
 
+## Decisions taken at Phase 0
+
+The Phase 0 decisions are recorded as ADRs in `docs/adr/`. Two of them change this plan, and they take precedence over the text below:
+
+- ADR-0003: runtime images are `ubuntu:24.04` with Node 22 copied from the official image, not `node:22-bookworm-slim`. Build stages stay on `node:22-bookworm-slim`.
+- ADR-0014: the bundled object store is VersityGW (Apache 2.0), not MinIO, which no longer publishes community images. Read "MinIO" below as "the bundled S3 store".
+
 ## 1. Outcome: what "done" means
 
 One set of container images, built once per release, that installs in any environment with one command and no hand-installed dependency.
