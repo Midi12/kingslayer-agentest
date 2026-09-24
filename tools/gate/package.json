@@ -1,0 +1,42 @@
+{
+  "name": "@argus/gate-tool",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gate runner (pnpm gate), global gate G0 (pnpm g0) and the dependency-rule check (pnpm depcruise)",
+  "bin": {
+    "argus-gate": "./bin/argus-gate.js",
+    "argus-g0": "./bin/argus-g0.js",
+    "argus-depcruise": "./bin/argus-depcruise.js"
+  },
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "test:gate-g1": "tsx --conditions=@argus/source test/gate-g1-clean-clone.ts",
+    "test:gate-g2": "vitest run test/gate-g2.test.ts",
+    "test:gate-g3": "vitest run test/gate-g3.test.ts"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "0.34.52",
+    "tsx": "4.23.15",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@argus/testkit": "workspace:*"
+  }
+}
