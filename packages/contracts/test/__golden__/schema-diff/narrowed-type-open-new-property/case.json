@@ -1,0 +1,6 @@
+{
+  "note": "Problem, an open object, gained a typed optional member that old documents could carry with any type",
+  "expectedKinds": [
+    "narrowed-type"
+  ]
+}

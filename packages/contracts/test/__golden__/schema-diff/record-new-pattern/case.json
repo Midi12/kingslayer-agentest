@@ -1,0 +1,6 @@
+{
+  "note": "The variables record gained a boolean pattern property that overlaps the identifier pattern",
+  "expectedKinds": [
+    "removed-variant"
+  ]
+}

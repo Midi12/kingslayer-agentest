@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://argus.dev/schemas/argus/v1/problem.schema.json",
+  "title": "Problem",
+  "type": "object",
+  "required": [
+    "code",
+    "status"
+  ],
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 400,
+      "maximum": 599
+    }
+  },
+  "additionalProperties": true
+}
