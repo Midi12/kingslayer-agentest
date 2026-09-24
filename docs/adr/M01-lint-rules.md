@@ -21,8 +21,12 @@ all with severity `error`, ordered by rule then position.
   claim (no and, or, but, also, as well as, `;`, single sentence); contain no numeric
   comparison (more or less than, at least or most, symbols, above or below a number),
   count (number words, "number of", a number before a plural noun or `%`) or date or time
-  (month and day names, today, ISO and numeric dates, clock times). A number that is an
-  identifier ("conveyor 12 is running", "C12") is allowed.
+  (month and day names, today, ISO and numeric dates, clock times), and states no numeric
+  value. A number is allowed only as an identifier: glued to a letter ("C12", "3B") or a
+  whole number right after a naming word ("conveyor 12 is running", "alarm 7"). A
+  decimal, a signed number, a number with a unit or `percent`, or one that opens the
+  statement or follows a verb, preposition, article or measured quantity ("is 0.5 m/s",
+  "shows 5", "a value of 42", "reads 80 percent") is a value and a finding.
 - L3: every `${secret.NAME}` is declared and appears only in a fill value or an http
   header or body; a fill whose target names a password, passcode, passphrase, PIN or pwd
   takes exactly `${secret.NAME}`; literal credentials are flagged anywhere (API keys,
@@ -30,7 +34,8 @@ all with severity `error`, ordered by rule then position.
   info in URLs), as are literal values of sensitive headers and of sensitive members in
   `json` bodies and `variables`.
 - L4: `navigate` URLs are relative, start with `${env.NAME}` (environment-controlled,
-  enforced again at run time), or have an origin in `allowedOrigins`; `http` URLs are
+  enforced again at run time) followed by nothing or by `/`, `?` or `#`, or have an
+  origin in `allowedOrigins`; `http` URLs are
   absolute or `${env.NAME}`-based and their host (with its port, or bare for default
   ports) is in `allowedHttpHosts`; a host built from a template, a non-HTTP scheme or an
   unparsable URL is rejected; `baseUrl` is `${env.NAME}` or an allowed origin. URLs are
@@ -40,6 +45,13 @@ all with severity `error`, ordered by rule then position.
   relative only when every resolution stays on the sentinel; otherwise every origin it
   reaches must be allowed. So `\\evil.com`, `/\evil.com`, ` //evil.com`, a tab before
   `//` and `https:evil.com` are findings, not relative paths.
+  `${env.NAME}@evil.com`, `${env.NAME}.evil.com` or `${env.NAME}:1@evil.com` hand the
+  host to the author and are findings. A template (`${var.*}`, set by the script or an
+  `extract` step, or `${secret.*}`) may appear only once the origin is fixed: after the
+  authority of an absolute URL, or in a relative URL after a leading `/x`, a first path
+  segment and its slash, `?` or `#`. `${var.dest}`, `/${var.x}` and
+  `https://hmi.test${var.x}` are findings; variables are not resolved statically,
+  because `extract` and run-time values can change them.
 - L5: an acting step whose intent contains a critical verb or its inflection (stops,
   stopped, stopping, purging, ...) has `risk: critical`.
 - L6: `within` is at most 120 s; the sum of the main steps' windows (declared or the

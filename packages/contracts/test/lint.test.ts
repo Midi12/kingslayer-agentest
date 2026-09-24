@@ -287,3 +287,132 @@ describe('lintScript', () => {
     expect(ownerIdAt(c12, '/handlers/9/steps/0')).toBeNull();
   });
 });
+
+describe('lintScript, review round 2', () => {
+  it('L2 flags numeric values that are not identifiers', () => {
+    const value = 'states a numeric value, which is checked in code';
+    for (const statement of [
+      'The speed of conveyor C12 is 0.5 m/s.',
+      'The temperature is 21.5 °C.',
+      'The tank level reads 80 percent.',
+      'The counter shows 5.',
+      'The display shows a value of 42.',
+      'The motor runs at 1500rpm.',
+      'The fan runs at 50Hz.',
+      'The offset is -3.',
+      '7 is the active recipe.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toContain(value);
+    }
+    expect(noulStatementProblems('The level is 80%.')).toEqual(['contains a count or quantity']);
+    expect(noulStatementProblems('The batch completed on 2026-09-21.')).toEqual([
+      'contains a date or time',
+    ]);
+    for (const statement of [
+      'Conveyor 12 is running.',
+      'The status of line 2 is stopped.',
+      'The line 2 status banner reports an emergency stop.',
+      'Alarm 7 is acknowledged.',
+      'Pump 3B is running.',
+      'Tank T-101 is full.',
+      'The speed of conveyor C12 is nominal.',
+    ]) {
+      expect(noulStatementProblems(statement), statement).toEqual([]);
+    }
+  });
+
+  it('L4 keeps the host of ${env.NAME} URLs with the environment', () => {
+    const script = (url: string, baseUrl = '${env.BASE_URL}'): TestScript =>
+      withSteps(
+        [
+          { id: 's1', intent: 'Open the page', action: { type: 'navigate', url } },
+          {
+            id: 's2',
+            intent: 'Call the simulator',
+            action: { type: 'http', request: { method: 'GET', url }, expectStatus: 200 },
+          },
+        ],
+        { target: { ...c12.target, baseUrl } },
+      );
+    for (const url of [
+      '${env.BASE_URL}@evil.com/x',
+      '${env.BASE_URL}.evil.com/x',
+      '${env.BASE_URL}:1@evil.com',
+      '${env.BASE_URL}\n@evil.com',
+      '${env.BASE_URL}${var.suffix}',
+      '${env.BASE_URL}\\@evil.com',
+    ]) {
+      const findings = lintScript(script(url), context).map((f) => [f.code, f.path]);
+      expect(findings, url).toEqual([
+        ['L4', '/steps/0/action/url'],
+        ['L4', '/steps/1/action/request/url'],
+      ]);
+    }
+    for (const url of ['${env.BASE_URL}', '${env.BASE_URL}/x/${var.id}', '${env.BASE_URL}?q=1']) {
+      expect(lintScript(script(url), context), url).toEqual([]);
+    }
+    const base = lintScript(script('/ok', '${env.BASE_URL}@evil.com'), context);
+    expect(base.map((f) => [f.code, f.path])).toEqual([
+      ['L4', '/target/baseUrl'],
+      ['L4', '/steps/1/action/request/url'],
+    ]);
+  });
+
+  it('L4 rejects templates that decide the origin', () => {
+    const navigate = (url: string): TestScript =>
+      withSteps(
+        [
+          { id: 's1', intent: 'Open the page', action: { type: 'navigate', url } },
+          {
+            id: 's2',
+            intent: 'Read the next address',
+            action: {
+              type: 'extract',
+              target: { description: 'Link text in the footer' },
+              into: 'next',
+              parse: 'text',
+            },
+          },
+        ],
+        { variables: { dest: 'https://evil.com/steal' } },
+      );
+    for (const url of [
+      '${var.dest}',
+      '${var.next}',
+      '/${var.next}',
+      'https://hmi.test${var.next}',
+      'https://hmi.test@${var.next}',
+      'https:///${var.next}',
+      'https:${var.next}',
+      'x${var.next}',
+    ]) {
+      const findings = lintScript(navigate(url), context);
+      expect(
+        findings.map((f) => [f.code, f.path]),
+        url,
+      ).toEqual([['L4', '/steps/0/action/url']]);
+      expect(findings[0]?.message, url).toMatch(/a template decides where it leads/);
+    }
+    for (const url of [
+      '/alarms/${var.next}',
+      'alarms/${var.next}',
+      '?q=${var.next}',
+      '#${var.next}',
+      'https://hmi.test/${var.next}',
+    ]) {
+      expect(lintScript(navigate(url), context), url).toEqual([]);
+    }
+    const http = withSteps([
+      {
+        id: 's1',
+        intent: 'Call the simulator',
+        action: {
+          type: 'http',
+          request: { method: 'GET', url: 'https://sim.test:8443/${var.dest}' },
+          expectStatus: 200,
+        },
+      },
+    ]);
+    expect(lintScript(http, context)).toEqual([]);
+  });
+});

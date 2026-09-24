@@ -189,7 +189,7 @@ const IMPERATIVE_START = new Set([
   'enter',
 ]);
 const NUMBER_WORDS =
-  /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|hundred|thousand|dozens?)\b/i;
+  /\b(zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|hundred|thousand|dozens?)\b/i;
 const COUNT_PHRASES = /\b(number of|count of|counts?|how many|exactly|several|at least|at most)\b/i;
 const COMPARISON =
   /\b(more|less|fewer|greater|higher|lower|larger|smaller|bigger|longer|shorter)\s+than\b|[<>≤≥]|\b(above|below|under|over|exceeds?|exceeding|between|equals?|equal to|up to|within)\s+[-+]?[0-9]/i;
@@ -198,6 +198,130 @@ const COUNTED_NUMBER =
 const DATE_OR_TIME =
   /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|yesterday|tomorrow)\b|\bmay\s+[0-9]|\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b|\b[0-9]{1,2}[/.][0-9]{1,2}[/.][0-9]{2,4}\b|\b[0-9]{1,2}:[0-9]{2}\b/i;
 const CONJUNCTION = /\b(and|or|but|as well as|also)\b|;/i;
+
+/** A number written in digits that is not glued to a preceding letter (as in C12). */
+const STANDALONE_NUMBER = /(?<![\p{L}\p{N}_.,])[-+]?[0-9]+(?:[.,][0-9]+)*(?![0-9])/gu;
+/** Units, ordinals and signs that make a number a measured or counted value. */
+const UNIT =
+  /^(?:%|‰|°|°c|°f|c|f|k|percent|per|pct|degrees?|x|times|mm|cm|m|km|m\/s|km\/h|mph|s|sec|secs|seconds?|ms|min|mins|minutes?|h|hrs?|hours?|hz|khz|mhz|rpm|v|kv|mv|a|ma|w|kw|mw|kwh|wh|va|bar|mbar|pa|kpa|mpa|psi|kg|g|mg|t|tons?|tonnes?|l|ml|m3|l\/min|l\/h|m3\/h|nm|st|nd|rd|th|px|db|ppm|lux|lx)$/i;
+/**
+ * Words after which a number is a value rather than the name of a thing: verbs of state
+ * and display, prepositions, articles and measured quantities. "conveyor 12" and "line 2"
+ * name equipment; "shows 5", "a value of 42" and "reads 80" state a reading.
+ */
+const VALUE_CONTEXT = new Set([
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'becomes',
+  'become',
+  'became',
+  'remains',
+  'remain',
+  'stays',
+  'stay',
+  'shows',
+  'show',
+  'showing',
+  'shown',
+  'displays',
+  'display',
+  'displaying',
+  'displayed',
+  'reads',
+  'read',
+  'reading',
+  'readings',
+  'reaches',
+  'reached',
+  'equals',
+  'equal',
+  'contains',
+  'contain',
+  'lists',
+  'indicates',
+  'indicate',
+  'reports',
+  'report',
+  'holds',
+  'gives',
+  'returns',
+  'has',
+  'have',
+  'had',
+  'set',
+  'sets',
+  'at',
+  'of',
+  'to',
+  'from',
+  'by',
+  'on',
+  'in',
+  'with',
+  'for',
+  'about',
+  'around',
+  'approximately',
+  'nearly',
+  'almost',
+  'only',
+  'just',
+  'than',
+  'a',
+  'an',
+  'the',
+  'value',
+  'values',
+  'level',
+  'speed',
+  'rate',
+  'temperature',
+  'pressure',
+  'total',
+  'amount',
+  'quantity',
+  'setpoint',
+  'percentage',
+  'ratio',
+  'score',
+  'duration',
+  'time',
+  'weight',
+  'flow',
+  'voltage',
+  'current',
+  'power',
+]);
+
+/**
+ * Whether the statement states a numeric value. A number is allowed only as an
+ * identifier: a whole number right after a naming word ("conveyor 12", "alarm 7") and
+ * not followed by a unit. A decimal, a signed number, a number with a unit or a
+ * percentage, one that follows a verb, preposition, article or measured quantity, or one
+ * that opens the statement is a value.
+ */
+function statesNumericValue(text: string): boolean {
+  for (const match of text.matchAll(STANDALONE_NUMBER)) {
+    const number = match[0];
+    if (/[.,+-]/.test(number)) return true;
+    const before = words(text.slice(0, match.index)).at(-1);
+    if (before === undefined || VALUE_CONTEXT.has(before)) return true;
+    const after = text.slice(match.index + number.length);
+    const glued = /^[\p{L}°%‰][\p{L}\p{N}°%‰/]*/u.exec(after)?.[0];
+    if (glued !== undefined) {
+      if (UNIT.test(glued)) return true;
+      continue; // an identifier such as 12B
+    }
+    const next = /^\s*([%‰°]|[\p{L}][\p{L}\p{N}/]*)/u.exec(after)?.[1];
+    if (next !== undefined && UNIT.test(next)) return true;
+  }
+  return false;
+}
 
 /** Reasons a Noul statement breaks L2; empty when it is fine. */
 export function noulStatementProblems(statement: string): string[] {
@@ -213,13 +337,18 @@ export function noulStatementProblems(statement: string): string[] {
   if (sentences.length > 1 || CONJUNCTION.test(text)) {
     problems.push('makes more than one claim');
   }
-  if (COMPARISON.test(text)) {
+  const comparison = COMPARISON.test(text);
+  const count = COUNT_PHRASES.test(text) || NUMBER_WORDS.test(text) || COUNTED_NUMBER.test(text);
+  const date = DATE_OR_TIME.test(text);
+  if (comparison) {
     problems.push('contains a numeric comparison');
+  } else if (!count && !date && statesNumericValue(text)) {
+    problems.push('states a numeric value, which is checked in code');
   }
-  if (COUNT_PHRASES.test(text) || NUMBER_WORDS.test(text) || COUNTED_NUMBER.test(text)) {
+  if (count) {
     problems.push('contains a count or quantity');
   }
-  if (DATE_OR_TIME.test(text)) {
+  if (date) {
     problems.push('contains a date or time');
   }
   return problems;
@@ -413,6 +542,22 @@ function comparePaths(a: string, b: string): number {
 // ---------------------------------------------------------------------------
 
 const ENV_PREFIX = /^\$\{env\.[A-Za-z_][A-Za-z0-9_]*\}/;
+/**
+ * What may follow a leading `${env.NAME}`: nothing, or the path, query or fragment. Any
+ * other character (`@`, `.`, `:`, a letter, another template) extends the environment's
+ * authority, so the script author, not the environment, would pick the host.
+ */
+const AFTER_ENV_PREFIX = /^(?:[/?#]|$)/;
+/** Start of a template (`${env.*}`, `${var.*}`, `${secret.*}`) or of anything like one. */
+const TEMPLATE_START = '${';
+/** A prefix that already closes an absolute URL's authority: scheme, host, then / \ ? #. */
+const CLOSED_ABSOLUTE = /^[A-Za-z][A-Za-z0-9+.-]*:[/\\]*[^/\\?#]+[/\\?#]/;
+/**
+ * A prefix that keeps a relative URL on the page's origin whatever follows: one leading
+ * slash and a path character, a path segment without a colon and its slash, or a query
+ * or fragment.
+ */
+const CLOSED_RELATIVE = /^(?:[/\\][^/\\]|[^/\\?#:]+[/\\?#]|[?#])/;
 
 /**
  * Bases a URL is resolved against, one per scheme the page may have. A URL is relative
@@ -460,8 +605,30 @@ function preprocessUrl(text: string): string {
 }
 
 function classifyUrl(text: string, bases: readonly string[] = ALL_SENTINELS): ParsedUrl {
-  if (ENV_PREFIX.test(preprocessUrl(text))) {
+  const input = preprocessUrl(text);
+  const environment = ENV_PREFIX.exec(input);
+  if (environment !== null) {
+    if (!AFTER_ENV_PREFIX.test(input.slice(environment[0].length))) {
+      return {
+        kind: 'invalid',
+        problem: `the text after ${environment[0]} can change its host; continue with /, ? or #`,
+      };
+    }
     return { kind: 'environment' };
+  }
+  // A template before the authority is closed (`${var.dest}`, `/${var.x}`,
+  // `https://${var.host}/`, `https://sim.test${var.x}`) lets its value pick the origin:
+  // variables are set by the script or by extract steps, not by the environment.
+  const template = input.indexOf(TEMPLATE_START);
+  if (template >= 0) {
+    const prefix = input.slice(0, template);
+    if (!CLOSED_ABSOLUTE.test(prefix) && !CLOSED_RELATIVE.test(prefix)) {
+      return {
+        kind: 'invalid',
+        problem:
+          'a template decides where it leads; templates may appear only in the path, query or fragment',
+      };
+    }
   }
   const urls: URL[] = [];
   const standalone = parseUrl(text);
