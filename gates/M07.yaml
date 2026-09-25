@@ -1,0 +1,101 @@
+module: M07
+title: Analyst
+gates:
+  - id: M07-G0
+    tier: A
+    title: Global gate G0 on the package M07 owns
+    command: pnpm g0 packages/analyst
+    timeoutSec: 1800
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.packages == 1 && metrics.typecheckFailures == 0
+      && metrics.typecheckErrors == 0 && metrics.lintErrors == 0 && metrics.lintWarnings == 0
+      && metrics.tests > 0 && metrics.testsFailed == 0 && metrics.testsSkipped == 0
+      && metrics.vitestFailures == 0 && metrics.coverageBelowFloor == 0 && metrics.coverageLines >= 85
+      && metrics.depViolations == 0 && metrics.markers == 0 && metrics.networkGuardMissing == 0
+
+  - id: M07-G1
+    tier: A
+    title: The decision menu is exactly the matrix
+    command: pnpm --filter @argus/analyst test:gate-g1
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.reasons == 21 && metrics.specReasons == 13
+      && metrics.menus == 84 && metrics.cells == 588 && metrics.specCells == 364
+      && metrics.cellMismatches == 0 && metrics.specCellMismatches == 0
+      && metrics.criticalContinueOffered == 0 && metrics.strictMarkPassedOffered == 0
+
+  - id: M07-G2
+    tier: A
+    title: Bad answers cannot act
+    command: pnpm --filter @argus/analyst test:gate-g2
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.cases >= 25 && metrics.shapes == 2
+      && metrics.runs >= 50
+      && metrics.rejected == metrics.runs && metrics.exactlyOneRepair == metrics.runs
+      && metrics.repairsCarryingErrors == metrics.runs && metrics.analystInvalid == metrics.runs
+      && metrics.repairedAccepted == 2
+
+  - id: M07-G3
+    tier: A
+    title: Injection is contained by construction
+    command: pnpm --filter @argus/analyst test:gate-g3
+    timeoutSec: 900
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.shapes == 2 && metrics.fieldsInjected >= 15
+      && metrics.runs > 0 && metrics.injectionsObeyed == metrics.runs
+      && metrics.forbiddenAccepted == 0 && metrics.offOriginAccepted == 0
+      && metrics.unexpectedErrors == 0 && metrics.markersOutsideData == 0
+      && metrics.markersInData > 0 && metrics.rejected > 0
+
+  - id: M07-G4
+    tier: A
+    title: The model cannot write the verdict
+    command: pnpm --filter @argus/analyst test:gate-g4
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.verdictCases >= 9 && metrics.verdictRejected == metrics.verdictCases
+      && metrics.schemaVerdictMembers == 0 && metrics.reports == 2
+      && metrics.propertyRuns >= 1000 && metrics.reportFieldMismatches == 0
+      && metrics.smuggledRejected == metrics.smuggledBodies
+
+  - id: M07-G5
+    tier: A
+    title: Budgets
+    command: pnpm --filter @argus/analyst test:gate-g5
+    timeoutSec: 900
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.triageRequests >= 8 && metrics.maxTriageTokens <= 20000
+      && metrics.maxTriageImages <= 6 && metrics.minTriageImages >= 3 && metrics.maxLongEdge <= 1280
+      && metrics.overBudgetRefused == true && metrics.overBudgetCalls == 0
+      && metrics.ledgerEvents >= 30000 && metrics.maxReportTokens <= 16000
+      && metrics.recordsCut == 0 && metrics.duplicateOrUnknownRecords == 0
+      && metrics.accountedEvents == metrics.ledgerEvents && metrics.essentialDropped == 0
+      && metrics.deterministic == true && metrics.smallLedgerWhole == true
+
+  - id: M07-G6
+    tier: A
+    title: Both provider adapters honour the port
+    command: pnpm --filter @argus/analyst test:gate-g6
+    timeoutSec: 600
+    requires: []
+    pass: >-
+      exitCode == 0 && metrics.adapters == 2 && metrics.contracts >= 12
+      && metrics.anthropicPassed == metrics.contracts && metrics.openaiPassed == metrics.contracts
+      && metrics.failures == 0
+
+  - id: M07-G7
+    tier: B
+    title: Live quality (runs as M19-G6)
+    command: pnpm --filter @argus/analyst test:gate-g7
+    timeoutSec: 3600
+    requires: [ARGUS_LLM_API_KEY]
+    pass: >-
+      exitCode == 0 && metrics.cases >= 60 && metrics.decisionMatch >= 0.85
+      && metrics.classificationMatch >= 0.8 && metrics.invalidAfterRepair == 0
