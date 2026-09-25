@@ -14,17 +14,23 @@ import { ALL_PAGES, launchBrowser, loginContext, sha256, startFrozenServer } fro
 const SEED = 21;
 
 async function playSequence(handle: FixtureServerHandle): Promise<void> {
-  const calls: [string, unknown][] = [
-    ['/sim/conveyors/C01/start', {}],
-    ['/sim/conveyors/C05/faults', { type: 'jam' }],
-    ['/sim/alarms/alarm-1/ack', undefined],
+  // Each call's expected status, so a sim-API regression (e.g. start/ack returning 404)
+  // fails this gate instead of silently rendering identical, untouched state on both
+  // servers and passing without ever really "playing a call sequence" (round-3 review).
+  const calls: [string, unknown, number][] = [
+    ['/sim/conveyors/C01/start', {}, 200],
+    ['/sim/conveyors/C05/faults', { type: 'jam' }, 202],
+    ['/sim/alarms/alarm-1/ack', undefined, 200],
   ];
-  for (const [path, body] of calls) {
-    await fetch(`${handle.url}${path}`, {
+  for (const [path, body, expectedStatus] of calls) {
+    const res = await fetch(`${handle.url}${path}`, {
       method: 'POST',
       headers: body === undefined ? {} : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    if (res.status !== expectedStatus) {
+      throw new Error(`${path} answered ${String(res.status)}, expected ${String(expectedStatus)}`);
+    }
   }
 }
 

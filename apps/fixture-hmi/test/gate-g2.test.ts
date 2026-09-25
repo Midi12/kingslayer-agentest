@@ -8,7 +8,7 @@
  */
 import { recordGateMetrics } from '@argus/testkit';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { Browser, BrowserContext, Page } from 'playwright';
+import type { Browser, BrowserContext, Locator, Page } from 'playwright';
 import type { FixtureServerHandle } from '../src/index.js';
 import { launchBrowser, loginContext } from './helpers/browser.js';
 import { createFixtureServer } from '../src/index.js';
@@ -178,6 +178,25 @@ describe('M02-G2 fault visible effects', () => {
     // Round-2 review: this server and context were only closed on the success path, so
     // a failing assertion above left a Chromium context and a listening socket behind
     // for the rest of the Vitest worker. try/finally closes them either way.
+    //
+    // Round-3 review: sampling only at t and t+700ms is timing-sensitive. With a 500/500
+    // wave, two samples 700ms apart land in different half-periods only when the first
+    // sample's phase is in [0,300) or [500,800) of the 1000ms cycle — true here mainly
+    // because the first sample follows page load almost immediately, not because the
+    // control is actually robust; on a loaded host, where the first sample can land later
+    // in the phase, the same two samples can both be "on" (or both "off") on a perfectly
+    // correct build. Sample repeatedly over roughly 1.2 cycles instead and look for any
+    // colour change at all in that window, which no single unlucky pair of samples can miss.
+    async function distinctColorsOver(row: Locator, windowMs: number, stepMs: number): Promise<Set<string>> {
+      const seen = new Set<string>();
+      const deadline = Date.now() + windowMs;
+      do {
+        seen.add(await row.evaluate((el) => getComputedStyle(el).backgroundColor));
+        await new Promise((resolve) => setTimeout(resolve, stepMs));
+      } while (Date.now() < deadline);
+      return seen;
+    }
+
     const real = await createFixtureServer({ seed: 31, clock: 'real', logger: false });
     try {
       const authed = await loginContext(browser, real);
@@ -185,19 +204,15 @@ describe('M02-G2 fault visible effects', () => {
         const realPage = authed.page;
         await realPage.goto(`${real.url}/alarms`);
         const row = realPage.locator('[data-testid="alarm-row-alarm-1"]');
-        const before = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
-        await realPage.waitForTimeout(700);
-        const after = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
-        expect(before).not.toBe(after);
+        const blinkingColors = await distinctColorsOver(row, 1200, 80);
+        expect(blinkingColors.size).toBeGreaterThanOrEqual(2);
 
         await setFault(real, 'no-blink', true);
         await realPage.reload();
         expect(await row.getAttribute('class')).toBeNull();
         const stillRow = realPage.locator('[data-testid="alarm-row-alarm-1"]');
-        const noBlinkBefore = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
-        await realPage.waitForTimeout(700);
-        const noBlinkAfter = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
-        expect(noBlinkBefore).toBe(noBlinkAfter);
+        const staticColors = await distinctColorsOver(stillRow, 1200, 80);
+        expect(staticColors.size).toBe(1);
       } finally {
         await authed.context.close();
       }
@@ -210,7 +225,11 @@ describe('M02-G2 fault visible effects', () => {
   it('locale-fr: the UI text is in French', async () => {
     await setFault(handle, 'locale-fr', true);
     await page.goto(`${handle.url}/conveyors`);
+    // The page title alone is a weak check (round-3 review): it proves one string moved,
+    // not that the whole dictionary swapped. Also assert the Start button's text, a string
+    // from a different part of the dictionary ("Start" in English, "Démarrer" in French).
     expect(await page.locator('[data-testid="page-title"]').textContent()).toBe('Convoyeurs');
+    expect(await page.locator('[data-testid="start-c01"]').textContent()).toBe('Démarrer');
     passed.push('locale-fr');
   });
 
@@ -222,6 +241,14 @@ describe('M02-G2 fault visible effects', () => {
       return host?.shadowRoot?.querySelectorAll('[data-testid="conveyors-table"]').length ?? 0;
     });
     expect(count).toBe(1);
+    // The whole point of the fault is that the table is *not* plain light-DOM content
+    // (round-3 review: this was never actually checked, only that it is somewhere inside
+    // the shadow root). `document.querySelector` does not pierce a shadow root on its
+    // own, so this must be 0 for the table to really be shadow-only.
+    const lightDomCount = await page.evaluate(
+      () => document.querySelectorAll('[data-testid="conveyors-table"]').length,
+    );
+    expect(lightDomCount).toBe(0);
 
     // Round-2 review: a click on the Start button inside the shadow root used to have no
     // effect at all (the page listens on `document`, and shadow retargeting made
@@ -244,6 +271,10 @@ describe('M02-G2 fault visible effects', () => {
     await page.goto(`${handle.url}/conveyors`);
     const frame = page.frameLocator('[data-testid="table-frame"]');
     expect(await frame.locator('[data-testid="conveyors-table"]').isVisible()).toBe(true);
+    // The whole point of the fault is that the table is *not* in the top document (round-3
+    // review: this was never actually checked, only that it is somewhere inside the
+    // frame). `page.locator` (unlike `frameLocator`) only ever searches the top document.
+    expect(await page.locator('[data-testid="conveyors-table"]').count()).toBe(0);
     passed.push('iframe');
   });
 
