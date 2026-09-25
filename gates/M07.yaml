@@ -51,6 +51,9 @@ gates:
       && metrics.forbiddenAccepted == 0 && metrics.offOriginAccepted == 0
       && metrics.unexpectedErrors == 0 && metrics.markersOutsideData == 0
       && metrics.markersInData > 0 && metrics.rejected > 0
+      && metrics.ambiguousUrls >= 14 && metrics.ambiguousRuns > 0
+      && metrics.ambiguousRejected == metrics.ambiguousRuns
+      && metrics.ambiguousOffOriginAccepted == 0 && metrics.oracleMisses == 0
 
   - id: M07-G4
     tier: A

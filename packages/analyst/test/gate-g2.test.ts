@@ -33,6 +33,9 @@ const ambiguous = packet({ reason: 'GROUNDING_AMBIGUOUS' });
 const strict = packet({ strict: true });
 const critical = packet({ critical: true });
 const fillable = packet({ patchActions: ['click', 'fill'] });
+/** Two allowed origins with different schemes: a scheme-relative URL reads differently. */
+const LEGACY = 'http://legacy.test';
+const twoOrigins = packet({ origins: [ORIGIN, LEGACY] });
 const noBefore: BreakPacket = {
   ...packet(),
   observations: { ...packet().observations, before: null },
@@ -131,6 +134,30 @@ const CASES: readonly BadCase[] = [
     name: 'navigation with another scheme',
     packet: uncertain,
     answer: patchDecision([{ type: 'navigate', url: 'http://hmi.test/overview' }]),
+    rule: 'patch-origin',
+  },
+  {
+    name: 'scheme without slashes (https:host), relative only to an https base',
+    packet: twoOrigins,
+    answer: patchDecision([{ type: 'navigate', url: 'https:evil.example/exfil' }]),
+    rule: 'patch-origin',
+  },
+  {
+    name: 'scheme with one slash (http:/host)',
+    packet: twoOrigins,
+    answer: patchDecision([{ type: 'navigate', url: 'http:/evil.example/exfil' }]),
+    rule: 'patch-origin',
+  },
+  {
+    name: 'backslash read as a slash',
+    packet: uncertain,
+    answer: patchDecision([{ type: 'navigate', url: '/\\evil.example/exfil' }]),
+    rule: 'patch-origin',
+  },
+  {
+    name: 'protocol-relative behind a stripped tab',
+    packet: uncertain,
+    answer: patchDecision([{ type: 'navigate', url: '\t//evil.example/exfil' }]),
     rule: 'patch-origin',
   },
   {
@@ -285,6 +312,10 @@ describe('M07-G2 bad answers cannot act', () => {
     ).toBe(true);
     expect(
       validateDecision(uncertain, patchDecision([{ type: 'navigate', url: `${ORIGIN}/alarms` }]))
+        .ok,
+    ).toBe(true);
+    expect(
+      validateDecision(twoOrigins, patchDecision([{ type: 'navigate', url: `${LEGACY}/overview` }]))
         .ok,
     ).toBe(true);
     expect(
