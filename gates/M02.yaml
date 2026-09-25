@@ -50,7 +50,9 @@ gates:
     command: pnpm --filter @argus/fixture-hmi test:gate-g4
     timeoutSec: 60
     requires: []
-    pass: exitCode == 0 && metrics.meanPeriodMs >= 900 && metrics.meanPeriodMs <= 1100 && metrics.transitions >= 4
+    pass: >-
+      exitCode == 0 && metrics.meanPeriodMs >= 900 && metrics.meanPeriodMs <= 1100
+      && metrics.transitions >= 4 && metrics.halfPeriodsOutOfBand == 0 && metrics.distinctColors == 2
 
   - id: M02-G5
     tier: C
