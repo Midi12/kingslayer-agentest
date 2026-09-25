@@ -19,7 +19,12 @@ export const PAGES = [
 ] as const;
 export type Page = (typeof PAGES)[number];
 
-export const GROUNDING_ACTIONS = ['click', 'read', 'type', 'hover', 'check'] as const;
+// `fill`, matching the `@argus/contracts` `Step` action literal used for a text/number
+// entry action (`packages/contracts/src/core/schemas/script.ts`); the TestScript contract
+// has no `type` action (round-3 review: this used to say `type`, so a dataset consumer
+// validating a task's action against the contract's own action-type union would reject
+// every such row).
+export const GROUNDING_ACTIONS = ['click', 'read', 'fill', 'hover', 'check'] as const;
 export type GroundingAction = (typeof GROUNDING_ACTIONS)[number];
 
 const FaultNameLiteral = Type.Union(FAULT_NAMES.map((name) => Type.Literal(name)));

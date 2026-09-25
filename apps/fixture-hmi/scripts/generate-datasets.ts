@@ -29,7 +29,7 @@ interface RawGrounding {
   seed: number;
   locale: 'en' | 'fr';
   target: { description: string; hints?: string };
-  action: 'click' | 'read' | 'type' | 'hover' | 'check';
+  action: 'click' | 'read' | 'fill' | 'hover' | 'check';
   answer: string;
   /** Required for `answer: 'none'` tasks: a testid a wrong pick would match, checked to resolve to 0. */
   probe?: string;
@@ -191,7 +191,7 @@ grounding.push(
     seed: 1,
     locale: 'en',
     target: { description: 'The Label text field' },
-    action: 'type',
+    action: 'fill',
     answer: 'settings-label',
   },
   {
@@ -201,7 +201,7 @@ grounding.push(
     seed: 1,
     locale: 'en',
     target: { description: 'The Threshold number field' },
-    action: 'type',
+    action: 'fill',
     answer: 'settings-threshold',
   },
   {
@@ -231,7 +231,7 @@ grounding.push(
     seed: 1,
     locale: 'en',
     target: { description: 'The Access code password field' },
-    action: 'type',
+    action: 'fill',
     answer: 'settings-access-code',
   },
   {
@@ -251,7 +251,7 @@ grounding.push(
     seed: 1,
     locale: 'en',
     target: { description: 'The User text field of the login form' },
-    action: 'type',
+    action: 'fill',
     answer: 'login-username',
   },
   {
@@ -261,7 +261,7 @@ grounding.push(
     seed: 1,
     locale: 'en',
     target: { description: 'The Password field of the login form' },
-    action: 'type',
+    action: 'fill',
     answer: 'login-password',
   },
   {

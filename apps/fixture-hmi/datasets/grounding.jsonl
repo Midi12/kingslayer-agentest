@@ -98,14 +98,14 @@
 {"id":"g-trend-value-0","page":"/trends","faults":[],"seed":1,"locale":"en","target":{"description":"The value cell of the first row of the trend table"},"action":"read","answer":"trend-value-0"}
 {"id":"g-trend-value-30","page":"/trends","faults":[],"seed":1,"locale":"en","target":{"description":"The value cell of the 31st row of the trend table"},"action":"read","answer":"trend-value-30"}
 {"id":"g-trend-table","page":"/trends","faults":[],"seed":1,"locale":"en","target":{"description":"The trend data table"},"action":"read","answer":"trend-table"}
-{"id":"g-settings-label","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Label text field"},"action":"type","answer":"settings-label"}
-{"id":"g-settings-threshold","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Threshold number field"},"action":"type","answer":"settings-threshold"}
+{"id":"g-settings-label","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Label text field"},"action":"fill","answer":"settings-label"}
+{"id":"g-settings-threshold","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Threshold number field"},"action":"fill","answer":"settings-threshold"}
 {"id":"g-settings-mode","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Mode select box"},"action":"click","answer":"settings-mode"}
 {"id":"g-settings-notify","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The \"Notify on fault\" checkbox"},"action":"check","answer":"settings-notify"}
-{"id":"g-settings-access-code","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Access code password field"},"action":"type","answer":"settings-access-code"}
+{"id":"g-settings-access-code","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Access code password field"},"action":"fill","answer":"settings-access-code"}
 {"id":"g-settings-submit","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Save button of the settings form"},"action":"click","answer":"settings-submit"}
-{"id":"g-login-username","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The User text field of the login form"},"action":"type","answer":"login-username"}
-{"id":"g-login-password","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The Password field of the login form"},"action":"type","answer":"login-password"}
+{"id":"g-login-username","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The User text field of the login form"},"action":"fill","answer":"login-username"}
+{"id":"g-login-password","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The Password field of the login form"},"action":"fill","answer":"login-password"}
 {"id":"g-login-submit","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The Log in button"},"action":"click","answer":"login-submit"}
 {"id":"g-login-none-remember","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"A \"remember me\" checkbox on the login form"},"action":"click","answer":"none","probe":"login-remember"}
 {"id":"g-modal-open","page":"/modal","faults":[],"seed":1,"locale":"en","target":{"description":"The button that opens the modal dialog"},"action":"click","answer":"open-modal"}
