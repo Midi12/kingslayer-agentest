@@ -24,9 +24,23 @@ whether the simulator API itself needs a session.
   `crypto.randomBytes` or `Math.random`, so `core` stays free of non-deterministic calls;
   the signing secret is a fixed string (`argus-fixture-hmi-cookie-secret`), adequate for a
   fixture that is never deployed with real data behind it.
-- `session-expiry` is modelled as "every session is invalid while the fault is on", not
-  "sessions expire after N seconds": simpler to reason about, and it exercises exactly the
-  behaviour the spec names (redirect to `/login` on the next navigation).
+- `session-expiry` is modelled as "every session that already existed when the fault
+  turned on is invalid for as long as the fault stays on", not "sessions expire after N
+  seconds": simpler to reason about, and it exercises exactly the behaviour the spec
+  names (redirect to `/login` on the next navigation). A session created after the fault
+  is already on is not affected, so a re-login keeps working — a break scenario needs to
+  be able to log back in and carry on, not be locked out for good. `FixtureSimulator`
+  tracks this with a snapshot of session tokens (`sessionExpiryVictims`) taken when the
+  fault is switched on, consulted only while the fault is active and rebuilt fresh next
+  time it turns on.
+- Conveyor row order (`conveyorRowOrder` in `src/core/sim.ts`) is a deterministic
+  xorshift32 permutation of `CONVEYOR_IDS`, seeded only by `seed`, with no `Math.random`.
+  It exists because M19's evaluation protocol runs every grounding task under several
+  data seeds specifically to vary row order (`docs/spec/03-implementation-spec.md`, the
+  M19 section); every other seeded default (speeds, which two conveyors' alarms are
+  seeded, settings) already varied with the seed, but row order did not until this was
+  added. Not a genuinely open design question — the spec effectively requires it — so it
+  is recorded here rather than as its own ADR.
 
 ## Consequences
 

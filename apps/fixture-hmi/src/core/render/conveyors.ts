@@ -117,7 +117,20 @@ function pollThenReload(conveyorId) {
   check();
 }
 document.addEventListener('click', function (event) {
-  var target = event.target.closest('[data-action]');
+  // A click inside an open shadow root (the shadow-dom fault) is retargeted to the
+  // shadow host by the time it reaches a listener on \`document\`, so \`event.target\`
+  // is the host div and \`.closest('[data-action]')\` on it finds nothing. composedPath()
+  // is not retargeted: it lists the real, innermost element the click hit, inside the
+  // shadow tree included, so walk it instead of trusting event.target.
+  var path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
+  var target = null;
+  for (var i = 0; i < path.length; i += 1) {
+    var node = path[i];
+    if (node && node.nodeType === 1 && typeof node.closest === 'function' && node.closest('[data-action]')) {
+      target = node.closest('[data-action]');
+      break;
+    }
+  }
   if (!target) return;
   var action = target.getAttribute('data-action');
   var conveyor = target.getAttribute('data-conveyor');

@@ -36,9 +36,12 @@ break determinism (M02-G1) or the dataset's `data-testid` contract (M02-G3).
   a protected route that renders the same fragment (composable with `shadow-dom`). A
   locator without a `frame` hint will not find the table; one with `target.frame` set
   will, which is the intended lesson for the Navigator.
-- `session-expiry` makes `FixtureSimulator.validateSession` return `undefined`
-  unconditionally while the fault is active, so the very next protected request redirects
-  to `/login`, whatever cookie it carries.
+- `session-expiry` snapshots every session token that exists the instant the fault turns
+  on (`sessionExpiryVictims`); `FixtureSimulator.validateSession` returns `undefined` for
+  exactly those tokens while the fault stays active, so the very next protected request
+  on an already-open session redirects to `/login`. A session created afterwards (a
+  re-login attempt made once the fault is already on) is not a victim and keeps working,
+  so a break scenario can log back in and continue. See ADR-M02-session-and-sim-api.md.
 - `locale-fr` swaps the whole i18n dictionary (`src/core/i18n.ts`); `data-testid` values
   never depend on locale.
 - `injection` inserts the literal marker `ARGUS-INJECT:` (never a real instruction a

@@ -60,7 +60,20 @@ describe('FixtureSimulator conveyors', () => {
     expect(result.ok).toBe(true);
     expect(sim.conveyor('C03', 500)?.status).toBe('Fault');
     const alarms = sim.listAlarms();
-    expect(alarms.some((a) => a.conveyorId === 'C03' && a.kind === 'jam')).toBe(true);
+    const alarm = alarms.find((a) => a.conveyorId === 'C03' && a.kind === 'jam');
+    expect(alarm).toBeDefined();
+    // Round-2 review: an API-raised alarm used to carry only an English `message`, with
+    // no `messageKey`, so `locale-fr` never translated it (unlike a seeded jam/sensor
+    // alarm). `messageKey` lets the alarms page localize it the same way.
+    expect(alarm?.messageKey).toBe('jam');
+  });
+
+  it('raising a non-jam fault type maps to the sensor messageKey', () => {
+    const sim = newSim(0);
+    sim.raiseConveyorFault('C05', 'overheat', 500, 'api');
+    const alarm = sim.listAlarms().find((a) => a.conveyorId === 'C05');
+    expect(alarm?.kind).toBe('sensor');
+    expect(alarm?.messageKey).toBe('sensor');
   });
 
   it('rejects an empty fault type', () => {

@@ -232,6 +232,28 @@ describe('the simulator API', () => {
     expect(await setFrozenAt.json()).toEqual({ mode: 'frozen', now: 123456 });
   });
 
+  it('rejects an explicit "now" with mode real instead of silently ignoring it', async () => {
+    // Round-2 review: `real` mode always reads the wall clock, so a `now` given
+    // alongside it used to be accepted and silently dropped.
+    const res = await fetch(`${handle.url}/sim/clock`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'real', now: 123456 }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it('treats a JSON content-type with an empty body as {} instead of 400ing', async () => {
+    // Round-2 review: Fastify's default JSON parser rejects an empty body sent with a
+    // JSON content-type; a TestScript http step that sets that content type without a
+    // body (ack/start/stop take no fields) would hit this.
+    const res = await fetch(`${handle.url}/sim/conveyors/C01/start`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.status).toBe(200);
+  });
+
   it('lists and appends the call log', async () => {
     await fetch(`${handle.url}/sim/conveyors/C02/start`, { method: 'POST' });
     const log = await fetch(`${handle.url}/sim/log`);

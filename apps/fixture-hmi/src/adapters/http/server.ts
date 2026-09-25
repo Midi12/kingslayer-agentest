@@ -12,7 +12,7 @@ import { renderConveyorsPage, renderConveyorsTableFrame } from '../../core/rende
 import { renderLoginPage } from '../../core/render/login.js';
 import { renderModalPage } from '../../core/render/modal.js';
 import { renderSettingsPage } from '../../core/render/settings.js';
-import { renderSynopticCanvasPage } from '../../core/render/synoptic-canvas.js';
+import { renderSynopticCanvasPage, synopticCanvasData } from '../../core/render/synoptic-canvas.js';
 import { renderSynopticSvgPage } from '../../core/render/synoptic-svg.js';
 import { renderTrendsPage } from '../../core/render/trends.js';
 import type { FixtureSimulator } from '../../core/sim.js';
@@ -75,6 +75,23 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
 
   app.register(formbody);
   app.register(cookie, { secret: 'argus-fixture-hmi-cookie-secret' });
+
+  // Fastify's default JSON body parser rejects an empty body sent with a JSON
+  // content-type (`FST_ERR_CTP_EMPTY_JSON_BODY`), which a TestScript `http` step that
+  // sets a JSON content type but no body (a bodyless action such as ack/start/stop)
+  // would trip on. Treat an empty body as `{}` instead, the same as no body at all.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_request, body, done) => {
+    const text = typeof body === 'string' ? body.trim() : '';
+    if (text === '') {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(text) as unknown);
+    } catch (error) {
+      done(error as Error, undefined);
+    }
+  });
 
   // Real, artificial latency for `slow-load`; never applied to the liveness probe.
   app.addHook('onRequest', async (request) => {
@@ -188,6 +205,15 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     reply.type('text/html; charset=utf-8').send(html);
   });
 
+  // The canvas page's own client script fetches this after load, rather than the page's
+  // HTML embedding it: see `synopticCanvasData`'s doc comment for why. Behind the same
+  // session gate as `/synoptic/canvas` itself (`isProtectedPath` matches this prefix).
+  app.get('/synoptic/canvas/data', (_request, reply) => {
+    const now = clock.now();
+    const data = synopticCanvasData(sim.listConveyors(now), faultSet(sim), stringsFor(localeOf(sim)));
+    reply.status(200).send(data);
+  });
+
   app.get('/alarms', (_request, reply) => {
     const now = clock.now();
     const html = renderAlarmsPage({
@@ -294,6 +320,14 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       return;
     }
     const at = typeof body['now'] === 'number' ? body['now'] : undefined;
+    // `real` mode always reads the wall clock (`SimClock.now()`); an explicit `now` given
+    // alongside it was silently ignored rather than applied or rejected. Reject it: a
+    // caller that means to pin time wants `frozen`, and pretending `now` took effect for
+    // `real` would be worse than telling it plainly.
+    if (mode === 'real' && at !== undefined) {
+      reply.status(422).send({ code: 'INVALID_CLOCK_ARGS', message: 'now is only accepted when mode is frozen' });
+      return;
+    }
     clock.setMode(mode, at);
     sim.logAction(clock.now(), sourceOf(request), 'clock', `mode=${mode}${at === undefined ? '' : ` now=${String(at)}`}`);
     reply.status(200).send({ mode: clock.getMode(), now: clock.now() });

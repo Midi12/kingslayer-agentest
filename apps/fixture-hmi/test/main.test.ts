@@ -11,7 +11,7 @@ describe('readConfig', () => {
     });
   });
 
-  it('reads every variable, falling back on a malformed number', () => {
+  it('reads every variable', () => {
     expect(
       readConfig({
         FIXTURE_PORT: '5050',
@@ -20,7 +20,11 @@ describe('readConfig', () => {
         FIXTURE_OPERATOR_PASSWORD: 'other',
       }),
     ).toEqual({ port: 5050, host: '127.0.0.1', seed: 42, operatorPassword: 'other' });
-    expect(readConfig({ FIXTURE_PORT: 'not-a-number' }).port).toBe(4000);
+  });
+
+  it('fails fast on a malformed number instead of silently falling back (round-2 review)', () => {
+    expect(() => readConfig({ FIXTURE_PORT: 'not-a-number' })).toThrow(/FIXTURE_PORT/);
+    expect(() => readConfig({ FIXTURE_SEED: 'nope' })).toThrow(/FIXTURE_SEED/);
   });
 });
 

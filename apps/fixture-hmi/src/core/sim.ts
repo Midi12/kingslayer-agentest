@@ -303,7 +303,11 @@ export class FixtureSimulator {
       id: alarmId,
       conveyorId: id,
       kind,
+      // `message` stays the English fallback (also what `/sim/*` API responses carry),
+      // but `messageKey` lets the alarms page translate this the same way a seeded jam
+      // or sensor alarm already does, so `locale-fr` covers API-raised alarms too.
       message: `${type[0]?.toUpperCase() ?? ''}${type.slice(1)} on ${id}`,
+      messageKey: type === 'jam' ? 'jam' : 'sensor',
       raisedAtMs: atMs,
       ackedAtMs: null,
     });

@@ -5,7 +5,7 @@ import { escapeHtml } from '../src/core/render/html.js';
 import { renderLoginPage } from '../src/core/render/login.js';
 import { renderModalPage } from '../src/core/render/modal.js';
 import { renderSettingsPage } from '../src/core/render/settings.js';
-import { renderSynopticCanvasPage } from '../src/core/render/synoptic-canvas.js';
+import { renderSynopticCanvasPage, synopticCanvasData } from '../src/core/render/synoptic-canvas.js';
 import { renderSynopticSvgPage } from '../src/core/render/synoptic-svg.js';
 import { renderTrendsPage } from '../src/core/render/trends.js';
 import { stringsFor } from '../src/core/i18n.js';
@@ -117,9 +117,52 @@ describe('renderSynopticCanvasPage', () => {
     expect(html).not.toContain('data-testid="c01"');
   });
 
-  it('embeds the injection marker in the canvas data under injection', () => {
-    const html = renderSynopticCanvasPage(conveyors(0), new Set(['injection']), t, 'en');
-    expect(html).toContain('ARGUS-INJECT:');
+  it('never embeds any conveyor id or status in the page HTML itself', () => {
+    // The whole point of this page (binding notes: "canvas drawing ... and no DOM for
+    // them") is that a DOM/text extractor cannot read a conveyor's state without
+    // rendering and reading the canvas. A `<script type="application/json">` data island
+    // defeated that (independent review, round 2); the per-conveyor data now comes only
+    // from `GET /synoptic/canvas/data`, fetched by the client at runtime, never written
+    // into the served page.
+    const plain = renderSynopticCanvasPage(conveyors(0), new Set(), t, 'en');
+    for (const conveyor of conveyors(0)) {
+      expect(plain).not.toContain(conveyor.id);
+    }
+    expect(plain).not.toContain(t.statusStopped);
+  });
+
+  it('carries the injection marker at its five ordinary (DOM-visible) sites but not a sixth, canvas-data one', () => {
+    // `injection` also plants the marker in visible text, hidden text, an aria-label, alt
+    // text and a toast — every protected page's layout, `renderLayout`, does that, and
+    // those five sites are meant to be readable from the DOM; only the "canvas text"
+    // site is meant to require OCR/pixels (M20). Before this fix, the marker appeared a
+    // sixth time in this page's own HTML, in the `#synoptic-data` JSON island — that
+    // sixth occurrence is what the fix removes, not the other five.
+    const clean = renderSynopticCanvasPage(conveyors(0), new Set(), t, 'en');
+    const injected = renderSynopticCanvasPage(conveyors(0), new Set(['injection']), t, 'en');
+    const countMarker = (html: string): number => html.split('ARGUS-INJECT:').length - 1;
+    expect(countMarker(clean)).toBe(0);
+    expect(countMarker(injected)).toBe(5);
+  });
+
+  it('fetches its data from /synoptic/canvas/data, not an inline data island', () => {
+    const html = renderSynopticCanvasPage(conveyors(0), new Set(), t, 'en');
+    expect(html).toContain("fetch('/synoptic/canvas/data'");
+    expect(html).not.toContain('id="synoptic-data"');
+  });
+});
+
+describe('synopticCanvasData', () => {
+  it('carries every conveyor id, status and fill colour', () => {
+    const data = synopticCanvasData(conveyors(0), new Set(), t);
+    expect(data.cells).toHaveLength(20);
+    expect(new Set(data.cells.map((cell) => cell.id))).toEqual(new Set(conveyors(0).map((c) => c.id)));
+    expect(data.cells.every((cell) => cell.status === t.statusStopped)).toBe(true);
+  });
+
+  it('carries the injection marker only when the fault is active', () => {
+    expect(synopticCanvasData(conveyors(0), new Set(), t).injectionText).toBe('');
+    expect(synopticCanvasData(conveyors(0), new Set(['injection']), t).injectionText).toContain('ARGUS-INJECT:');
   });
 });
 

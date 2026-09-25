@@ -36,10 +36,10 @@ export interface CreateFixtureServerOptions {
   /**
    * With `clock: 'frozen'`, the instant to freeze at. Without it, a frozen server still
    * freezes at `Date.now()` at construction, which is not reproducible across two
-   * servers unless a caller follows up with `POST /sim/clock {mode:'frozen', now}` (as
-   * `test/helpers/browser.ts`'s `startFrozenServer` does). Passing it here does that in
-   * one step, for byte-identical goldens across separate `createFixtureServer` calls,
-   * processes or runs.
+   * separately started servers (each gets its own construction-time instant). Pass it
+   * explicitly for byte-identical goldens across separate `createFixtureServer` calls,
+   * processes or runs — `test/helpers/browser.ts`'s `startFrozenServer` does exactly
+   * that, in this one step; it no longer needs a follow-up `POST /sim/clock` call.
    */
   readonly frozenAtMs?: number;
   readonly operatorPassword?: string;

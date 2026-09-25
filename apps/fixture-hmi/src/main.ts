@@ -19,13 +19,22 @@ export interface FixtureConfig {
   readonly operatorPassword: string;
 }
 
+/**
+ * An unset or blank variable falls back to `fallback`; one that is set but not a valid
+ * integer fails fast instead (a misconfigured `FIXTURE_PORT`/`FIXTURE_SEED` silently
+ * falling back to 4000/1 would start the fixture on the wrong port or seed without any
+ * sign something was wrong, the opposite of the fail-fast a deployment wants).
+ */
 function envInt(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
   const raw = env[name];
   if (raw === undefined || raw.trim() === '') {
     return fallback;
   }
   const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${name} must be an integer, got ${JSON.stringify(raw)}`);
+  }
+  return parsed;
 }
 
 export function readConfig(env: NodeJS.ProcessEnv): FixtureConfig {
