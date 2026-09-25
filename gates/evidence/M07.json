@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M07",
   "title": "Analyst",
-  "commit": "68f0ac5",
+  "commit": "bf1d895",
   "worktreeClean": true,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-25T01:30:09.274Z",
-  "finishedAt": "2026-09-25T01:32:06.994Z",
+  "startedAt": "2026-09-25T01:43:03.085Z",
+  "finishedAt": "2026-09-25T01:44:34.228Z",
   "gates": [
     {
       "id": "M07-G0",
@@ -20,18 +20,18 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 56748,
+      "durationMs": 45496,
       "metrics": {
         "packages": 1,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 90,
+        "tests": 96,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
-        "coverageLines": 98.83,
+        "coverageLines": 98.86,
         "coverageBelowFloor": 0,
         "depViolations": 0,
         "markers": 0,
@@ -42,10 +42,10 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 90,
+            "tests": 96,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 98.83,
+            "coverageLines": 98.86,
             "coverageFloor": 85,
             "depViolations": 0,
             "markers": 0,
@@ -69,7 +69,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4161,
+      "durationMs": 3253,
       "metrics": {
         "reasons": 21,
         "specReasons": 13,
@@ -97,7 +97,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 6110,
+      "durationMs": 3724,
       "metrics": {
         "cases": 37,
         "shapes": 2,
@@ -124,7 +124,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 12593,
+      "durationMs": 9596,
       "metrics": {
         "shapes": 2,
         "menus": 3,
@@ -161,7 +161,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4942,
+      "durationMs": 3278,
       "metrics": {
         "verdictCases": 9,
         "verdictRejected": 9,
@@ -188,7 +188,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 27734,
+      "durationMs": 21687,
       "metrics": {
         "triageRequests": 8,
         "maxTriageTokens": 12773,
@@ -226,7 +226,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 5376,
+      "durationMs": 4070,
       "metrics": {
         "adapters": 2,
         "contracts": 13,
@@ -278,5 +278,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:fb8a9639ec6b6b317286eddc046982d6a24e6493e17029f9f85174bb8db3be1e"
+  "evidenceHash": "sha256:026b1e9a69e24bd9bbaad263ef8b1eb9571b3ec65cc9d7264cf093c8124ad8dc"
 }
