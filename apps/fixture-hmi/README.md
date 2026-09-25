@@ -15,7 +15,9 @@ import { createFixtureServer } from '@argus/fixture-hmi';
 
 const handle = await createFixtureServer({ seed: 1, clock: 'frozen' });
 await fetch(`${handle.url}/sim/faults/dup-labels`, { method: 'POST' }); // toggle a fault
-const page = await fetch(`${handle.url}/conveyors`);                   // 302 to /login first
+// fetch() follows the redirect on its own, so this is a 200 with the login page's HTML,
+// not the 302 the server itself answers with (pass `redirect: 'manual'` to see that).
+const page = await fetch(`${handle.url}/conveyors`);
 await handle.close();
 ```
 

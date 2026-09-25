@@ -33,6 +33,17 @@ whether the simulator API itself needs a session.
   tracks this with a snapshot of session tokens (`sessionExpiryVictims`) taken when the
   fault is switched on, consulted only while the fault is active and rebuilt fresh next
   time it turns on.
+- `/sim/reset` and `/sim/seed` clear every session and the whole `/sim/log` history, not
+  only the conveyors/alarms/settings the spec calls out by name (round-3 review flagged
+  this as undocumented). Both are deliberate, not an oversight: sessions are enumerated
+  as part of "all state" the module notes put in the one seeded model ("conveyors,
+  alarms, trends, faults, sessions"), so a reset that left old sessions valid against a
+  freshly reseeded world would itself be the inconsistency; and the log is scoped to
+  "since the last reset" by design — a scenario resets to a known state immediately
+  before it runs and then reads `/sim/log` to check exactly its own calls (S4, S11), which
+  a log still carrying a previous scenario's entries would make harder to check, not
+  easier. A caller that wants a durable, cross-reset audit trail should read `/sim/log`
+  before it resets, not rely on the fixture keeping history across a reset for it.
 - Conveyor row order (`conveyorRowOrder` in `src/core/sim.ts`) is a deterministic
   xorshift32 permutation of `CONVEYOR_IDS`, seeded only by `seed`, with no `Math.random`.
   It exists because M19's evaluation protocol runs every grounding task under several

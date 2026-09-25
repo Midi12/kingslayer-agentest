@@ -53,7 +53,19 @@ resolves to exactly one element" is checked mechanically.
   repeats under this exact fault) — the same shape as the already-`continue`
   `b-rename-start-*` rows, not `TARGET_NOT_FOUND`. `b-shadow-dom-*` stayed labelled
   `continue`, which is what fixing the shadow-dom click bug (see
-  `M02-fault-implementation.md`) makes true again.
+  `M02-fault-implementation.md`) makes true again. The four `b-blocking-modal-*` rows
+  stayed labelled `BLOCKING_MODAL` through this same relabelling pass without a stated
+  reason why they were exempt from it (round-3 review); the reason is the pipeline's own
+  stage order (`02-architecture-and-contracts.md`'s state table): `HANDLERS` runs
+  *before* `GROUND`/`ACT`, so a `blocking_modal` probe at or above `t_probe` is caught
+  there, before the click is ever attempted — `ACT` never runs, so its
+  one-retry-then-`ACTION_ERROR` path (decide() rule 1) never has anything to fire on.
+  `ACTION_ERROR` only arises from an `ACT` that was actually attempted and failed after
+  its retry (a detached or covered element `ACT` itself reaches, with no probe
+  pre-empting it), which is a different situation from a modal the probe layer already
+  saw coming. These four rows are exactly the "modal already showing when the click is
+  attempted" case, so `BLOCKING_MODAL` is correct as labelled and needed no round-2-style
+  relabel.
 - M02-G3 checks "answer resolves to exactly one element" by actually driving the fixture
   with Playwright: tasks sharing a `(page, faults)` pair are batched onto one page load,
   faults toggled through `/sim/faults`, and each non-`none` answer is located with
