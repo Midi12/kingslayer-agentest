@@ -2,12 +2,12 @@
   "evidenceVersion": 1,
   "module": "M02",
   "title": "Fixture HMI",
-  "commit": "2fe7ce6",
-  "worktreeClean": true,
+  "commit": "e43b135",
+  "worktreeClean": false,
   "tier": "all",
   "strict": false,
-  "startedAt": "2026-09-25T00:15:25.739Z",
-  "finishedAt": "2026-09-25T00:16:51.139Z",
+  "startedAt": "2026-09-25T00:44:09.027Z",
+  "finishedAt": "2026-09-25T00:46:39.573Z",
   "gates": [
     {
       "id": "M02-G0",
@@ -20,18 +20,18 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 39638,
+      "durationMs": 86608,
       "metrics": {
         "packages": 1,
         "typecheckErrors": 0,
         "typecheckFailures": 0,
         "lintErrors": 0,
         "lintWarnings": 0,
-        "tests": 116,
+        "tests": 126,
         "testsFailed": 0,
         "testsSkipped": 0,
         "vitestFailures": 0,
-        "coverageLines": 98.31,
+        "coverageLines": 98.49,
         "coverageBelowFloor": 0,
         "depViolations": 0,
         "markers": 0,
@@ -42,14 +42,14 @@
             "typecheckErrors": 0,
             "lintErrors": 0,
             "lintWarnings": 0,
-            "tests": 116,
+            "tests": 126,
             "testsFailed": 0,
             "testsSkipped": 0,
-            "coverageLines": 98.31,
+            "coverageLines": 98.49,
             "coverageFloor": 70,
             "depViolations": 0,
             "markers": 0,
-            "networkGuardInstalls": 10
+            "networkGuardInstalls": 12
           }
         }
       },
@@ -69,7 +69,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 13551,
+      "durationMs": 17807,
       "metrics": {
         "pages": 8,
         "domMismatches": 0,
@@ -91,7 +91,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 12500,
+      "durationMs": 20724,
       "metrics": {
         "faults": 14,
         "tested": 14,
@@ -113,7 +113,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 4024,
+      "durationMs": 7213,
       "metrics": {
         "groundingTasks": 139,
         "groundingIdsUnique": true,
@@ -148,12 +148,12 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 8243,
+      "durationMs": 10802,
       "metrics": {
-        "samples": 301,
+        "samples": 296,
         "transitions": 10,
-        "meanPeriodMs": 1000.0374999996275,
-        "meanHalfPeriodMs": 501.91111111102833,
+        "meanPeriodMs": 1002.4375,
+        "meanHalfPeriodMs": 501.82222222205667,
         "halfPeriodsOutOfBand": 0,
         "distinctColors": 2
       },
@@ -175,11 +175,11 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "durationMs": 7291,
+      "durationMs": 7173,
       "metrics": {
         "buildExit": 0,
         "healthzOk": true,
-        "healthyWithinMs": 1083,
+        "healthyWithinMs": 1508,
         "nonRoot": true,
         "uid": "10001"
       },
@@ -201,5 +201,5 @@
     "docker": "29.3.1"
   },
   "logsGitIgnored": true,
-  "evidenceHash": "sha256:2dee847d25155be2115ab46aadcd4319adf52e61c6a2489dd714025ef5361f81"
+  "evidenceHash": "sha256:83d4c8d590db926fc442a0ceb09d4aeed0e6cef63f3538dd93efab002e8593ce"
 }
