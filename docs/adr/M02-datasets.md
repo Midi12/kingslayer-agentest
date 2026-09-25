@@ -23,28 +23,48 @@ resolves to exactly one element" is checked mechanically.
   idempotent (no randomness), and committed under `datasets/`; the script itself
   self-validates every row and the aggregate counts before writing, so a future edit that
   drops below a floor fails at generation time, not only at gate time.
-- `grounding.jsonl` (134 rows): the 20 Start and 20 Stop buttons on `/conveyors` (the
+- `grounding.jsonl` (139 rows): the 20 Start and 20 Stop buttons on `/conveyors` (the
   spec's "twenty identical Start buttons"), 20 targets on `/synoptic/svg`, one task per
   remaining page element worth grounding, 16 `answer: "none"` tasks (including all ten
   conveyors' Start buttons on `/synoptic/canvas`, which has no per-conveyor DOM at all),
-  and 32 French duplicates of a subset of the English tasks (`locale-fr` active,
-  `locale: "fr"`), comfortably over the 30-minimum.
+  32 French duplicates of a subset of the English tasks (`locale-fr` active,
+  `locale: "fr"`), comfortably over the 30-minimum, and 5 tasks each under a different
+  one of `rename-start`, `move-start`, `dup-labels`, `shadow-dom` and `iframe` (added
+  independent review round 2; see the next bullet for why).
 - `breaks.jsonl` (62 rows): one or more `{faults, page, step, expected}` situations per
   fault (a handful repeated across different conveyors for breadth), plus twelve
   fault-free baseline situations expecting `"continue"`. Reasoning that needs the full
   AI/engine pipeline to verify (for example whether `dup-labels` truly yields
   `GROUNDING_AMBIGUOUS` when the target is a bare text description) is recorded as the
   dataset's own ground truth for M06/M10 to consume and test against later; M02 does not
-  itself run the engine.
+  itself run the engine. Independent review round 2 corrected several rows' `expected`
+  against `02-architecture-and-contracts.md`'s decision table (first match wins): a
+  `dom`/`color`/`blink` expectation is Code-evaluated and deterministic, so a step that
+  fails one breaks on rule 6 (`ASSERTION_FAILED`), not rule 7's Noul-only
+  `EXPECTATION_FAILED` (`b-wrong-state-table`, `b-wrong-state-svg`, `b-no-blink-alarm1`,
+  `b-no-blink-alarm2`, `b-locale-fr-text`) or rule 9's `NO_EFFECT`, which never gets a
+  turn once rule 6 already matched (`b-no-effect-*`); `b-injection-assert-clean`'s step
+  asserted the wrong thing (`textContains` the marker, which *passes* while the fault is
+  on) so it was rewritten to assert the marker's element is `absent`, which now really
+  does fail while the fault is on, matching both its `ASSERTION_FAILED` label and its
+  stated intent; and `b-iframe-no-frame-c03`/`c07`'s stale, frame-less locator was
+  relabelled `continue`, since it only makes the explicit locator miss and fall back to
+  AI grounding, which M04 must resolve through the same-origin iframe anyway (M04-G2
+  repeats under this exact fault) — the same shape as the already-`continue`
+  `b-rename-start-*` rows, not `TARGET_NOT_FOUND`. `b-shadow-dom-*` stayed labelled
+  `continue`, which is what fixing the shadow-dom click bug (see
+  `M02-fault-implementation.md`) makes true again.
 - M02-G3 checks "answer resolves to exactly one element" by actually driving the fixture
   with Playwright: tasks sharing a `(page, faults)` pair are batched onto one page load,
   faults toggled through `/sim/faults`, and each non-`none` answer is located with
   Playwright's locator (which pierces open shadow roots on its own) summed across every
-  frame (`page.frames()`), so a `shadow-dom` or `iframe` task, if one existed, would be
-  checked the same way as a plain one. Every current `grounding.jsonl` row uses
-  `faults: []` or `["locale-fr"]` only and `seed: 1`, so this path is exercised by the
-  code but not yet by data; a `shadow-dom`/`iframe` task, and tasks at seeds other than 1,
-  are left for a later addition to `scripts/generate-datasets.ts`.
+  frame (`page.frames()`), so a `shadow-dom` or `iframe` task is checked the same way as
+  a plain one. Round 1 left this path exercised by the code but not by data (every row
+  used `faults: []` or `["locale-fr"]` only); round 2 added one task each under
+  `rename-start`, `move-start`, `dup-labels`, `shadow-dom` and `iframe`, still at `seed:
+  1` — seeds other than 1 are still left for a later addition, since G3's per-seed
+  batching was not written with more than one seed's worth of these faulted tasks in
+  mind and widening that is more than this round's fix warrants.
 - Independent review round 1 also found `answer: "none"` was only ever counted, never
   checked: the live-resolution loop above now requires each such task to carry a `probe`
   — a testid a wrong pick would match — and asserts it resolves to zero elements, so a

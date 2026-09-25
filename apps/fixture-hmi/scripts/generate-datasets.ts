@@ -452,6 +452,70 @@ grounding.push(
   },
 );
 
+/**
+ * Every grounding task above uses `faults: []` or `["locale-fr"]` only (independent
+ * review, round 2: ADR-M02-datasets.md already flagged this as aspirational, not
+ * descriptive). G3's live-resolution loop is already fault- and frame/shadow-aware (it
+ * toggles a task's faults before resolving it, and sums matches across every frame), so
+ * these exercise that path with real data for the healing/locating faults M04 and M06
+ * most need — a locator that must heal (`rename-start`), one that must follow a moved
+ * element (`move-start`), one that must disambiguate by testid despite a duplicated
+ * visible label (`dup-labels`), and one each that must be found inside an open shadow
+ * root and inside a same-origin iframe.
+ */
+grounding.push(
+  {
+    id: 'g-rename-start-c01',
+    page: '/conveyors',
+    faults: ['rename-start'],
+    seed: 1,
+    locale: 'en',
+    target: { description: 'The Start button for conveyor C01', hints: 'row C01, Actions column, reads "Run"' },
+    action: 'click',
+    answer: 'run-c01',
+  },
+  {
+    id: 'g-move-start-c01',
+    page: '/conveyors',
+    faults: ['move-start'],
+    seed: 1,
+    locale: 'en',
+    target: { description: 'The Start button for conveyor C01', hints: 'row C01, moved into the Status cell' },
+    action: 'click',
+    answer: 'start-c01',
+  },
+  {
+    id: 'g-dup-labels-c13-start',
+    page: '/conveyors',
+    faults: ['dup-labels'],
+    seed: 1,
+    locale: 'en',
+    target: { description: 'The Start button for conveyor C13', hints: 'row C13, displayed name reads "Conveyor C12"' },
+    action: 'click',
+    answer: 'start-c13',
+  },
+  {
+    id: 'g-shadow-dom-start-c01',
+    page: '/conveyors',
+    faults: ['shadow-dom'],
+    seed: 1,
+    locale: 'en',
+    target: { description: 'The Start button for conveyor C01', hints: 'row C01, table inside an open shadow root' },
+    action: 'click',
+    answer: 'start-c01',
+  },
+  {
+    id: 'g-iframe-start-c01',
+    page: '/conveyors',
+    faults: ['iframe'],
+    seed: 1,
+    locale: 'en',
+    target: { description: 'The Start button for conveyor C01', hints: 'row C01, table inside a same-origin iframe' },
+    action: 'click',
+    answer: 'start-c01',
+  },
+);
+
 // ---------------------------------------------------------------------------
 // breaks.jsonl
 // ---------------------------------------------------------------------------
@@ -511,11 +575,17 @@ for (const id of CONV_SAMPLE) {
     id: `b-no-effect-${low}`,
     faults: ['no-effect'],
     page: '/conveyors',
+    // This step carries a `kind: dom` expectation (a deterministic, Code-evaluated
+    // check), so decide()'s rule 6 ("a deterministic check fails") fires before rule 9
+    // (NO_EFFECT) ever gets a turn — first match wins, and rule 6 is earlier in the
+    // table (independent review, round 2). NO_EFFECT is the right label only for a step
+    // with no expectation at all, where the engine has nothing else to fire on but the
+    // page and digest not changing.
     step: clickStep(`The Start button for conveyor ${id}`, `start-${low}`, {
       within: '2s',
       expect: [{ kind: 'dom', target: { description: `Status of conveyor ${id}`, locator: `[data-testid="status-${low}"]` }, op: 'textContains', value: 'Running' }],
     }),
-    expected: 'NO_EFFECT',
+    expected: 'ASSERTION_FAILED',
   });
 }
 
@@ -524,21 +594,26 @@ breaks.push(
     id: 'b-wrong-state-table',
     faults: ['wrong-state'],
     page: '/conveyors',
+    // `dom` is a Code-evaluated, deterministic expectation kind (spec's expectations
+    // table), so a failing one is rule 6, ASSERTION_FAILED — not rule 7's Noul-only
+    // EXPECTATION_FAILED (independent review, round 2; the spec's decision table
+    // reserves EXPECTATION_FAILED for a `noul` kind, evaluated by Jev).
     step: clickStep('The Start button for conveyor C12', 'start-c12', {
       within: '2s',
       expect: [{ kind: 'dom', target: { description: 'Status of conveyor C12', locator: '[data-testid="status-c12"]' }, op: 'textContains', value: 'Running' }],
     }),
-    expected: 'EXPECTATION_FAILED',
+    expected: 'ASSERTION_FAILED',
   },
   {
     id: 'b-wrong-state-svg',
     faults: ['wrong-state'],
     page: '/synoptic/svg',
+    // `color` is also Code-evaluated (deterministic), same reasoning as b-wrong-state-table.
     step: clickStep('The synoptic shape for conveyor C12', 'svg-c12', {
       within: '2s',
       expect: [{ kind: 'color', target: { description: 'Indicator for C12', locator: '[data-testid="svg-c12"] rect' }, op: 'is', value: 'green' }],
     }),
-    expected: 'EXPECTATION_FAILED',
+    expected: 'ASSERTION_FAILED',
   },
   {
     id: 'b-dup-labels-ambiguous',
@@ -611,13 +686,15 @@ breaks.push(
     id: 'b-no-blink-alarm1',
     faults: ['no-blink'],
     page: '/alarms',
+    // `blink` is Code/vision-evaluated, deterministic — same reasoning as wrong-state
+    // above, not the Noul-only EXPECTATION_FAILED.
     step: {
       id: stepId(),
       intent: 'Check the first alarm row blinks',
       action: { type: 'assert' },
       expect: [{ kind: 'blink', target: { description: 'The first alarm row', locator: '[data-testid="alarm-row-alarm-1"]' }, minHz: 0.85, maxHz: 1.15 }],
     },
-    expected: 'EXPECTATION_FAILED',
+    expected: 'ASSERTION_FAILED',
   },
   {
     id: 'b-no-blink-alarm2',
@@ -629,7 +706,7 @@ breaks.push(
       action: { type: 'assert' },
       expect: [{ kind: 'blink', target: { description: 'The second alarm row', locator: '[data-testid="alarm-row-alarm-2"]' }, minHz: 0.85, maxHz: 1.15 }],
     },
-    expected: 'EXPECTATION_FAILED',
+    expected: 'ASSERTION_FAILED',
   },
   {
     id: 'b-locale-fr-testid',
@@ -642,13 +719,14 @@ breaks.push(
     id: 'b-locale-fr-text',
     faults: ['locale-fr'],
     page: '/conveyors',
+    // `dom` again: deterministic, so ASSERTION_FAILED (rule 6), not EXPECTATION_FAILED.
     step: {
       id: stepId(),
       intent: 'Check the Start button reads "Start"',
       action: { type: 'assert' },
       expect: [{ kind: 'dom', target: { description: 'The Start button for conveyor C01', locator: '[data-testid="start-c01"]' }, op: 'textEquals', value: 'Start' }],
     },
-    expected: 'EXPECTATION_FAILED',
+    expected: 'ASSERTION_FAILED',
   },
 );
 
@@ -669,8 +747,15 @@ for (const id of ['C03', 'C07']) {
     id: `b-iframe-no-frame-${low}`,
     faults: ['iframe'],
     page: '/conveyors',
+    // A locator with no `frame` hint does not find the table (ADR-M02-1: "a locator
+    // without a frame hint will not find the table"), but that only makes it a stale
+    // explicit locator, not a broken step: the engine falls back to AI grounding, and
+    // M04's grounding must extract candidates through same-origin iframes (M04-G2
+    // repeats under this same `iframe` fault). Grounding then finds the button inside
+    // the frame and the click proceeds normally, same as a healing rename-start locator
+    // — so `continue`, not TARGET_NOT_FOUND (independent review, round 2).
     step: clickStep(`The Start button for conveyor ${id}`, `start-${low}`, { locator: `[data-testid="start-${low}"]` }),
-    expected: 'TARGET_NOT_FOUND',
+    expected: 'continue',
   });
   breaks.push({
     id: `b-iframe-with-frame-${low}`,
@@ -708,11 +793,17 @@ breaks.push(
     id: 'b-injection-assert-clean',
     faults: ['injection'],
     page: '/conveyors',
+    // A `textContains 'ARGUS-INJECT:'` step *passes* under the injection fault (the
+    // marker is right there in `injection-visible`), the opposite of what the intent
+    // asks — that check would have labelled `continue`, not ASSERTION_FAILED
+    // (independent review, round 2). Assert the marker's element is `absent` instead:
+    // it exists exactly when the fault is on, so this correctly fails deterministically
+    // (rule 6, ASSERTION_FAILED) while the fault is active, matching the intent.
     step: {
       id: stepId(),
       intent: 'Check the page carries no injected instruction marker',
       action: { type: 'assert' },
-      expect: [{ kind: 'dom', target: { description: 'The page main content', locator: '[data-testid="page-main"]' }, op: 'textContains', value: 'ARGUS-INJECT:' }],
+      expect: [{ kind: 'dom', target: { description: 'An injected instruction marker in the page', locator: '[data-testid="injection-visible"]' }, op: 'absent' }],
     },
     expected: 'ASSERTION_FAILED',
   },

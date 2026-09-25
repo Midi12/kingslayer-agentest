@@ -132,3 +132,8 @@
 {"id":"g-login-error-none","page":"/login","faults":[],"seed":1,"locale":"en","target":{"description":"The login error message before any attempt"},"action":"read","answer":"none","probe":"login-error"}
 {"id":"g-nav-trends","page":"/alarms","faults":[],"seed":1,"locale":"en","target":{"description":"The Trends navigation link"},"action":"click","answer":"nav-trends"}
 {"id":"g-nav-logout","page":"/settings","faults":[],"seed":1,"locale":"en","target":{"description":"The Log out link"},"action":"click","answer":"nav-logout"}
+{"id":"g-rename-start-c01","page":"/conveyors","faults":["rename-start"],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01","hints":"row C01, Actions column, reads \"Run\""},"action":"click","answer":"run-c01"}
+{"id":"g-move-start-c01","page":"/conveyors","faults":["move-start"],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01","hints":"row C01, moved into the Status cell"},"action":"click","answer":"start-c01"}
+{"id":"g-dup-labels-c13-start","page":"/conveyors","faults":["dup-labels"],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C13","hints":"row C13, displayed name reads \"Conveyor C12\""},"action":"click","answer":"start-c13"}
+{"id":"g-shadow-dom-start-c01","page":"/conveyors","faults":["shadow-dom"],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01","hints":"row C01, table inside an open shadow root"},"action":"click","answer":"start-c01"}
+{"id":"g-iframe-start-c01","page":"/conveyors","faults":["iframe"],"seed":1,"locale":"en","target":{"description":"The Start button for conveyor C01","hints":"row C01, table inside a same-origin iframe"},"action":"click","answer":"start-c01"}
