@@ -23,7 +23,10 @@ Log in as `operator` / `op-secret-2026` (or the `operatorPassword` option) to re
 seven protected pages; `GET /healthz` and the `/sim/*` API need no session. Run it as a
 process with `pnpm --filter @argus/fixture-hmi start` (reads `FIXTURE_PORT`,
 `FIXTURE_HOST`, `FIXTURE_SEED`, `FIXTURE_OPERATOR_PASSWORD`), or as a Docker service:
-`docker compose -f compose.dev.yaml --profile fixture up fixture-hmi`.
+`DOCKERHUB_MIRROR=mirror.gcr.io ARGUS_EXTRA_CA_FILE=$NODE_EXTRA_CA_CERTS docker compose
+-f compose.dev.yaml --profile fixture up -d --build fixture-hmi` (the build needs
+`network: host` and the `extra-ca` secret to reach the registry from a network that
+re-terminates TLS, ADR-M02-5).
 
 ## What is inside
 
