@@ -32,7 +32,7 @@ Tests: `pnpm --filter @argus/analyst test`; gates: `pnpm gate M07`.
 | Menu and validation | `allowedDecisions(reason, { strict }, { critical })`, `isEscalable`, `validateDecision(packet, answer)` |
 | Prompts | `prompts/t-N.md`, `r-N.md`, `v-N.md`; `parsePromptTemplate`, `renderSection`, `dataBlock`, `ndjsonBlock` |
 | Budgets | `DEFAULT_LIMITS` (triage 20,000 tokens and six frames, report 12,000 (M19-G5; the spec allows 16,000), images 1,280 px), `selectFrames`, `buildTriageRequest`, `buildReportRequest`, estimates |
-| Analyst | `LlmAnalyst` (one repair attempt carrying the validator errors, then `invalid_answer`), `analystBreakReason` |
+| Analyst | `LlmAnalyst` (one repair attempt carrying the validator errors, then `invalid_answer`; limits above `LIMIT_CEILINGS` are refused), `analystBreakReason`, `isTransientAnalystError` (only `unavailable` is worth a retry) |
 | Report | `buildRunReport(body, { runId, verdict, flags, stats })`, `defectSignature` |
 | Models | `modelForTier(tier, env)` over `ARGUS_LLM_MODEL` and `ARGUS_LLM_PREMIUM_MODEL` |
 | Live quality | `parseLabelledBreaks`, `runTriageEvaluation`, `scoreTriage` (M07-G7, M19-G6) |
