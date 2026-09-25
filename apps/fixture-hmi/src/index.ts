@@ -8,10 +8,14 @@ import { buildServer } from './adapters/http/server.js';
 import { SimClock, type ClockMode } from './adapters/clock.js';
 import { FixtureSimulator } from './core/sim.js';
 
-export { FixtureSimulator } from './core/sim.js';
+export { FixtureSimulator, blinkOn } from './core/sim.js';
+export { SimClock } from './adapters/clock.js';
 export type { ClockMode } from './adapters/clock.js';
-export { FAULT_NAMES, CONVEYOR_IDS } from './core/types.js';
-export type { FaultName, ConveyorStatus, SimSnapshot } from './core/types.js';
+export { FAULT_NAMES, CONVEYOR_IDS, START_DELAY_MS, SLOW_LOAD_DELAY_MS, BLINK_PERIOD_MS } from './core/types.js';
+export type { FaultName, ConveyorStatus, SimSnapshot, AlarmKind } from './core/types.js';
+// Consumers that need to recognize the fault (M04, M11, M20's injection checks) should
+// not have to hard-code a marker string that can drift from the fixture's own.
+export { INJECTION_MARKER } from './core/injection.js';
 // The dataset schemas and helpers: M04, M06, M10 and M19 read `datasets/*.jsonl` and
 // need these to parse and validate the rows rather than re-deriving the shapes.
 export {
