@@ -298,16 +298,18 @@ export class FixtureSimulator {
     }
     this.conveyors.set(id, { ...current, status: 'Fault', pendingRunAtMs: null, faultType: type });
     const alarmId = `alarm-${this.nextAlarmSeq++}`;
-    const kind: AlarmKind = type === 'jam' ? 'jam' : 'sensor';
+    // A recognized fault type gets its own kind, so it is displayed and localized as what
+    // it actually is (`overrun` used to render as "Sensor fault" like everything else
+    // that was not literally `jam`, round-3 review); anything else falls back to
+    // `sensor`'s generic template, since arbitrary caller text cannot be translated.
+    const kind: AlarmKind = type === 'jam' || type === 'blocked' || type === 'overrun' ? type : 'sensor';
     this.alarms.push({
       id: alarmId,
       conveyorId: id,
       kind,
-      // `message` stays the English fallback (also what `/sim/*` API responses carry),
-      // but `messageKey` lets the alarms page translate this the same way a seeded jam
-      // or sensor alarm already does, so `locale-fr` covers API-raised alarms too.
+      // `message` stays the English fallback, also what `/sim/*` API responses carry.
       message: `${type[0]?.toUpperCase() ?? ''}${type.slice(1)} on ${id}`,
-      messageKey: type === 'jam' ? 'jam' : 'sensor',
+      messageKey: kind,
       raisedAtMs: atMs,
       ackedAtMs: null,
     });

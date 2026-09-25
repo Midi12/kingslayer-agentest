@@ -58,8 +58,10 @@ export interface Strings {
   readonly errorToast: string;
   readonly blockingModalTitle: string;
   readonly blockingModalBody: string;
-  /** Seeded alarm message templates; `{conveyor}` is replaced with the conveyor id. */
+  /** Alarm message templates, one per `AlarmKind`; `{conveyor}` is replaced with the conveyor id. */
   readonly alarmJamMessage: string;
+  readonly alarmBlockedMessage: string;
+  readonly alarmOverrunMessage: string;
   readonly alarmSensorMessage: string;
 }
 
@@ -118,6 +120,8 @@ const en: Strings = {
   blockingModalTitle: 'System busy',
   blockingModalBody: 'A blocking operation is in progress. Please wait.',
   alarmJamMessage: 'Jam detected on {conveyor}',
+  alarmBlockedMessage: 'Conveyor blocked on {conveyor}',
+  alarmOverrunMessage: 'Overrun on {conveyor}',
   alarmSensorMessage: 'Sensor fault on {conveyor}',
 };
 
@@ -176,6 +180,8 @@ const fr: Strings = {
   blockingModalTitle: 'Système occupé',
   blockingModalBody: 'Une opération bloquante est en cours. Veuillez patienter.',
   alarmJamMessage: 'Bourrage détecté sur {conveyor}',
+  alarmBlockedMessage: 'Convoyeur bloqué sur {conveyor}',
+  alarmOverrunMessage: 'Dépassement sur {conveyor}',
   alarmSensorMessage: 'Défaut capteur sur {conveyor}',
 };
 

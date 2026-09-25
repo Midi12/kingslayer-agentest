@@ -66,15 +66,18 @@ export interface Alarm {
   readonly id: string;
   readonly conveyorId: ConveyorId;
   readonly kind: AlarmKind;
-  /** English message, used by `/sim/*` API responses and as the fallback when `messageKey` is unset. */
+  /** English message, used by `/sim/*` API responses and as the fallback rendering. */
   readonly message: string;
   /**
-   * Set only for the two alarms `reset` seeds; the render layer looks up a localized
-   * template by this key instead of `message` so `locale-fr` translates them too. Alarms
-   * raised through `/sim/conveyors/{id}/faults` carry an arbitrary caller-supplied fault
-   * type in `message` and have no key: free text like that cannot be machine-translated.
+   * Always equal to `kind`: the render layer looks up a localized template by this key
+   * instead of `message`, so `locale-fr` translates every alarm, seeded or raised through
+   * `/sim/conveyors/{id}/faults` alike. A caller-supplied fault type recognized as one of
+   * the three named kinds (`jam`, `blocked`, `overrun`) gets that kind's own template; any
+   * other free-text type (round-3 review: every non-`jam` type used to collapse into a
+   * generic "Sensor fault" regardless of what it actually said) falls back to `sensor`'s
+   * generic template, since arbitrary text cannot itself be machine-translated.
    */
-  readonly messageKey?: 'jam' | 'sensor';
+  readonly messageKey: AlarmKind;
   readonly raisedAtMs: number;
   readonly ackedAtMs: number | null;
 }

@@ -68,12 +68,24 @@ describe('FixtureSimulator conveyors', () => {
     expect(alarm?.messageKey).toBe('jam');
   });
 
-  it('raising a non-jam fault type maps to the sensor messageKey', () => {
+  it('raising an unrecognized fault type falls back to the sensor kind and messageKey', () => {
     const sim = newSim(0);
     sim.raiseConveyorFault('C05', 'overheat', 500, 'api');
     const alarm = sim.listAlarms().find((a) => a.conveyorId === 'C05');
     expect(alarm?.kind).toBe('sensor');
     expect(alarm?.messageKey).toBe('sensor');
+  });
+
+  it('raising "blocked" or "overrun" maps to their own kind and messageKey, not a generic sensor fault (round-3 review)', () => {
+    const sim = newSim(0);
+    sim.raiseConveyorFault('C06', 'blocked', 500, 'api');
+    sim.raiseConveyorFault('C07', 'overrun', 500, 'api');
+    const blocked = sim.listAlarms().find((a) => a.conveyorId === 'C06');
+    const overrun = sim.listAlarms().find((a) => a.conveyorId === 'C07');
+    expect(blocked?.kind).toBe('blocked');
+    expect(blocked?.messageKey).toBe('blocked');
+    expect(overrun?.kind).toBe('overrun');
+    expect(overrun?.messageKey).toBe('overrun');
   });
 
   it('rejects an empty fault type', () => {

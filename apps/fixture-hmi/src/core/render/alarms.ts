@@ -8,15 +8,23 @@ function formatTime(ms: number): string {
   return new Date(ms).toISOString();
 }
 
-/** The seeded alarms' message is localized from `messageKey`; API-raised ones keep their English `message`. */
+/**
+ * Every alarm carries a `messageKey` equal to its `kind`, so every alarm is localized the
+ * same way whether it was seeded at reset or raised through `/sim/conveyors/{id}/faults`
+ * (round-3 review: an API-raised alarm of any type other than `jam` used to always read
+ * as "Sensor fault", in both locales, instead of its own kind's message).
+ */
 function displayMessage(alarm: Alarm, t: Strings): string {
   if (alarm.messageKey === 'jam') {
     return formatAlarmMessage(t.alarmJamMessage, alarm.conveyorId);
   }
-  if (alarm.messageKey === 'sensor') {
-    return formatAlarmMessage(t.alarmSensorMessage, alarm.conveyorId);
+  if (alarm.messageKey === 'blocked') {
+    return formatAlarmMessage(t.alarmBlockedMessage, alarm.conveyorId);
   }
-  return alarm.message;
+  if (alarm.messageKey === 'overrun') {
+    return formatAlarmMessage(t.alarmOverrunMessage, alarm.conveyorId);
+  }
+  return formatAlarmMessage(t.alarmSensorMessage, alarm.conveyorId);
 }
 
 export interface RenderAlarmsOptions {

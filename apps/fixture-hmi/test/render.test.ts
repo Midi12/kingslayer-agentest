@@ -207,6 +207,25 @@ describe('renderAlarmsPage', () => {
     });
     expect(html).toContain(`ack-state-${alarm.id}`);
   });
+
+  it('localizes an API-raised alarm by its recognized kind, not a generic "Sensor fault" (round-3 review)', () => {
+    const sim = new FixtureSimulator({ seed: 1, operatorPassword: 'x', atMs: 0 });
+    sim.raiseConveyorFault('C06', 'overrun', 0, 'api');
+    const alarm = sim.listAlarms().find((a) => a.conveyorId === 'C06');
+    expect(alarm).toBeDefined();
+    const en = renderAlarmsPage({ alarms: sim.listAlarms(), faults: new Set(), t, locale: 'en', nowMs: 0, realTime: false });
+    expect(en).toContain('Overrun on C06');
+    expect(en).not.toContain('Sensor fault on C06');
+    const fr = renderAlarmsPage({
+      alarms: sim.listAlarms(),
+      faults: new Set(['locale-fr']),
+      t: tFr,
+      locale: 'fr',
+      nowMs: 0,
+      realTime: false,
+    });
+    expect(fr).toContain('Dépassement sur C06');
+  });
 });
 
 describe('renderTrendsPage', () => {
