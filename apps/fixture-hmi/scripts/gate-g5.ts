@@ -58,6 +58,13 @@ async function main(): Promise<number> {
     return 1;
   }
 
+  // The spec's "/healthz within 5s of start" is measured from here — the instant the
+  // container is asked to start — not from whenever the script finishes resolving its
+  // published port below (gate-change M02-7). `resolveHostPort` can itself take a
+  // moment; measuring only after it returned used to exclude that time from the window
+  // entirely, under-measuring it by however long port publication took.
+  const start = Date.now();
+
   // A fixed host port would collide with any other G5 run, or anything else, holding it
   // at the same time (CLAUDE.md: never hard-code ports, other agents run in parallel).
   // Docker picks a free one; `docker port` reads back which one it picked.
@@ -88,7 +95,6 @@ async function main(): Promise<number> {
       return 1;
     }
 
-    const start = Date.now();
     let healthzOk = false;
     let healthyWithinMs = -1;
     while (Date.now() - start < 5000 && container.exitCode === null) {
