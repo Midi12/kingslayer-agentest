@@ -175,27 +175,35 @@ describe('M02-G2 fault visible effects', () => {
     // static inline colour (ADR-M02-2) — the same shape `no-blink` produces, so that
     // alone never proved the fault does anything. Drive a real-clock server instead and
     // show the row's computed colour changes without the fault and stays put with it.
+    // Round-2 review: this server and context were only closed on the success path, so
+    // a failing assertion above left a Chromium context and a listening socket behind
+    // for the rest of the Vitest worker. try/finally closes them either way.
     const real = await createFixtureServer({ seed: 31, clock: 'real', logger: false });
-    const authed = await loginContext(browser, real);
-    const realPage = authed.page;
-    await realPage.goto(`${real.url}/alarms`);
-    const row = realPage.locator('[data-testid="alarm-row-alarm-1"]');
-    const before = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
-    await realPage.waitForTimeout(700);
-    const after = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(before).not.toBe(after);
+    try {
+      const authed = await loginContext(browser, real);
+      try {
+        const realPage = authed.page;
+        await realPage.goto(`${real.url}/alarms`);
+        const row = realPage.locator('[data-testid="alarm-row-alarm-1"]');
+        const before = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+        await realPage.waitForTimeout(700);
+        const after = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+        expect(before).not.toBe(after);
 
-    await setFault(real, 'no-blink', true);
-    await realPage.reload();
-    expect(await row.getAttribute('class')).toBeNull();
-    const stillRow = realPage.locator('[data-testid="alarm-row-alarm-1"]');
-    const noBlinkBefore = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
-    await realPage.waitForTimeout(700);
-    const noBlinkAfter = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(noBlinkBefore).toBe(noBlinkAfter);
-
-    await authed.context.close();
-    await real.close();
+        await setFault(real, 'no-blink', true);
+        await realPage.reload();
+        expect(await row.getAttribute('class')).toBeNull();
+        const stillRow = realPage.locator('[data-testid="alarm-row-alarm-1"]');
+        const noBlinkBefore = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
+        await realPage.waitForTimeout(700);
+        const noBlinkAfter = await stillRow.evaluate((el) => getComputedStyle(el).backgroundColor);
+        expect(noBlinkBefore).toBe(noBlinkAfter);
+      } finally {
+        await authed.context.close();
+      }
+    } finally {
+      await real.close();
+    }
     passed.push('no-blink');
   });
 
@@ -206,7 +214,7 @@ describe('M02-G2 fault visible effects', () => {
     passed.push('locale-fr');
   });
 
-  it('shadow-dom: the table renders inside an open shadow root', async () => {
+  it('shadow-dom: the table renders inside an open shadow root, and a click inside it still works', async () => {
     await setFault(handle, 'shadow-dom', true);
     await page.goto(`${handle.url}/conveyors`);
     const count = await page.evaluate(() => {
@@ -214,6 +222,20 @@ describe('M02-G2 fault visible effects', () => {
       return host?.shadowRoot?.querySelectorAll('[data-testid="conveyors-table"]').length ?? 0;
     });
     expect(count).toBe(1);
+
+    // Round-2 review: a click on the Start button inside the shadow root used to have no
+    // effect at all (the page listens on `document`, and shadow retargeting made
+    // `event.target.closest('[data-action]')` find nothing). Playwright's locator
+    // pierces the open shadow root on its own, so this exercises the real click path.
+    await page.locator('[data-testid="start-c04"]').click();
+    await page.waitForTimeout(50);
+    await advanceFrozenClock(handle, START_DELAY_MS + 200);
+    await page.reload();
+    const status = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="table-shadow-host"]');
+      return host?.shadowRoot?.querySelector('[data-testid="status-c04"]')?.textContent ?? '';
+    });
+    expect(status).toContain('Running');
     passed.push('shadow-dom');
   });
 
@@ -246,12 +268,44 @@ describe('M02-G2 fault visible effects', () => {
     expect(alt).toContain('ARGUS-INJECT:');
     const toast = await page.locator('[data-testid="toast-injection"]').textContent();
     expect(toast).toContain('ARGUS-INJECT:');
-    await page.goto(`${handle.url}/synoptic/canvas`);
-    const canvasHasMarker = await page.evaluate(() => {
-      const script = document.getElementById('synoptic-data');
-      return (script?.textContent ?? '').includes('ARGUS-INJECT:');
+
+    // The canvas site must actually be drawn, not just present in the page's own HTML
+    // (round-2 review: reading a `<script type="application/json">` data island proved
+    // nothing about the canvas and let a regression there go uncaught). Instrument
+    // `fillText` before navigating so every string the page actually paints is captured,
+    // then assert the marker is among them and that the served page source itself is
+    // clean of it (the fault's whole point: only pixels/instrumentation reveal it).
+    await page.addInitScript(() => {
+      const win = window as unknown as { __fillTextCalls: string[] };
+      win.__fillTextCalls = [];
+      // Deliberately captured unbound: re-applied below with a dynamic `this` (whichever
+      // canvas context calls fillText) — the whole point of monkey-patching a prototype
+      // method to observe every call without changing its behaviour.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const native = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function fillText(
+        this: CanvasRenderingContext2D,
+        text: string,
+        x: number,
+        y: number,
+        maxWidth?: number,
+      ): void {
+        win.__fillTextCalls.push(text);
+        Reflect.apply(native, this, [text, x, y, maxWidth]);
+      };
     });
-    expect(canvasHasMarker).toBe(true);
+    await page.goto(`${handle.url}/synoptic/canvas`);
+    await page.locator('[data-testid="synoptic-canvas"][data-rendered="1"]').waitFor({ timeout: 2000 });
+    // Every protected page's layout plants the marker at its five ordinary (DOM-visible)
+    // sites (visible text, hidden text, aria-label, alt text, toast — already asserted
+    // above on /conveyors, and this page carries them too); the canvas-specific "canvas
+    // text" site must not add a sixth, DOM-readable occurrence of its own.
+    const pageSource = await page.content();
+    const markerOccurrences = pageSource.split('ARGUS-INJECT:').length - 1;
+    expect(markerOccurrences).toBe(5);
+    expect(pageSource).not.toContain('id="synoptic-data"');
+    const drawnTexts = await page.evaluate(() => (window as unknown as { __fillTextCalls: string[] }).__fillTextCalls);
+    expect(drawnTexts.some((text) => text.includes('ARGUS-INJECT:'))).toBe(true);
     passed.push('injection');
   });
 });
