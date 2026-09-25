@@ -1,0 +1,392 @@
+/**
+ * The Fastify HTTP adapter: every route of the fixture HMI (pages and `/sim/*`), wired
+ * to the pure core (`FixtureSimulator`, the render functions) and the one clock adapter.
+ * This file is a composition root's neighbour: it is imported only from `src/index.ts`.
+ */
+import cookie from '@fastify/cookie';
+import formbody from '@fastify/formbody';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
+import type { SimClock } from '../clock.js';
+import { renderAlarmsPage } from '../../core/render/alarms.js';
+import { renderConveyorsPage, renderConveyorsTableFrame } from '../../core/render/conveyors.js';
+import { renderLoginPage } from '../../core/render/login.js';
+import { renderModalPage } from '../../core/render/modal.js';
+import { renderSettingsPage } from '../../core/render/settings.js';
+import { renderSynopticCanvasPage, synopticCanvasData } from '../../core/render/synoptic-canvas.js';
+import { renderSynopticSvgPage } from '../../core/render/synoptic-svg.js';
+import { renderTrendsPage } from '../../core/render/trends.js';
+import type { FixtureSimulator } from '../../core/sim.js';
+import { stringsFor, type Locale } from '../../core/i18n.js';
+import { FAULT_NAMES, SLOW_LOAD_DELAY_MS, isFaultName, type FaultName } from '../../core/types.js';
+
+const SESSION_COOKIE = 'argus_session';
+
+const PROTECTED_PATH_PREFIXES = [
+  '/conveyors',
+  '/synoptic/svg',
+  '/synoptic/canvas',
+  '/alarms',
+  '/trends',
+  '/settings',
+  '/modal',
+];
+
+function isProtectedPath(path: string): boolean {
+  return PROTECTED_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+function localeOf(sim: FixtureSimulator): Locale {
+  return sim.hasFault('locale-fr') ? 'fr' : 'en';
+}
+
+function faultSet(sim: FixtureSimulator): ReadonlySet<FaultName> {
+  return new Set(sim.activeFaults());
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function bodyRecord(body: unknown): Record<string, unknown> {
+  return (body ?? {}) as Record<string, unknown>;
+}
+
+/**
+ * The dataset schema requires an integer seed >= 0 (`GroundingTask.seed`,
+ * `dataset-schema.ts`); `/sim/seed` and `/sim/reset` used to accept any JS number,
+ * including `1.5` or `-3`, silently producing odd derived state (a session token like
+ * `sess-1.5-1`, a `Line N` settings label with a fractional or negative `N`) instead of
+ * rejecting it (round-3 review).
+ */
+function isValidSeed(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/** `/sim/clock`'s `now` is a millisecond timestamp: an integer, never negative. */
+function isValidClockNow(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * `/sim/log`'s `source` field is meant to tell a page click from a direct API call
+ * (CLAUDE.md-level spec wording, `/sim/log`'s doc comment in the module notes). The
+ * fixture's own page scripts mark their `fetch` calls with this header; anything without
+ * it is an external caller and counts as `api`.
+ */
+const UI_SOURCE_HEADER = 'x-argus-ui';
+
+function sourceOf(request: FastifyRequest): 'ui' | 'api' {
+  return request.headers[UI_SOURCE_HEADER] === '1' ? 'ui' : 'api';
+}
+
+export interface BuildServerOptions {
+  readonly sim: FixtureSimulator;
+  readonly clock: SimClock;
+  readonly logger: boolean;
+}
+
+export function buildServer(options: BuildServerOptions): FastifyInstance {
+  const { sim, clock } = options;
+  const app = Fastify({ logger: options.logger });
+
+  app.register(formbody);
+  app.register(cookie, { secret: 'argus-fixture-hmi-cookie-secret' });
+
+  // Fastify's default JSON body parser rejects an empty body sent with a JSON
+  // content-type (`FST_ERR_CTP_EMPTY_JSON_BODY`), which a TestScript `http` step that
+  // sets a JSON content type but no body (a bodyless action such as ack/start/stop)
+  // would trip on. Treat an empty body as `{}` instead, the same as no body at all.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_request, body, done) => {
+    const text = typeof body === 'string' ? body.trim() : '';
+    if (text === '') {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(text) as unknown);
+    } catch (error) {
+      done(error as Error, undefined);
+    }
+  });
+
+  // Real, artificial latency for `slow-load`; never applied to the liveness probe.
+  app.addHook('onRequest', async (request) => {
+    if (request.url !== '/healthz' && sim.hasFault('slow-load')) {
+      await sleep(SLOW_LOAD_DELAY_MS);
+    }
+  });
+
+  function sessionToken(request: FastifyRequest): string | undefined {
+    const raw = request.cookies[SESSION_COOKIE];
+    if (raw === undefined) {
+      return undefined;
+    }
+    const unsigned = request.unsignCookie(raw);
+    return unsigned.valid ? unsigned.value : undefined;
+  }
+
+  app.addHook('preHandler', (request, reply, done) => {
+    const path = new URL(request.url, 'http://fixture-hmi.local').pathname;
+    if (isProtectedPath(path) && sim.validateSession(sessionToken(request)) === undefined) {
+      reply.redirect('/login', 302);
+      done();
+      return;
+    }
+    done();
+  });
+
+  app.get('/healthz', (_request, reply) => {
+    reply.send({ status: 'ok' });
+  });
+
+  // -----------------------------------------------------------------------
+  // Auth
+  // -----------------------------------------------------------------------
+
+  app.get('/login', (request, reply) => {
+    const showError = (request.query as Record<string, unknown>)['error'] === '1';
+    const html = renderLoginPage({
+      t: stringsFor(localeOf(sim)),
+      locale: localeOf(sim),
+      faults: faultSet(sim),
+      showError,
+    });
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.post('/login', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const user = typeof body['user'] === 'string' ? body['user'] : '';
+    const password = typeof body['password'] === 'string' ? body['password'] : '';
+    const result = sim.login(user, password, clock.now());
+    if (!result.ok) {
+      reply.redirect('/login?error=1', 303);
+      return;
+    }
+    reply.setCookie(SESSION_COOKIE, result.value.token, { path: '/', httpOnly: true, signed: true });
+    reply.redirect('/conveyors', 303);
+  });
+
+  app.get('/logout', (request, reply) => {
+    const token = sessionToken(request);
+    if (token !== undefined) {
+      sim.logout(token, clock.now());
+    }
+    reply.clearCookie(SESSION_COOKIE, { path: '/' });
+    reply.redirect('/login', 303);
+  });
+
+  // -----------------------------------------------------------------------
+  // Pages
+  // -----------------------------------------------------------------------
+
+  app.get('/conveyors', (_request, reply) => {
+    const now = clock.now();
+    const html = renderConveyorsPage({
+      conveyors: sim.listConveyors(now),
+      faults: faultSet(sim),
+      t: stringsFor(localeOf(sim)),
+      locale: localeOf(sim),
+      nowMs: now,
+    });
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.get('/conveyors/table-frame', (_request, reply) => {
+    const now = clock.now();
+    const html = renderConveyorsTableFrame(
+      sim.listConveyors(now),
+      faultSet(sim),
+      stringsFor(localeOf(sim)),
+      localeOf(sim),
+      now,
+    );
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.get('/synoptic/svg', (_request, reply) => {
+    const now = clock.now();
+    const html = renderSynopticSvgPage(sim.listConveyors(now), faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim));
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.get('/synoptic/canvas', (_request, reply) => {
+    const now = clock.now();
+    const html = renderSynopticCanvasPage(
+      sim.listConveyors(now),
+      faultSet(sim),
+      stringsFor(localeOf(sim)),
+      localeOf(sim),
+    );
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  // The canvas page's own client script fetches this after load, rather than the page's
+  // HTML embedding it: see `synopticCanvasData`'s doc comment for why. Behind the same
+  // session gate as `/synoptic/canvas` itself (`isProtectedPath` matches this prefix).
+  app.get('/synoptic/canvas/data', (_request, reply) => {
+    const now = clock.now();
+    const data = synopticCanvasData(sim.listConveyors(now), faultSet(sim), stringsFor(localeOf(sim)));
+    reply.status(200).send(data);
+  });
+
+  app.get('/alarms', (_request, reply) => {
+    const now = clock.now();
+    const html = renderAlarmsPage({
+      alarms: sim.listAlarms(),
+      faults: faultSet(sim),
+      t: stringsFor(localeOf(sim)),
+      locale: localeOf(sim),
+      nowMs: now,
+      realTime: !clock.isFrozen(),
+    });
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.get('/trends', (_request, reply) => {
+    const now = clock.now();
+    const html = renderTrendsPage(sim.trend(now), faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim));
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.get('/settings', (request, reply) => {
+    const showError = (request.query as Record<string, unknown>)['error'] === '1';
+    const html = renderSettingsPage(sim.getSettings(), faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim), showError);
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  app.post('/settings', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const result = sim.updateSettings(
+      {
+        label: typeof body['label'] === 'string' ? body['label'] : '',
+        threshold: Number(body['threshold'] ?? 0),
+        mode: body['mode'] === 'manual' || body['mode'] === 'maintenance' ? body['mode'] : 'auto',
+        notifyOnFault: body['notifyOnFault'] === 'on' || body['notifyOnFault'] === 'true',
+        accessCode: typeof body['accessCode'] === 'string' ? body['accessCode'] : '',
+      },
+      clock.now(),
+      'ui',
+    );
+    reply.redirect(result.ok ? '/settings' : '/settings?error=1', 303);
+  });
+
+  app.get('/modal', (_request, reply) => {
+    const html = renderModalPage(faultSet(sim), stringsFor(localeOf(sim)), localeOf(sim));
+    reply.type('text/html; charset=utf-8').send(html);
+  });
+
+  // -----------------------------------------------------------------------
+  // Simulator API
+  // -----------------------------------------------------------------------
+
+  app.post<{ Params: { id: string } }>('/sim/conveyors/:id/start', (request, reply) => {
+    const result = sim.startConveyor(request.params.id, clock.now(), sourceOf(request));
+    reply.status(result.ok ? 200 : 404).send(result.ok ? { ok: true } : result.error);
+  });
+
+  app.post<{ Params: { id: string } }>('/sim/conveyors/:id/stop', (request, reply) => {
+    const result = sim.stopConveyor(request.params.id, clock.now(), sourceOf(request));
+    reply.status(result.ok ? 200 : 404).send(result.ok ? { ok: true } : result.error);
+  });
+
+  app.post<{ Params: { id: string } }>('/sim/conveyors/:id/faults', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const type = typeof body['type'] === 'string' ? body['type'] : '';
+    const result = sim.raiseConveyorFault(request.params.id, type, clock.now(), 'api');
+    if (!result.ok) {
+      reply.status(result.error.code === 'UNKNOWN_CONVEYOR' ? 404 : 422).send(result.error);
+      return;
+    }
+    reply.status(202).send(result.value);
+  });
+
+  app.post<{ Params: { id: string } }>('/sim/alarms/:id/ack', (request, reply) => {
+    const result = sim.ackAlarm(request.params.id, clock.now(), sourceOf(request));
+    if (!result.ok) {
+      reply.status(result.error.code === 'UNKNOWN_ALARM' ? 404 : 409).send(result.error);
+      return;
+    }
+    reply.status(200).send({ ok: true });
+  });
+
+  app.post('/sim/reset', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const rawSeed = body['seed'];
+    if (rawSeed !== undefined && !isValidSeed(rawSeed)) {
+      reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a non-negative integer' });
+      return;
+    }
+    sim.reset(clock.now(), rawSeed, sourceOf(request), 'reset');
+    reply.status(200).send(sim.snapshot(clock.now()));
+  });
+
+  app.post('/sim/seed', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const seed = body['seed'];
+    if (!isValidSeed(seed)) {
+      reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a non-negative integer' });
+      return;
+    }
+    sim.reset(clock.now(), seed, sourceOf(request), 'seed');
+    reply.status(200).send({ seed });
+  });
+
+  app.post('/sim/clock', (request, reply) => {
+    const body = bodyRecord(request.body);
+    const mode = body['mode'];
+    if (mode !== 'real' && mode !== 'frozen') {
+      reply.status(422).send({ code: 'INVALID_CLOCK_MODE', message: 'mode must be real or frozen' });
+      return;
+    }
+    const rawNow = body['now'];
+    if (rawNow !== undefined && !isValidClockNow(rawNow)) {
+      reply.status(422).send({ code: 'INVALID_CLOCK_ARGS', message: 'now must be a non-negative integer' });
+      return;
+    }
+    const at = rawNow;
+    // `real` mode always reads the wall clock (`SimClock.now()`); an explicit `now` given
+    // alongside it was silently ignored rather than applied or rejected. Reject it: a
+    // caller that means to pin time wants `frozen`, and pretending `now` took effect for
+    // `real` would be worse than telling it plainly.
+    if (mode === 'real' && at !== undefined) {
+      reply.status(422).send({ code: 'INVALID_CLOCK_ARGS', message: 'now is only accepted when mode is frozen' });
+      return;
+    }
+    clock.setMode(mode, at);
+    sim.logAction(clock.now(), sourceOf(request), 'clock', `mode=${mode}${at === undefined ? '' : ` now=${String(at)}`}`);
+    reply.status(200).send({ mode: clock.getMode(), now: clock.now() });
+  });
+
+  app.get('/sim/state', (_request, reply) => {
+    reply.status(200).send({ ...sim.snapshot(clock.now()), clockMode: clock.getMode() });
+  });
+
+  app.get('/sim/log', (_request, reply) => {
+    reply.status(200).send({ entries: sim.getLog() });
+  });
+
+  app.get('/sim/faults', (_request, reply) => {
+    reply.status(200).send({ active: sim.activeFaults(), all: FAULT_NAMES });
+  });
+
+  app.post<{ Params: { name: string } }>('/sim/faults/:name', (request, reply) => {
+    if (!isFaultName(request.params.name)) {
+      reply.status(404).send({ code: 'UNKNOWN_FAULT', message: `unknown fault "${request.params.name}"` });
+      return;
+    }
+    sim.setFault(request.params.name, true, clock.now(), sourceOf(request));
+    reply.status(200).send({ active: sim.activeFaults() });
+  });
+
+  app.delete<{ Params: { name: string } }>('/sim/faults/:name', (request, reply) => {
+    if (!isFaultName(request.params.name)) {
+      reply.status(404).send({ code: 'UNKNOWN_FAULT', message: `unknown fault "${request.params.name}"` });
+      return;
+    }
+    sim.setFault(request.params.name, false, clock.now(), sourceOf(request));
+    reply.status(200).send({ active: sim.activeFaults() });
+  });
+
+  return app;
+}

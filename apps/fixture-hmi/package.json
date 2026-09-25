@@ -1,0 +1,45 @@
+{
+  "name": "@argus/fixture-hmi",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic, seeded, fault-injecting web HMI fixture (conveyors, alarms, synoptics, trends) that every other module's gates run against",
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "datasets"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "start": "node dist/main.js",
+    "generate-datasets": "tsx --conditions=@argus/source scripts/generate-datasets.ts",
+    "test:gate-g1": "vitest run test/gate-g1.test.ts",
+    "test:gate-g2": "vitest run test/gate-g2.test.ts",
+    "test:gate-g3": "vitest run test/gate-g3.test.ts",
+    "test:gate-g4": "vitest run test/gate-g4.test.ts",
+    "test:gate-g5": "tsx --conditions=@argus/source scripts/gate-g5.ts"
+  },
+  "dependencies": {
+    "@argus/contracts": "workspace:*",
+    "@fastify/cookie": "11.1.2",
+    "@fastify/formbody": "9.0.0",
+    "@sinclair/typebox": "0.34.52",
+    "fastify": "5.12.5",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "@argus/testkit": "workspace:*",
+    "playwright": "1.56.1"
+  }
+}

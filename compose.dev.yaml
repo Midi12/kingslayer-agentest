@@ -17,6 +17,14 @@
 # fake-llm  127.0.0.1:4200  LLM fake: ARGUS_LLM_BASE_URL=http://127.0.0.1:4200,
 #                           ARGUS_LLM_API_KEY=fake-llm-key
 # Scripts and faults are set at run time through PUT /_fake/script and POST /_fake/outcomes.
+#
+# Profile "fixture" (M02, image argus/fixture-hmi:dev built from
+# deploy/docker/fixture-hmi.Dockerfile):
+#
+#   DOCKERHUB_MIRROR=mirror.gcr.io ARGUS_EXTRA_CA_FILE=$NODE_EXTRA_CA_CERTS \
+#     docker compose -f compose.dev.yaml --profile fixture up -d --build fixture-hmi
+#
+# fixture-hmi  127.0.0.1:4000  the fixture HMI; see apps/fixture-hmi/README.md
 name: argus-dev
 
 services:
@@ -137,6 +145,36 @@ services:
     security_opt: ['no-new-privileges:true']
     healthcheck: *fakes-health
     restart: on-failure:3
+
+  # M02: built from deploy/docker/fixture-hmi.Dockerfile; not started by a plain
+  # `up -d --wait` (CLAUDE.md never touches postgres/s3). Bring it up explicitly:
+  #   docker compose -f compose.dev.yaml --profile fixture up -d --build fixture-hmi
+  fixture-hmi:
+    profiles: [fixture]
+    build:
+      context: .
+      dockerfile: deploy/docker/fixture-hmi.Dockerfile
+      # ADR-M02-5: the build's `pnpm install` needs the registry, and this network
+      # re-terminates outbound TLS, so `--network host` alone is not enough — the image
+      # build also needs the CA below as a secret. Without both, `corepack prepare` fails
+      # to reach registry.npmjs.org (reproduced: independent review, round 2).
+      network: host
+      args:
+        DOCKERHUB_MIRROR: ${DOCKERHUB_MIRROR:-docker.io}
+      secrets: [extra-ca]
+    image: argus/fixture-hmi:dev
+    environment:
+      FIXTURE_PORT: '4000'
+      FIXTURE_HOST: '0.0.0.0'
+    ports:
+      - 127.0.0.1:4000:4000
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4000/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
 
 # Optional CA of a network that re-terminates TLS, for the image build only.
 secrets:

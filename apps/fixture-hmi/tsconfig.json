@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rewriteRelativeImportExtensions": true,
+    // Only test files evaluate code inside a real browser page (`page.evaluate`); this
+    // widens typechecking for those callbacks. Production code never uses DOM globals.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src", "test", "scripts", "vitest.config.ts"],
+  "exclude": ["dist", "coverage", "node_modules"]
+}
