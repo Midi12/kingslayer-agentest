@@ -10,7 +10,16 @@
  * real process; only the bottom guard runs when this file is the process entrypoint.
  */
 import { pathToFileURL } from 'node:url';
+import pino from 'pino';
 import { createFixtureServer, DEFAULT_OPERATOR_PASSWORD, type FixtureServerHandle } from './index.js';
+
+/**
+ * Pino JSON logs for the process entrypoint's own lines (start/shutdown), matching
+ * Fastify's own logger (CLAUDE.md section 3: "pino JSON logs"). `console.log`/`console.error`
+ * used to print these as plain text, interleaved with Fastify's JSON lines on the same
+ * stream (round-3 review).
+ */
+const processLogger = pino({ name: 'fixture-hmi' });
 
 export interface FixtureConfig {
   readonly port: number;
@@ -24,17 +33,22 @@ export interface FixtureConfig {
  * integer fails fast instead (a misconfigured `FIXTURE_PORT`/`FIXTURE_SEED` silently
  * falling back to 4000/1 would start the fixture on the wrong port or seed without any
  * sign something was wrong, the opposite of the fail-fast a deployment wants).
+ *
+ * `Number.parseInt` parses only a *leading* run of digits (`parseInt('12abc', 10) === 12`),
+ * so `FIXTURE_SEED='12abc'` used to be silently accepted as `12` despite this function's
+ * own fail-fast intent (round-3 review). The whole trimmed string must be an optionally
+ * signed integer, or this throws.
  */
 function envInt(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
   const raw = env[name];
   if (raw === undefined || raw.trim() === '') {
     return fallback;
   }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed)) {
+  const trimmed = raw.trim();
+  if (!/^[+-]?\d+$/.test(trimmed)) {
     throw new Error(`${name} must be an integer, got ${JSON.stringify(raw)}`);
   }
-  return parsed;
+  return Number.parseInt(trimmed, 10);
 }
 
 export function readConfig(env: NodeJS.ProcessEnv): FixtureConfig {
@@ -49,7 +63,7 @@ export function readConfig(env: NodeJS.ProcessEnv): FixtureConfig {
 export async function main(env: NodeJS.ProcessEnv = process.env): Promise<FixtureServerHandle> {
   const config = readConfig(env);
   const handle = await createFixtureServer({ ...config, clock: 'real', logger: true });
-  console.log(`fixture-hmi listening at ${handle.url}`);
+  processLogger.info({ url: handle.url }, 'fixture-hmi listening');
   return handle;
 }
 
@@ -59,7 +73,7 @@ export function installShutdownHandlers(
   exit: (code: number) => void = process.exit.bind(process),
 ): void {
   const shutdown = (signal: NodeJS.Signals): void => {
-    console.log(`fixture-hmi received ${signal}, closing`);
+    processLogger.info({ signal }, 'fixture-hmi received signal, closing');
     handle
       .close()
       .then(() => {
@@ -81,7 +95,7 @@ if (isMainModule) {
       installShutdownHandlers(handle);
     })
     .catch((error: unknown) => {
-      console.error('fixture-hmi failed to start', error);
+      processLogger.error({ err: error }, 'fixture-hmi failed to start');
       process.exit(1);
     });
 }

@@ -52,6 +52,22 @@ function bodyRecord(body: unknown): Record<string, unknown> {
 }
 
 /**
+ * The dataset schema requires an integer seed >= 0 (`GroundingTask.seed`,
+ * `dataset-schema.ts`); `/sim/seed` and `/sim/reset` used to accept any JS number,
+ * including `1.5` or `-3`, silently producing odd derived state (a session token like
+ * `sess-1.5-1`, a `Line N` settings label with a fractional or negative `N`) instead of
+ * rejecting it (round-3 review).
+ */
+function isValidSeed(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/** `/sim/clock`'s `now` is a millisecond timestamp: an integer, never negative. */
+function isValidClockNow(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/**
  * `/sim/log`'s `source` field is meant to tell a page click from a direct API call
  * (CLAUDE.md-level spec wording, `/sim/log`'s doc comment in the module notes). The
  * fixture's own page scripts mark their `fetch` calls with this header; anything without
@@ -296,16 +312,20 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
 
   app.post('/sim/reset', (request, reply) => {
     const body = bodyRecord(request.body);
-    const seed = typeof body['seed'] === 'number' ? body['seed'] : undefined;
-    sim.reset(clock.now(), seed, sourceOf(request), 'reset');
+    const rawSeed = body['seed'];
+    if (rawSeed !== undefined && !isValidSeed(rawSeed)) {
+      reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a non-negative integer' });
+      return;
+    }
+    sim.reset(clock.now(), rawSeed, sourceOf(request), 'reset');
     reply.status(200).send(sim.snapshot(clock.now()));
   });
 
   app.post('/sim/seed', (request, reply) => {
     const body = bodyRecord(request.body);
-    const seed = typeof body['seed'] === 'number' ? body['seed'] : undefined;
-    if (seed === undefined) {
-      reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a number' });
+    const seed = body['seed'];
+    if (!isValidSeed(seed)) {
+      reply.status(422).send({ code: 'INVALID_SEED', message: 'seed must be a non-negative integer' });
       return;
     }
     sim.reset(clock.now(), seed, sourceOf(request), 'seed');
@@ -319,7 +339,12 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       reply.status(422).send({ code: 'INVALID_CLOCK_MODE', message: 'mode must be real or frozen' });
       return;
     }
-    const at = typeof body['now'] === 'number' ? body['now'] : undefined;
+    const rawNow = body['now'];
+    if (rawNow !== undefined && !isValidClockNow(rawNow)) {
+      reply.status(422).send({ code: 'INVALID_CLOCK_ARGS', message: 'now must be a non-negative integer' });
+      return;
+    }
+    const at = rawNow;
     // `real` mode always reads the wall clock (`SimClock.now()`); an explicit `now` given
     // alongside it was silently ignored rather than applied or rejected. Reject it: a
     // caller that means to pin time wants `frozen`, and pretending `now` took effect for

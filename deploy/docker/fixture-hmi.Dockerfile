@@ -38,6 +38,11 @@ ENV NODE_ENV=production \
     FIXTURE_HOST=0.0.0.0 \
     FIXTURE_PORT=4000
 EXPOSE 4000
+
+# Reads $FIXTURE_PORT from the container's own environment at check time (still the
+# exec-array form, so nothing needs shell quoting); it used to hard-code 4000 and would
+# silently keep probing the wrong port for a container started with a different
+# FIXTURE_PORT (round-3 review).
 HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:4000/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.FIXTURE_PORT || '4000') + '/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 ENTRYPOINT ["node", "dist/main.js"]

@@ -208,6 +208,30 @@ describe('the simulator API', () => {
     expect(badSeed.status).toBe(422);
   });
 
+  it('rejects a non-integer or negative seed on /sim/seed and /sim/reset (round-3 review)', async () => {
+    for (const seed of [1.5, -3, -0.5]) {
+      const seedRes = await fetch(`${handle.url}/sim/seed`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seed }),
+      });
+      expect(seedRes.status, `seed ${String(seed)}`).toBe(422);
+      const resetRes = await fetch(`${handle.url}/sim/reset`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seed }),
+      });
+      expect(resetRes.status, `reset seed ${String(seed)}`).toBe(422);
+    }
+    // A reset with no seed at all still works (keeps the current seed).
+    const resetNoSeed = await fetch(`${handle.url}/sim/reset`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(resetNoSeed.status).toBe(200);
+  });
+
   it('reads and sets the clock', async () => {
     const get = await fetch(`${handle.url}/sim/state`);
     expect(((await get.json()) as { clockMode: string }).clockMode).toBe('frozen');
@@ -230,6 +254,17 @@ describe('the simulator API', () => {
     });
     expect(setFrozenAt.status).toBe(200);
     expect(await setFrozenAt.json()).toEqual({ mode: 'frozen', now: 123456 });
+  });
+
+  it('rejects a negative or non-integer "now" on /sim/clock (round-3 review)', async () => {
+    for (const now of [-5, 1.5]) {
+      const res = await fetch(`${handle.url}/sim/clock`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mode: 'frozen', now }),
+      });
+      expect(res.status, `now ${String(now)}`).toBe(422);
+    }
   });
 
   it('rejects an explicit "now" with mode real instead of silently ignoring it', async () => {
