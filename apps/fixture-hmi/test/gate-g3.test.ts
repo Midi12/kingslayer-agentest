@@ -119,7 +119,7 @@ async function countTestId(page: Page, testId: string): Promise<number> {
 
 describe('grounding answers resolve live against the fixture', () => {
   let browser: Browser;
-  let context: BrowserContext;
+  let context: BrowserContext | undefined;
   let page: Page;
   let handle: FixtureServerHandle;
   let resolvable = 0;
@@ -146,65 +146,77 @@ describe('grounding answers resolve live against the fixture', () => {
     const seeds = new Set(grounding.map((task) => task.seed));
     for (const seed of seeds) {
       handle = await createFixtureServer({ seed, clock: 'frozen', logger: false });
-      const authed = await loginContext(browser, handle);
-      context = authed.context;
-      page = authed.page;
+      // Round-2 review: `context`/`handle` used to close only after this whole loop body
+      // ran to completion, so a `fetch` or `page.goto` throwing partway through (rather
+      // than an `expect`, which only runs after the loop) left a browser context and a
+      // listening socket behind for the rest of the Vitest worker. try/finally closes
+      // this seed's context and server regardless; `context` is reset first so the
+      // finally below never re-closes a previous iteration's already-closed context if
+      // `loginContext` itself is what throws.
+      context = undefined;
+      try {
+        const authed = await loginContext(browser, handle);
+        context = authed.context;
+        page = authed.page;
 
-      const tasksForSeed = grounding.filter((task) => task.seed === seed);
-      interface Context {
-        readonly page: FixturePage;
-        readonly faults: readonly string[];
-        readonly tasks: RawGrounding[];
-      }
-      const byContext = new Map<string, Context>();
-      for (const task of tasksForSeed) {
-        const faults = [...task.faults].sort((a, b) => a.localeCompare(b));
-        const key = `${task.page}|${faults.join(',')}`;
-        const existing = byContext.get(key);
-        if (existing === undefined) {
-          byContext.set(key, { page: task.page, faults, tasks: [task] });
-        } else {
-          existing.tasks.push(task);
+        const tasksForSeed = grounding.filter((task) => task.seed === seed);
+        interface Context {
+          readonly page: FixturePage;
+          readonly faults: readonly string[];
+          readonly tasks: RawGrounding[];
         }
-      }
+        const byContext = new Map<string, Context>();
+        for (const task of tasksForSeed) {
+          const faults = [...task.faults].sort((a, b) => a.localeCompare(b));
+          const key = `${task.page}|${faults.join(',')}`;
+          const existing = byContext.get(key);
+          if (existing === undefined) {
+            byContext.set(key, { page: task.page, faults, tasks: [task] });
+          } else {
+            existing.tasks.push(task);
+          }
+        }
 
-      for (const { page: taskPage, faults, tasks } of byContext.values()) {
-        for (const fault of faults) {
-          await fetch(`${handle.url}/sim/faults/${fault}`, { method: 'POST' });
-        }
-        await page.goto(`${handle.url}${taskPage}`);
-        for (const task of tasks) {
-          if (task.answer === 'none') {
-            // The pass condition is "resolves to exactly one element, or to none when
-            // labelled none" — the none half is only proved by actually checking the
-            // described target is absent, via a negative probe (a testid a wrong pick
-            // would match) asserted to resolve to zero elements on this page and faults.
-            if (task.probe === undefined || task.probe.trim() === '') {
-              resolutionFailures.push(`${task.id} (none): missing probe`);
+        for (const { page: taskPage, faults, tasks } of byContext.values()) {
+          for (const fault of faults) {
+            await fetch(`${handle.url}/sim/faults/${fault}`, { method: 'POST' });
+          }
+          await page.goto(`${handle.url}${taskPage}`);
+          for (const task of tasks) {
+            if (task.answer === 'none') {
+              // The pass condition is "resolves to exactly one element, or to none when
+              // labelled none" — the none half is only proved by actually checking the
+              // described target is absent, via a negative probe (a testid a wrong pick
+              // would match) asserted to resolve to zero elements on this page and faults.
+              if (task.probe === undefined || task.probe.trim() === '') {
+                resolutionFailures.push(`${task.id} (none): missing probe`);
+                continue;
+              }
+              const probeCount = await countTestId(page, task.probe);
+              if (probeCount === 0) {
+                noneTasks += 1;
+              } else {
+                resolutionFailures.push(`${task.id} (none, probe ${task.probe}): found ${String(probeCount)}`);
+              }
               continue;
             }
-            const probeCount = await countTestId(page, task.probe);
-            if (probeCount === 0) {
-              noneTasks += 1;
+            const count = await countTestId(page, task.answer);
+            if (count === 1) {
+              resolvable += 1;
             } else {
-              resolutionFailures.push(`${task.id} (none, probe ${task.probe}): found ${String(probeCount)}`);
+              resolutionFailures.push(`${task.id} (${task.answer}): found ${String(count)}`);
             }
-            continue;
           }
-          const count = await countTestId(page, task.answer);
-          if (count === 1) {
-            resolvable += 1;
-          } else {
-            resolutionFailures.push(`${task.id} (${task.answer}): found ${String(count)}`);
+          for (const fault of faults) {
+            await fetch(`${handle.url}/sim/faults/${fault}`, { method: 'DELETE' });
           }
         }
-        for (const fault of faults) {
-          await fetch(`${handle.url}/sim/faults/${fault}`, { method: 'DELETE' });
+      } finally {
+        if (context !== undefined) {
+          await context.close();
         }
+        await handle.close();
       }
-
-      await context.close();
-      await handle.close();
     }
 
     expect(resolutionFailures).toEqual([]);
