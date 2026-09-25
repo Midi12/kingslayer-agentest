@@ -28,7 +28,7 @@ import {
 import type { ImageScaler, ScaledImage } from '../ports/images.js';
 import type { LlmError, LlmProvider, LlmRequest, LlmResponse } from '../ports/llm.js';
 import { readJsonAnswer } from './answer.js';
-import { DEFAULT_LIMITS, type AnalystLimits } from './budgets.js';
+import { checkLimits, DEFAULT_LIMITS, type AnalystLimits } from './budgets.js';
 import { dataBlock } from './data-block.js';
 import { selectFrames } from './frames.js';
 import {
@@ -94,9 +94,24 @@ export interface LlmAnalystOptions {
   readonly onResponse?: (info: AnalystResponseInfo) => void;
 }
 
-/** The break reason an Analyst failure becomes in the engine. */
+/**
+ * The break reason an Analyst failure becomes in the engine (ADR M07-error-mapping).
+ * `invalid_answer` is `ANALYST_INVALID`; every other code is `ANALYST_UNAVAILABLE`,
+ * because the break reasons have no member for a request the Analyst refuses. Those
+ * refusals are deterministic: see `isTransientAnalystError` before retrying one.
+ */
 export function analystBreakReason(error: AnalystError): BreakReason {
   return error.code === 'invalid_answer' ? 'ANALYST_INVALID' : 'ANALYST_UNAVAILABLE';
+}
+
+/**
+ * Whether the same call may succeed if made again: only `unavailable` (provider
+ * unreachable, timed out or overloaded past the retry budget). `invalid_request` (a
+ * schema-invalid input, a request that cannot fit its budget, an unknown pinned prompt,
+ * a request the provider rejects) and `invalid_answer` fail the same way again.
+ */
+export function isTransientAnalystError(error: AnalystError): boolean {
+  return error.code === 'unavailable';
 }
 
 function fromLlmError(error: LlmError): AnalystError {
@@ -131,13 +146,20 @@ export class LlmAnalyst implements Analyst {
   readonly #options: LlmAnalystOptions;
   readonly #templates: Readonly<Record<PromptKind, PromptTemplate>>;
 
-  private constructor(options: LlmAnalystOptions, templates: Record<PromptKind, PromptTemplate>) {
+  private constructor(
+    options: LlmAnalystOptions,
+    templates: Record<PromptKind, PromptTemplate>,
+    limits: AnalystLimits,
+  ) {
     this.#options = options;
     this.#templates = templates;
-    this.limits = { ...DEFAULT_LIMITS, ...options.limits };
+    this.limits = limits;
   }
 
-  /** An Analyst, or the reasons the prompts cannot serve it. */
+  /**
+   * An Analyst, or the reasons it cannot be built: a missing prompt, an empty model id,
+   * or a limit beyond the spec budgets (`LIMIT_CEILINGS`), which is refused, not clamped.
+   */
   static create(options: LlmAnalystOptions): Result<LlmAnalyst, string[]> {
     const errors: string[] = [];
     const templates: Partial<Record<PromptKind, PromptTemplate>> = {};
@@ -147,11 +169,13 @@ export class LlmAnalyst implements Analyst {
       else errors.push(selected.error);
     }
     if (options.model.trim() === '') errors.push('the model id is empty');
+    const limits: AnalystLimits = { ...DEFAULT_LIMITS, ...options.limits };
+    errors.push(...checkLimits(limits));
     const { triage, report, vision } = templates;
     if (errors.length > 0 || triage === undefined || report === undefined || vision === undefined) {
       return err(errors);
     }
-    return ok(new LlmAnalyst(options, { triage, report, vision }));
+    return ok(new LlmAnalyst(options, { triage, report, vision }, limits));
   }
 
   /** The prompt id each operation uses. */

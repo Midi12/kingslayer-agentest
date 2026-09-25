@@ -49,3 +49,60 @@ export const DEFAULT_LIMITS: AnalystLimits = {
   reportTimeoutMs: 120_000,
   visionTimeoutMs: 60_000,
 };
+
+/**
+ * Ceilings a caller may not exceed (implementation spec M07; ADR M07-budgets): triage
+ * 20,000 tokens and six frames, report 16,000 tokens, images 1,280 px on the long edge,
+ * vision 20,000 tokens and at most four report key frames.
+ */
+export const LIMIT_CEILINGS = {
+  triageTokenBudget: 20_000,
+  triageMaxFrames: 6,
+  reportTokenBudget: 16_000,
+  reportMaxKeyFrames: 4,
+  visionTokenBudget: 20_000,
+  maxLongEdge: 1280,
+} as const satisfies Partial<Record<keyof AnalystLimits, number>>;
+
+/** Limits that must be at least 1; every other limit may be 0. */
+const POSITIVE: readonly (keyof AnalystLimits)[] = [
+  'triageTokenBudget',
+  'triageMaxFrames',
+  'reportTokenBudget',
+  'visionTokenBudget',
+  'maxLongEdge',
+  'triageMaxOutputTokens',
+  'reportMaxOutputTokens',
+  'visionMaxOutputTokens',
+  'triageTimeoutMs',
+  'reportTimeoutMs',
+  'visionTimeoutMs',
+];
+
+/**
+ * Why a set of limits cannot be used, or an empty list: every limit is a whole number,
+ * none exceeds its ceiling, and the triage keeps no more frames than it may send.
+ */
+export function checkLimits(limits: AnalystLimits): string[] {
+  const errors: string[] = [];
+  for (const [name, value] of Object.entries(limits) as [keyof AnalystLimits, number][]) {
+    const least = POSITIVE.includes(name) ? 1 : 0;
+    if (!Number.isSafeInteger(value) || value < least) {
+      errors.push(`limit ${name} must be a whole number of at least ${String(least)}`);
+    }
+  }
+  for (const [name, ceiling] of Object.entries(LIMIT_CEILINGS) as [
+    keyof typeof LIMIT_CEILINGS,
+    number,
+  ][]) {
+    if (limits[name] > ceiling) {
+      errors.push(
+        `limit ${name} is ${String(limits[name])}; at most ${String(ceiling)} is allowed`,
+      );
+    }
+  }
+  if (limits.triageMinFrames > limits.triageMaxFrames) {
+    errors.push('limit triageMinFrames exceeds triageMaxFrames');
+  }
+  return errors;
+}

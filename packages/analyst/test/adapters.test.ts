@@ -58,6 +58,28 @@ describe('SharpImageScaler', () => {
     expect(same.ok && same.value.image).toBe(small);
   });
 
+  it('re-encodes a small image whose data is not in its declared media type', async () => {
+    const png = await image(640, 480, 4, 'image/png');
+    for (const mediaType of ['image/jpeg', 'image/webp'] as const) {
+      const mislabelled = { mediaType, data: png.data };
+      const fitted = await scaler.fit(mislabelled, 1280);
+      expect(fitted.ok).toBe(true);
+      if (!fitted.ok) continue;
+      expect([fitted.value.width, fitted.value.height]).toEqual([640, 480]);
+      expect(fitted.value.image.mediaType).toBe(mediaType);
+      expect(fitted.value.image.data).not.toBe(png.data);
+      const meta = await sharp(Buffer.from(fitted.value.image.data, 'base64')).metadata();
+      expect(meta.format).toBe(mediaType.slice('image/'.length));
+    }
+    const jpeg = await image(640, 480, 5, 'image/jpeg');
+    const asPng = await scaler.fit({ mediaType: 'image/png', data: jpeg.data }, 1280);
+    expect(asPng.ok).toBe(true);
+    if (asPng.ok) {
+      const meta = await sharp(Buffer.from(asPng.value.image.data, 'base64')).metadata();
+      expect(meta.format).toBe('png');
+    }
+  });
+
   it('reports an image that does not decode', async () => {
     const broken = await scaler.fit({ mediaType: 'image/png', data: 'AAAAAAAA' }, 1280);
     expect(!broken.ok && broken.error.code).toBe('invalid_image');

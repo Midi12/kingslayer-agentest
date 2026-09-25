@@ -55,7 +55,7 @@ export {
 } from './core/data-block.js';
 
 // Budgets, frames, estimates, schemas.
-export { DEFAULT_LIMITS } from './core/budgets.js';
+export { DEFAULT_LIMITS, LIMIT_CEILINGS, checkLimits } from './core/budgets.js';
 export type { AnalystLimits } from './core/budgets.js';
 export { frameDropOrder, selectFrames } from './core/frames.js';
 export {
@@ -110,7 +110,7 @@ export { DEFAULT_PREMIUM_MODEL, DEFAULT_STANDARD_MODEL, modelForTier } from './c
 export type { ModelEnvironment } from './core/models.js';
 
 // The Analyst.
-export { LlmAnalyst, analystBreakReason } from './core/analyst.js';
+export { LlmAnalyst, analystBreakReason, isTransientAnalystError } from './core/analyst.js';
 export type {
   AnalystOperation,
   AnalystRequestInfo,
