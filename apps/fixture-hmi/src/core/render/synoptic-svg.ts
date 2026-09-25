@@ -1,7 +1,7 @@
 import type { Strings } from '../i18n.js';
 import type { Conveyor, FaultName } from '../types.js';
 import { statusLabel } from './conveyors.js';
-import { escapeAttr, escapeHtml, INDICATOR_HEX } from './html.js';
+import { escapeAttr, escapeHtml, INDICATOR_HEX, POLL_THEN_RELOAD_SCRIPT } from './html.js';
 import { renderLayout } from './layout.js';
 
 const COLUMNS = 5;
@@ -50,11 +50,16 @@ export function renderSynopticSvgPage(
       </g>`;
     })
     .join('\n');
+  // Clicking a shape starts its conveyor, exactly like the table's Start button; it must
+  // wait out the same pending delay before reloading (`pollThenReload`, `html.ts`) or a
+  // healthy click leaves the page showing stale amber/"Stopped" until a manual reload
+  // (round 3 review: this click handler used to call `location.reload()` immediately).
   const script = `<script>
+${POLL_THEN_RELOAD_SCRIPT}
 document.querySelectorAll('[data-conveyor]').forEach(function (g) {
   g.addEventListener('click', function () {
     var id = g.getAttribute('data-conveyor');
-    fetch('/sim/conveyors/' + id + '/start', { method: 'POST', headers: { 'x-argus-ui': '1' } }).then(function () { location.reload(); });
+    fetch('/sim/conveyors/' + id + '/start', { method: 'POST', headers: { 'x-argus-ui': '1' } }).then(function () { pollThenReload(id); });
   });
 });
 </script>`;

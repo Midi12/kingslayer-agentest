@@ -1,6 +1,6 @@
 import type { Strings } from '../i18n.js';
 import type { Conveyor, FaultName } from '../types.js';
-import { escapeAttr, escapeHtml, INDICATOR_HEX } from './html.js';
+import { escapeAttr, escapeHtml, INDICATOR_HEX, POLL_THEN_RELOAD_SCRIPT } from './html.js';
 import { renderLayout } from './layout.js';
 
 function indicatorColor(conveyor: Conveyor, faults: ReadonlySet<FaultName>, nowMs: number): keyof typeof INDICATOR_HEX {
@@ -88,34 +88,13 @@ export function renderConveyorsTableFragment(
 }
 
 /**
- * Start's effect is delayed (`START_DELAY_MS` of simulator time), so reloading right
- * after the POST still shows the pending, amber state. After Start the script instead
- * polls `/sim/state` until this conveyor is no longer pending (resolved to Running, or
- * left in place by a fault such as `wrong-state`) before reloading, up to a bound so a
- * fault that never resolves it (`no-effect`) still reloads once and shows its own state.
- * Stop has no delay, so it reloads immediately as before.
+ * `pollThenReload` (shared with the SVG synoptic, `html.ts`) is what makes reloading
+ * after Start show the resolved state instead of the pending, amber one. Stop has no
+ * delay, so it reloads immediately as before.
  */
 const CLIENT_SCRIPT = `
 <script>
-function pollThenReload(conveyorId) {
-  var attemptsLeft = 40;
-  function check() {
-    fetch('/sim/state', { headers: { 'x-argus-ui': '1' } })
-      .then(function (res) { return res.json(); })
-      .then(function (state) {
-        var row = (state.conveyors || []).filter(function (c) { return c.id === conveyorId; })[0];
-        var stillPending = row && row.pendingRunAtMs !== null && row.pendingRunAtMs !== undefined;
-        attemptsLeft -= 1;
-        if (!stillPending || attemptsLeft <= 0) {
-          location.reload();
-        } else {
-          setTimeout(check, 150);
-        }
-      })
-      .catch(function () { location.reload(); });
-  }
-  check();
-}
+${POLL_THEN_RELOAD_SCRIPT}
 document.addEventListener('click', function (event) {
   // A click inside an open shadow root (the shadow-dom fault) is retargeted to the
   // shadow host by the time it reaches a listener on \`document\`, so \`event.target\`
