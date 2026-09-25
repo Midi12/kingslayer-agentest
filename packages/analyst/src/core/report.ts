@@ -78,11 +78,16 @@ interface LedgerFacts {
   readonly outcomes: Map<string, { outcome: string; reason: BreakReason | null }>;
   /** `stepId|decision` of every valid MARK_PASSED or RESOLVE_TARGET escalation. */
   readonly adjudicated: Set<string>;
+  /** Steps whose last valid escalation marked them failed as a product defect. */
+  readonly productDefects: Set<string>;
 }
+
+const ADJUDICATIONS: readonly string[] = ['MARK_PASSED', 'RESOLVE_TARGET'];
 
 function ledgerFacts(input: ReportInput): LedgerFacts {
   const outcomes = new Map<string, { outcome: string; reason: BreakReason | null }>();
   const adjudicated = new Set<string>();
+  const lastEscalation = new Map<string, { decision: string; classification: string | null }>();
   const ordered = orderedEvents(ledgerEvents(input));
   for (const event of ordered) {
     if (event.type === 'step.finished') {
@@ -92,10 +97,27 @@ function ledgerFacts(input: ReportInput): LedgerFacts {
       event.data.valid &&
       event.data.decision !== null
     ) {
-      adjudicated.add(`${event.stepId}|${event.data.decision}`);
+      if (ADJUDICATIONS.includes(event.data.decision)) {
+        adjudicated.add(`${event.stepId}|${event.data.decision}`);
+      }
+      lastEscalation.set(event.stepId, {
+        decision: event.data.decision,
+        classification: event.data.classification,
+      });
     }
   }
-  return { outcomes, adjudicated };
+  const productDefects = new Set<string>();
+  for (const [stepId, escalation] of lastEscalation) {
+    if (
+      outcomes.get(stepId)?.outcome === 'failed' &&
+      escalation.classification === 'PRODUCT_DEFECT' &&
+      (escalation.decision === 'MARK_FAILED_CONTINUE' ||
+        escalation.decision === 'MARK_FAILED_ABORT')
+    ) {
+      productDefects.add(stepId);
+    }
+  }
+  return { outcomes, adjudicated, productDefects };
 }
 
 /** The draft checked against the ledger and completed into a `ReportBody`. */
@@ -136,6 +158,27 @@ export function assembleReportBody(
       );
     }
   });
+  // The draft may not drop what the ledger records: every product defect the triage
+  // found on a failed step, and every adjudication.
+  const reported = new Set(draft.defects.map((defect) => defect.stepId));
+  for (const stepId of facts.productDefects) {
+    if (!reported.has(stepId)) {
+      errors.push(
+        `/defects: step ${stepId} failed and its escalation classified it PRODUCT_DEFECT; report a defect for it`,
+      );
+    }
+  }
+  const listed = new Set(
+    draft.adjudications.map((adjudication) => `${adjudication.stepId}|${adjudication.decision}`),
+  );
+  for (const key of facts.adjudicated) {
+    if (!listed.has(key)) {
+      const [stepId, decision] = key.split('|');
+      errors.push(
+        `/adjudications: the ledger records a valid ${decision ?? ''} escalation for step ${stepId ?? ''}; list it`,
+      );
+    }
+  }
   draft.maintenance.forEach((item, index) => {
     if (item.stepId !== null && !intents.has(item.stepId)) {
       errors.push(

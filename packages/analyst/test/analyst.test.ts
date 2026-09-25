@@ -8,6 +8,7 @@ import {
   analystBreakReason,
   findDataBlocks,
   type AnalystRequestInfo,
+  type AnalystResponseInfo,
   type ImageScaler,
   type LlmProvider,
 } from '../src/index.js';
@@ -222,9 +223,54 @@ describe('triage and report edge cases', () => {
 
   it('reports the repair call failing as unavailable', async () => {
     llm.setScript({ outcomes: [{ response: { json: { decision: 'NOPE' } } }, { status: 401 }] });
-    const analyst = await analystFor(providerFor('anthropic', llm));
+    const responses: AnalystResponseInfo[] = [];
+    const analyst = await analystFor(providerFor('anthropic', llm), {
+      onResponse: (info) => responses.push(info),
+    });
     const result = await analyst.triage(packet());
     expect(!result.ok && result.error.code).toBe('unavailable');
+    // The completed first call is still reported, so a failed escalation is metered.
+    expect(responses).toHaveLength(1);
+    expect(responses[0]).toMatchObject({ operation: 'triage', attempt: 1 });
+    expect(responses[0]?.inputTokens).toBeGreaterThan(0);
+  });
+
+  it('reports the usage of both calls when the answer stays invalid', async () => {
+    llm.setScript({ response: { json: { decision: 'NOPE' } } });
+    const responses: AnalystResponseInfo[] = [];
+    const analyst = await analystFor(providerFor('openai', llm), {
+      onResponse: (info) => responses.push(info),
+    });
+    const result = await analyst.triage(packet());
+    expect(!result.ok && result.error.code).toBe('invalid_answer');
+    expect(responses.map((info) => info.attempt)).toEqual([1, 2]);
+    expect(responses.every((info) => info.outputTokens > 0)).toBe(true);
+  });
+
+  it('shrinks the quoted answer until the repair fits, escaping included', async () => {
+    llm.setScript({ response: { json: decision() } });
+    const first: AnalystRequestInfo[] = [];
+    await (await analystFor(providerFor('anthropic', llm), { requests: first })).triage(packet());
+    llm.clearRequests();
+    // Every character escapes to six bytes inside the data block: 3,000 of them need
+    // about 9,000 tokens, far beyond the 2,500 the budget keeps for the repair.
+    llm.setScript({ response: { text: '<'.repeat(3000) } });
+    const requests: AnalystRequestInfo[] = [];
+    const analyst = await analystFor(providerFor('anthropic', llm), {
+      requests,
+      limits: { triageTokenBudget: (first[0]?.estimatedTokens ?? 0) + 2500 },
+    });
+    const result = await analyst.triage(packet());
+    expect(!result.ok && result.error.code).toBe('invalid_answer');
+    expect(llm.requests).toHaveLength(2);
+    const repair = requests[1];
+    expect(repair?.estimatedTokens).toBeLessThanOrEqual(repair?.budget ?? 0);
+    const text = repair?.request.messages.at(-1)?.content[0];
+    const previous =
+      text?.type === 'text'
+        ? findDataBlocks(text.text).find((b) => b.name === 'previous')
+        : undefined;
+    expect(previous?.body).toMatch(/more characters not shown/);
   });
 
   it('quotes a long rejected answer only in part', async () => {
@@ -243,8 +289,16 @@ describe('triage and report edge cases', () => {
   it('refuses a repair that would exceed the budget', async () => {
     llm.clearRequests();
     llm.setScript({ response: { text: `not json ${'z'.repeat(70_000)}` } });
+    const first: AnalystRequestInfo[] = [];
+    await (await analystFor(providerFor('anthropic', llm), { requests: first })).triage(packet());
+    llm.clearRequests();
+    // A budget the first request exactly fills leaves no room for any repair message.
     const analyst = await analystFor(providerFor('anthropic', llm), {
-      limits: { repairReserveTokens: 0, repairAnswerChars: 100_000 },
+      limits: {
+        repairReserveTokens: 0,
+        repairAnswerChars: 100_000,
+        triageTokenBudget: first[0]?.estimatedTokens ?? 0,
+      },
     });
     const result = await analyst.triage(packet());
     expect(llm.requests).toHaveLength(1);

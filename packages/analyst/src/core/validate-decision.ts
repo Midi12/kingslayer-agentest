@@ -55,29 +55,61 @@ function normalisedOrigins(origins: readonly string[]): string[] {
   return out;
 }
 
+/** A scheme at the start of a URL (RFC 3986 `scheme ":"`). */
+const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+/** The only absolute form accepted: `http://` or `https://`, whose parse needs no base. */
+const HTTP_ABSOLUTE = /^https?:\/\//i;
 /**
- * True when `url`, absolute or relative to the first allowed origin, is an http(s) URL
- * without credentials whose origin is one of `origins`.
+ * Characters the URL parser strips or rewrites before parsing (C0 controls, space, DEL)
+ * and the backslash, which special schemes read as `/`. A URL holding one can mean
+ * something other than it shows (`/\\host`, `\t//host`), so none is accepted.
+ */
+// eslint-disable-next-line no-control-regex
+const AMBIGUOUS_CHARS = /[\u0000-\u001f\u007f\\]/;
+
+/**
+ * True when `url` stays inside `origins` whatever base the runner resolves it against,
+ * as long as that base is a page of an allowed origin:
+ *
+ * - an absolute URL must be written `http://…` or `https://…` (never `https:host`, whose
+ *   meaning depends on the base's scheme), carry no credentials, and have an allowed
+ *   origin;
+ * - any other scheme (`javascript:`, `data:`, `https:host`) is refused;
+ * - a relative URL must not start with `//` and must resolve, against every allowed
+ *   origin, to that same origin;
+ * - leading or trailing spaces, control characters and backslashes are refused.
  */
 export function staysInsideOrigins(url: string, origins: readonly string[]): boolean {
   const allowed = normalisedOrigins(origins);
-  const base = allowed[0];
-  if (base === undefined) {
+  if (allowed.length === 0 || url.trim() !== url || AMBIGUOUS_CHARS.test(url)) {
     return false;
   }
-  let parsed: URL;
-  try {
-    parsed = new URL(url, base);
-  } catch {
+  const inside = (parsed: URL): boolean =>
+    (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+    parsed.username === '' &&
+    parsed.password === '';
+  if (SCHEME.test(url)) {
+    if (!HTTP_ABSOLUTE.test(url)) {
+      return false;
+    }
+    try {
+      const parsed = new URL(url);
+      return inside(parsed) && allowed.includes(parsed.origin);
+    } catch {
+      return false;
+    }
+  }
+  if (url.startsWith('//')) {
     return false;
   }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return false;
-  }
-  if (parsed.username !== '' || parsed.password !== '') {
-    return false;
-  }
-  return allowed.includes(parsed.origin);
+  return allowed.every((base) => {
+    try {
+      const parsed = new URL(url, base);
+      return inside(parsed) && parsed.origin === base;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function templateStrings(value: unknown, path: string, out: string[]): void {

@@ -227,11 +227,47 @@ describe('origins', () => {
     expect(staysInsideOrigins('/x', [])).toBe(false);
     expect(staysInsideOrigins('/x', ['not an origin'])).toBe(false);
   });
+
+  it('refuses every form whose origin depends on the base it is resolved against', () => {
+    const origins = ['https://hmi.test', 'http://legacy.test'];
+    for (const url of [
+      'https:evil.example',
+      'http:evil.example',
+      'HTTPS:evil.example/x',
+      'http:/evil.example',
+      'https:/hmi.test/x',
+      'https:hmi.test/x',
+      '//evil.example',
+      '/\\evil.example',
+      '\\\\evil.example',
+      '\t//evil.example',
+      '/\n/evil.example',
+      ' //evil.example',
+      '/alarms ',
+      'https://hmi.test@evil.example/',
+      'data:text/html,x',
+      'C12:detail',
+    ]) {
+      expect(staysInsideOrigins(url, origins), url).toBe(false);
+    }
+    for (const url of [
+      '/alarms?filter=C12',
+      'alarms',
+      '?page=2',
+      '#top',
+      'HTTPS://HMI.TEST/alarms',
+      'http://legacy.test/overview',
+    ]) {
+      expect(staysInsideOrigins(url, origins), url).toBe(true);
+    }
+  });
 });
 
 describe('estimates and frames', () => {
   it('estimates text and images conservatively', () => {
-    expect(estimateTextTokens('abcdef')).toBe(2);
+    expect(estimateTextTokens('abcdef')).toBe(3);
+    // A sha256 digest: 64 hex digits at 1.5 a token, the prefix at half a token a byte.
+    expect(estimateTextTokens(`sha256:${'ab'.repeat(32)}`)).toBe(4 + 43);
     expect(estimateImageTokens(1280, 720)).toBe(1229);
     expect(estimateImageTokens(4000, 3000)).toBe(16000);
     expect(estimateImageTokens(2048, 100)).toBe(85 + 170 * 4);
@@ -373,6 +409,7 @@ describe('report assembly', () => {
       '/defects/0/stepId: step s1 did not fail (passed); report defects only for failed steps',
       '/defects/1/stepId: s9 is not a step of the script',
       '/adjudications/0: the ledger has no valid MARK_PASSED escalation for step s2',
+      '/defects: step s2 failed and its escalation classified it PRODUCT_DEFECT; report a defect for it',
       '/maintenance/0/stepId: s9 is not a step of the script',
     ]);
     expect(readReportDraft({ ...draft(), verdict: 'passed' })).toMatchObject({ ok: false });
@@ -402,6 +439,11 @@ describe('report assembly', () => {
     };
     const assembled = assembleReportBody(value, input, generatedBy);
     expect(assembled.ok).toBe(true);
+    // The draft may not hide an adjudication the ledger records.
+    const hidden = assembleReportBody(draft() as ReportDraft, input, generatedBy);
+    expect(!hidden.ok && hidden.error).toEqual([
+      '/adjudications: the ledger records a valid MARK_PASSED escalation for step s3; list it',
+    ]);
     const a = defectSignature({
       intent: 'Check the jam alarm appears.',
       reason: 'EXPECTATION_FAILED',

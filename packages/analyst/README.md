@@ -31,7 +31,7 @@ Tests: `pnpm --filter @argus/analyst test`; gates: `pnpm gate M07`.
 | Adapters | `AnthropicProvider` (`@anthropic-ai/sdk`, `output_config.format`, refusal fallbacks on the first-party API), `OpenAiCompatibleProvider` (`fetch`; OpenAI, Azure, vLLM, Ollama, Mistral), `SharpImageScaler`, `loadPromptDirectory` |
 | Menu and validation | `allowedDecisions(reason, { strict }, { critical })`, `isEscalable`, `validateDecision(packet, answer)` |
 | Prompts | `prompts/t-N.md`, `r-N.md`, `v-N.md`; `parsePromptTemplate`, `renderSection`, `dataBlock`, `ndjsonBlock` |
-| Budgets | `DEFAULT_LIMITS` (triage 20,000 tokens and six frames, report 16,000, images 1,280 px), `selectFrames`, `buildTriageRequest`, `buildReportRequest`, estimates |
+| Budgets | `DEFAULT_LIMITS` (triage 20,000 tokens and six frames, report 12,000 (M19-G5; the spec allows 16,000), images 1,280 px), `selectFrames`, `buildTriageRequest`, `buildReportRequest`, estimates |
 | Analyst | `LlmAnalyst` (one repair attempt carrying the validator errors, then `invalid_answer`), `analystBreakReason` |
 | Report | `buildRunReport(body, { runId, verdict, flags, stats })`, `defectSignature` |
 | Models | `modelForTier(tier, env)` over `ARGUS_LLM_MODEL` and `ARGUS_LLM_PREMIUM_MODEL` |

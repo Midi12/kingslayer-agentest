@@ -111,7 +111,12 @@ export type { ModelEnvironment } from './core/models.js';
 
 // The Analyst.
 export { LlmAnalyst, analystBreakReason } from './core/analyst.js';
-export type { AnalystOperation, AnalystRequestInfo, LlmAnalystOptions } from './core/analyst.js';
+export type {
+  AnalystOperation,
+  AnalystRequestInfo,
+  AnalystResponseInfo,
+  LlmAnalystOptions,
+} from './core/analyst.js';
 
 // Live quality (M07-G7, M19-G6).
 export { parseLabelledBreaks, runTriageEvaluation, scoreTriage } from './core/evaluation.js';

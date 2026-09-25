@@ -10,7 +10,10 @@ export interface AnalystLimits {
   readonly triageMaxFrames: number;
   /** Frames the triage keeps whatever the budget, when the packet has that many. */
   readonly triageMinFrames: number;
-  /** Report input budget, ledger and key frames included. */
+  /**
+   * Report input budget, ledger and key frames included. The spec allows 16,000 (M07-G5);
+   * the default is 12,000 so the report also meets M19-G5 (report input at most 12,000).
+   */
   readonly reportTokenBudget: number;
   readonly reportMaxKeyFrames: number;
   /** Visual grounding and vision assertion input budget. */
@@ -33,7 +36,7 @@ export const DEFAULT_LIMITS: AnalystLimits = {
   triageTokenBudget: 20_000,
   triageMaxFrames: 6,
   triageMinFrames: 3,
-  reportTokenBudget: 16_000,
+  reportTokenBudget: 12_000,
   reportMaxKeyFrames: 4,
   visionTokenBudget: 20_000,
   maxLongEdge: 1280,

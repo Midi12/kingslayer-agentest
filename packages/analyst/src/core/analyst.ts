@@ -66,6 +66,20 @@ export interface AnalystRequestInfo {
   readonly request: LlmRequest;
 }
 
+/**
+ * One completed provider call and the tokens it used. It is reported for every call,
+ * including those of an operation that ends as `invalid_answer` or whose repair call
+ * fails, which `AnalystError` cannot carry: the engine meters failed escalations from it.
+ */
+export interface AnalystResponseInfo {
+  readonly operation: AnalystOperation;
+  readonly attempt: 1 | 2;
+  readonly model: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly stopReason: LlmResponse['stopReason'];
+}
+
 export interface LlmAnalystOptions {
   readonly provider: LlmProvider;
   readonly scaler: ImageScaler;
@@ -77,6 +91,7 @@ export interface LlmAnalystOptions {
   readonly limits?: Partial<AnalystLimits>;
   readonly temperature?: number;
   readonly onRequest?: (info: AnalystRequestInfo) => void;
+  readonly onResponse?: (info: AnalystResponseInfo) => void;
 }
 
 /** The break reason an Analyst failure becomes in the engine. */
@@ -96,6 +111,8 @@ function schemaErrors(errors: readonly { path: string; message: string }[]): str
 
 const MAX_REPAIR_ERRORS = 12;
 const MAX_REPAIR_ERROR_CHARS = 300;
+/** Below this many characters the quoted answer is dropped rather than halved. */
+const MIN_REPAIR_QUOTE_CHARS = 100;
 
 interface Ask<T> {
   readonly operation: AnalystOperation;
@@ -431,44 +448,57 @@ export class LlmAnalyst implements Analyst {
     if (!first.ok) {
       return err(fromLlmError(first.error));
     }
+    this.#reportResponse(ask.operation, 1, first.value);
     const firstAnswer = this.#read(ask, first.value);
     if (firstAnswer.ok) {
       return ok({ result: firstAnswer.value, usage: this.#usage(ask.billable, [first.value]) });
     }
     const previous =
       first.value.text !== '' ? first.value.text : JSON.stringify(first.value.json ?? null);
-    const quoted =
-      previous.length <= this.limits.repairAnswerChars
-        ? previous
-        : `${previous.slice(0, this.limits.repairAnswerChars)} [${String(previous.length - this.limits.repairAnswerChars)} more characters not shown]`;
-    const errors = firstAnswer.error
-      .slice(0, MAX_REPAIR_ERRORS)
-      .map((error) =>
-        error.length <= MAX_REPAIR_ERROR_CHARS
-          ? error
-          : `${error.slice(0, MAX_REPAIR_ERROR_CHARS)}…`,
-      );
-    if (firstAnswer.error.length > MAX_REPAIR_ERRORS) {
-      errors.push(
-        `${String(firstAnswer.error.length - MAX_REPAIR_ERRORS)} further errors not shown`,
-      );
-    }
-    const repairText = renderSection(ask.template, 'repair', {
-      'data:previous': dataBlock('previous', { answer: quoted }),
-      'data:errors': dataBlock('errors', errors),
-    });
-    const repair: LlmRequest = {
-      ...ask.request,
-      messages: [
-        ...ask.request.messages,
-        { role: 'user', content: [{ type: 'text', text: repairText }] },
-      ],
+    const allErrors = firstAnswer.error.map((error) =>
+      error.length <= MAX_REPAIR_ERROR_CHARS ? error : `${error.slice(0, MAX_REPAIR_ERROR_CHARS)}…`,
+    );
+    // The quote and the errors are escaped inside data blocks, so their size in the
+    // request is only known once built: shrink the quote, then the error list, until the
+    // repair fits the budget.
+    const buildRepair = (quoteChars: number, errorCount: number): LlmRequest => {
+      const quoted =
+        previous.length <= quoteChars
+          ? previous
+          : `${previous.slice(0, quoteChars)} [${String(previous.length - quoteChars)} more characters not shown]`;
+      const errors = allErrors.slice(0, errorCount);
+      if (allErrors.length > errorCount) {
+        errors.push(`${String(allErrors.length - errorCount)} further errors not shown`);
+      }
+      const repairText = renderSection(ask.template, 'repair', {
+        'data:previous': dataBlock('previous', { answer: quoted }),
+        'data:errors': dataBlock('errors', errors),
+      });
+      return {
+        ...ask.request,
+        messages: [
+          ...ask.request.messages,
+          { role: 'user', content: [{ type: 'text', text: repairText }] },
+        ],
+      };
     };
-    const repairTokens = estimateLlmRequest(repair, ask.sizes);
+    let quoteChars = this.limits.repairAnswerChars;
+    let errorCount = Math.min(MAX_REPAIR_ERRORS, allErrors.length);
+    let repair = buildRepair(quoteChars, errorCount);
+    let repairTokens = estimateLlmRequest(repair, ask.sizes);
+    while (repairTokens > ask.budget && (quoteChars > 0 || errorCount > 1)) {
+      if (quoteChars > 0) {
+        quoteChars = quoteChars > MIN_REPAIR_QUOTE_CHARS ? Math.floor(quoteChars / 2) : 0;
+      } else {
+        errorCount = Math.ceil(errorCount / 2);
+      }
+      repair = buildRepair(quoteChars, errorCount);
+      repairTokens = estimateLlmRequest(repair, ask.sizes);
+    }
     if (repairTokens > ask.budget) {
       return err({
         code: 'invalid_answer',
-        message: `the answer was invalid and the repair request (about ${String(repairTokens)} tokens) exceeds the budget of ${String(ask.budget)}`,
+        message: `the answer was invalid and even the shortest repair request (about ${String(repairTokens)} tokens) exceeds the budget of ${String(ask.budget)}`,
         errors: firstAnswer.error,
       });
     }
@@ -486,6 +516,7 @@ export class LlmAnalyst implements Analyst {
     if (!second.ok) {
       return err(fromLlmError(second.error));
     }
+    this.#reportResponse(ask.operation, 2, second.value);
     const secondAnswer = this.#read(ask, second.value);
     if (secondAnswer.ok) {
       return ok({
@@ -497,6 +528,17 @@ export class LlmAnalyst implements Analyst {
       code: 'invalid_answer',
       message: `the ${ask.operation} answer stayed invalid after one repair attempt`,
       errors: secondAnswer.error,
+    });
+  }
+
+  #reportResponse(operation: AnalystOperation, attempt: 1 | 2, response: LlmResponse): void {
+    this.#options.onResponse?.({
+      operation,
+      attempt,
+      model: response.model.slice(0, 128) || this.#options.model,
+      inputTokens: response.usage.inputTokens,
+      outputTokens: response.usage.outputTokens,
+      stopReason: response.stopReason,
     });
   }
 

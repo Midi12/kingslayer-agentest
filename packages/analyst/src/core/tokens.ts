@@ -1,16 +1,36 @@
 /**
- * Token estimates used to enforce budgets before a call (ADR M07-budgets). They are
- * deliberately conservative: a third of the UTF-8 bytes of text (real tokenisers give
- * about a quarter for English prose, less for JSON), and for an image the larger of the
- * Anthropic (w·h/750) and OpenAI high-detail (85 + 170 per 512 px tile) counts.
+ * Token estimates used to enforce budgets before a call (ADR M07-budgets). The base text
+ * estimate is a third of the UTF-8 bytes, which is roughly what earlier tokenisers give
+ * for mixed prose and JSON; newer tokenisers give up to about 30% more, and hex digests
+ * tokenise densely. Until M19-G5 calibrates the estimate against billed tokens, text is
+ * counted with an explicit safety factor of 1.5 over that base (half a token per byte),
+ * and every run of 16 or more hex digits at one token per 1.5 digits. Images count the
+ * larger of the Anthropic (w·h/750) and OpenAI high-detail (85 + 170 per 512 px tile)
+ * counts, which are published formulas and need no factor.
  */
 import { utf8 } from '@argus/contracts';
 
 /** Tokens one message adds beyond its content (role markers and separators). */
 export const MESSAGE_OVERHEAD_TOKENS = 8;
 
+/** Bytes per token of the base estimate. */
+export const BASE_BYTES_PER_TOKEN = 3;
+/** Safety factor over the base estimate, kept until M19-G5 calibrates it. */
+export const TEXT_SAFETY_FACTOR = 1.5;
+/** Hex digits per token inside long hex runs (sha256 digests, ids). */
+export const HEX_CHARS_PER_TOKEN = 1.5;
+
+const HEX_RUN = /[0-9a-fA-F]{16,}/g;
+
 export function estimateTextTokens(text: string): number {
-  return Math.ceil(utf8(text).length / 3);
+  let hexChars = 0;
+  let hexTokens = 0;
+  for (const match of text.matchAll(HEX_RUN)) {
+    hexChars += match[0].length;
+    hexTokens += Math.ceil(match[0].length / HEX_CHARS_PER_TOKEN);
+  }
+  const otherBytes = utf8(text).length - hexChars;
+  return Math.ceil((otherBytes * TEXT_SAFETY_FACTOR) / BASE_BYTES_PER_TOKEN) + hexTokens;
 }
 
 export function estimateImageTokens(width: number, height: number): number {
