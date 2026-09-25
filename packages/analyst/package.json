@@ -1,0 +1,42 @@
+{
+  "name": "@argus/analyst",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The ARGUS Analyst: LlmProvider port with Anthropic and OpenAI-compatible adapters, the decision matrix and validator, versioned prompts, triage, visual grounding, vision assertions and the run report",
+  "exports": {
+    ".": {
+      "@argus/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "depcruise": "depcruise --config ../../.dependency-cruiser.cjs src",
+    "test:gate-g1": "vitest run test/gate-g1.test.ts",
+    "test:gate-g2": "vitest run test/gate-g2.test.ts",
+    "test:gate-g3": "vitest run test/gate-g3.test.ts",
+    "test:gate-g4": "vitest run test/gate-g4.test.ts",
+    "test:gate-g5": "vitest run test/gate-g5.test.ts",
+    "test:gate-g6": "vitest run test/gate-g6.test.ts",
+    "test:gate-g7": "tsx --conditions=@argus/source scripts/live-triage-eval.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@argus/contracts": "workspace:*",
+    "@sinclair/typebox": "0.34.52",
+    "sharp": "0.34.5"
+  },
+  "devDependencies": {
+    "@argus/testkit": "workspace:*",
+    "fast-check": "4.10.2"
+  }
+}

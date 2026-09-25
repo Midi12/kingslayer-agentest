@@ -13,3 +13,12 @@ The spec requires five human decisions. This build ran autonomously (ADR-0015), 
 ## Items raised during the build
 
 Gate changes, Tier B results and questions that need a human are appended below by module.
+
+### M07 prompt review
+
+The implementation plan asks a human to review the Analyst prompts line by line. The
+templates are `prompts/t-1.md` (break triage), `prompts/r-1.md` (run report) and
+`prompts/v-1.md` (visual grounding and vision assertions); ADR M07-prompts explains the
+format and the untrusted data blocks. Status: pending. Also pending: M07-G7 (live triage
+quality, run as M19-G6) needs `ARGUS_LLM_API_KEY` and the labelled breaks dataset
+(ADR M07-live-quality), and the model defaults of ADR M07-models are to be confirmed there.

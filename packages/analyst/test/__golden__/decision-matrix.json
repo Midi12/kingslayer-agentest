@@ -1,0 +1,43 @@
+{
+  "source": "docs/spec/02-architecture-and-contracts.md, Allowed decisions by break reason; MARK_FAILED_CONTINUE per docs/spec/01-product-design.md, On a break",
+  "columns": ["RETRY_STEP", "PATCH", "RESOLVE_TARGET", "MARK_PASSED", "MARK_FAILED_*", "ABORT_ENV"],
+  "cellValues": {
+    "yes": "offered",
+    "no": "never offered",
+    "unless strict": "offered unless the policy is strict"
+  },
+  "markFailedExpansion": {
+    "MARK_FAILED_CONTINUE": "offered when the column says yes and the step is not critical",
+    "MARK_FAILED_ABORT": "offered when the column says yes"
+  },
+  "table": {
+    "GROUNDING_AMBIGUOUS": ["yes", "yes", "yes", "no", "yes", "yes"],
+    "TARGET_NOT_FOUND": ["yes", "yes", "no", "no", "yes", "yes"],
+    "AUTH_LOST": ["yes", "yes", "no", "no", "yes", "yes"],
+    "ACTION_ERROR": ["yes", "yes", "no", "no", "yes", "yes"],
+    "TIMEOUT": ["yes", "yes", "no", "no", "yes", "yes"],
+    "EXPECTATION_UNCERTAIN": ["yes", "yes", "no", "unless strict", "yes", "yes"],
+    "UNEXPECTED_ERROR_UI": ["yes", "yes", "no", "unless strict", "yes", "yes"],
+    "BLOCKING_MODAL": ["yes", "yes", "no", "unless strict", "yes", "yes"],
+    "OFF_PATH": ["yes", "yes", "no", "unless strict", "yes", "yes"],
+    "NO_EFFECT": ["yes", "yes", "no", "unless strict", "yes", "yes"],
+    "EXPECTATION_FAILED": ["yes", "no", "no", "no", "yes", "yes"],
+    "ASSERTION_FAILED": ["yes", "no", "no", "no", "yes", "yes"],
+    "VISUAL_DIFF": ["yes", "no", "no", "no", "yes", "yes"]
+  },
+  "extensions": {
+    "adr": "docs/adr/M07-decision-matrix.md",
+    "rows": {
+      "CONSOLE_OR_NETWORK_ERROR": ["yes", "no", "no", "no", "yes", "yes"],
+      "OBSERVE_FAILED": ["yes", "yes", "no", "no", "yes", "yes"],
+      "NAVIGATOR_UNAVAILABLE": ["yes", "yes", "no", "no", "yes", "yes"]
+    },
+    "notEscalated": [
+      "SETUP_FAILED",
+      "BUDGET_EXHAUSTED",
+      "RUNNER_LOST",
+      "ANALYST_UNAVAILABLE",
+      "ANALYST_INVALID"
+    ]
+  }
+}
